@@ -126,7 +126,7 @@ export default function SchedulePage() {
         </div>
         <div className="stat-card">
           <div className="stat-card-icon success">✓</div>
-          <div className="stat-label">To'lagan</div>
+          <div className="stat-label">{"To'lagan"}</div>
           <div className="stat-value">{stats?.paidThisMonth || 0}</div>
         </div>
         <div className="stat-card">
@@ -197,7 +197,7 @@ export default function SchedulePage() {
                   <th>{t('group')}</th>
                   <th>Narx</th>
                   <th>Cikl</th>
-                  <th>Keyingi to'lov</th>
+                  <th>{"Keyingi to'lov"}</th>
                   <th>Holat</th>
                   <th>{t('actions')}</th>
                 </tr>

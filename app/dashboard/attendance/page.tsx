@@ -150,7 +150,7 @@ export default function DashboardAttendancePage() {
                   <option value="">Tanlang</option>
                   <option value="present">Keldi</option>
                   <option value="absent">Kelmadi</option>
-                  <option value="rescheduled">Ko'chirildi</option>
+                  <option value="rescheduled">{"Ko'chirildi"}</option>
                 </select>
 
                 {attendance[s._id]?.status === 'rescheduled' && (

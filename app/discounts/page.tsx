@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import Modal from '@/components/Modal';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -58,11 +58,7 @@ export default function DiscountsPage() {
     endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0],
   });
 
-  useEffect(() => {
-    fetchData();
-  }, [activeOnly]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [discountsRes, studentsRes] = await Promise.all([
@@ -78,7 +74,11 @@ export default function DiscountsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeOnly]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,7 +212,7 @@ export default function DiscountsPage() {
           <span>Faol chegirmalar</span>
         </label>
         <button className="btn btn-primary ml-auto" onClick={() => openModal()}>
-          + Chegirma qo'shish
+          {"+ Chegirma qo'shish"}
         </button>
       </div>
 
@@ -345,7 +345,7 @@ export default function DiscountsPage() {
                 onChange={(e) => setFormData({ ...formData, discountType: e.target.value as any })}
               >
                 <option value="percentage">Foiz (%)</option>
-                <option value="fixed">Summa (so'm)</option>
+                <option value="fixed">{"Summa (so'm)"}</option>
               </select>
             </div>
             <div className="form-group">

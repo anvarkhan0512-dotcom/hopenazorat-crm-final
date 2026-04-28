@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import Modal from '@/components/Modal';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -42,13 +42,7 @@ export default function InvoicesPage() {
     setYearFilter(currentYear.toString());
   }, [currentMonth, currentYear]);
 
-  useEffect(() => {
-    if (monthFilter && yearFilter) {
-      fetchInvoices();
-    }
-  }, [monthFilter, yearFilter, statusFilter]);
-
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -64,7 +58,13 @@ export default function InvoicesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [monthFilter, yearFilter, statusFilter]);
+
+  useEffect(() => {
+    if (monthFilter && yearFilter) {
+      fetchInvoices();
+    }
+  }, [monthFilter, yearFilter, fetchInvoices]);
 
   const generateInvoices = async () => {
     setGenerating(true);
@@ -125,7 +125,7 @@ export default function InvoicesPage() {
           <div className="stat-value" style={{ color: '#10b981' }}>{summary.paid}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Qisman to\'lagan</div>
+          <div className="stat-label">{"Qisman to'lagan"}</div>
           <div className="stat-value" style={{ color: '#f59e0b' }}>{summary.partial}</div>
         </div>
         <div className="stat-card">

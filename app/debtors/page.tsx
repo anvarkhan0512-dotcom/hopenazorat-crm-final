@@ -61,11 +61,11 @@ export default function DebtorsPage() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">To'lanmagan</div>
+          <div className="stat-label">{"To'lanmagan"}</div>
           <div className="stat-value" style={{ color: '#ef4444' }}>{summary?.pending || 0}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">Qisman to'lagan</div>
+          <div className="stat-label">{"Qisman to'lagan"}</div>
           <div className="stat-value" style={{ color: '#f59e0b' }}>{summary?.partial || 0}</div>
         </div>
         <div className="stat-card">
@@ -82,7 +82,7 @@ export default function DebtorsPage() {
           <div className="empty-state">
             <div className="empty-state-icon">✅</div>
             <div className="empty-state-title">{t('noData')}</div>
-            <div className="empty-state-text">Hozircha qarzdorlar yo'q</div>
+            <div className="empty-state-text">{"Hozircha qarzdorlar yo'q"}</div>
           </div>
         ) : (
           <div className="table-container">

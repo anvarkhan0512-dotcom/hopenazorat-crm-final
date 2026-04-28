@@ -59,6 +59,7 @@ export default function ParentHomeworkPage() {
   const router = useRouter();
   const { t } = useLanguage();
   const [data, setData] = useState<any>(null);
+  const items = useMemo(() => data?.items || [], [data]);
 
   useEffect(() => {
     if (!loading && user && user.role !== 'parent') router.replace('/dashboard');
@@ -90,8 +91,6 @@ export default function ParentHomeworkPage() {
       </DashboardLayout>
     );
   }
-
-  const items = useMemo(() => data?.items || [], [data?.items]);
 
   return (
     <DashboardLayout title={t('homeworkParent')}>

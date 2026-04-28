@@ -140,7 +140,7 @@ export default function RemindersPage() {
 
               {(!reminders?.[card.key] || reminders[card.key].length === 0) ? (
                 <div className="empty-state py-4">
-                  <div className="empty-state-title">Yo'q</div>
+                  <div className="empty-state-title">{"Yo'q"}</div>
                 </div>
               ) : (
                 <div className="space-y-3">
