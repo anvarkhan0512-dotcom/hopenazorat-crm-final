@@ -3,6 +3,8 @@ import connectDB from '@/lib/db';
 import { getAuthUser, requireAdmin } from '@/lib/auth-server';
 import { getAdminFinanceOverview } from '@/lib/teacherFinance';
 
+export const dynamic = 'force-dynamic';
+
 /** Alias of admin finances (lean-backed aggregation in `getAdminFinanceOverview`). */
 export async function GET(request: NextRequest) {
   try {

@@ -4,6 +4,8 @@ import { User } from '@/models/User';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+export const dynamic = 'force-dynamic';
+
 // Agar .env faylda JWT_SECRET bo'lmasa, vaqtincha shu kalit ishlatiladi
 const JWT_SECRET = process.env.JWT_SECRET || 'edu-crm-secret-key-2024';
 
@@ -13,21 +15,17 @@ export async function POST(request: NextRequest) {
     
     // 1. Frontenddan kelayotgan ma'lumotni o'qish
     const body = await request.json();
-    console.log("LOGIN URINISHI:", body); 
-
     const { username, password } = body;
 
     // 2. Foydalanuvchini bazadan qidirish (Trim - bo'sh joylarni olib tashlaydi)
-    const user = await User.findOne({ username: username.trim() });
+    const user = await User.findOne({ username: String(username ?? '').trim() });
     
     if (!user) {
-      console.log("XATO: Foydalanuvchi topilmadi ->", username);
       return NextResponse.json({ error: 'Foydalanuvchi topilmadi' }, { status: 401 });
     }
 
     // 3. Parolni tekshirish
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    console.log("PAROL STATUSI:", isValidPassword ? "TO'G'RI ✅" : "XATO ❌");
+    const isValidPassword = await bcrypt.compare(String(password ?? ''), user.password);
 
     if (!isValidPassword) {
       return NextResponse.json({ error: 'Parol noto‘g‘ri' }, { status: 401 });
@@ -46,12 +44,10 @@ export async function POST(request: NextRequest) {
 
     // 5. Muvaffaqiyatli javob va Cookie sozlamalari
     const response = NextResponse.json({
-      message: "Muvaffaqiyatli kirdingiz",
       user: {
         id: user._id.toString(),
         username: user.username,
         role: user.role,
-        displayName: user.displayName || 'Admin',
       },
     });
 
@@ -63,7 +59,6 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 7, // 7 kun
     });
 
-    console.log("LOGIN MUVAFFAQIYATLI: Token yuborildi");
     return response;
 
   } catch (error: any) {

@@ -4,6 +4,8 @@ import { getAuthUser, requireAdmin } from '@/lib/auth-server';
 import { User } from '@/models/User';
 import { Student } from '@/models/Student';
 
+export const dynamic = 'force-dynamic';
+
 /** Admin links an existing parent account to a student (ota-ona ID / akkaunt bog‘lash). */
 export async function POST(request: NextRequest) {
   try {

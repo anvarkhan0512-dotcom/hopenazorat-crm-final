@@ -5,6 +5,8 @@ import { Group } from '@/models/Group';
 import { Student } from '@/models/Student';
 import { getTeacherPaymentStats } from '@/lib/teacherFinance';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);

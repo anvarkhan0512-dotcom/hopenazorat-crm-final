@@ -5,6 +5,8 @@ import { Homework } from '@/models/Homework';
 import { HomeworkSubmission } from '@/models/HomeworkSubmission';
 import { Student } from '@/models/Student';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);

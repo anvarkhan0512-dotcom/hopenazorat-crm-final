@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import connectDB from '../../../../lib/db';
-import { getAuthUser, requireAdmin } from '../../../../lib/auth-server';
-import { User } from '../../../../models/User';
+import connectDB from '@/lib/db';
+import { getAuthUser, requireAdmin } from '@/lib/auth-server';
+import { User } from '@/models/User';
+
+export const dynamic = 'force-dynamic';
 
 /** Yangi ustoz / ota-ona akkaunti (admin). */
 export async function POST(request: NextRequest) {
