@@ -1,0 +1,1140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* hopenazorat brand */
+  --hope-purple: #5c139c;
+  --hope-purple-dark: #3d0d6b;
+  --hope-purple-deep: #2d0660;
+  --hope-gold: #d4af37;
+  --hope-gold-light: #f4e4bc;
+  --hope-gold-mid: #e8c547;
+  --primary: #5c139c;
+  --primary-dark: #3d0d6b;
+  --primary-light: #7b2fc9;
+  --secondary: #c9a227;
+  --success: #15803d;
+  --warning: #c9a227;
+  --danger: #b91c5c;
+  --dark: #1a0a2e;
+  --dark-light: #2d1b45;
+  --gray: #64748b;
+  --gray-light: #94a3b8;
+  --background: #f6f2fc;
+  --surface: #ffffff;
+  --border: #e8dff5;
+  --shadow: 0 4px 20px rgba(92, 19, 156, 0.08);
+  --shadow-lg: 0 12px 40px rgba(92, 19, 156, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-hope-body), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--background);
+  color: var(--dark);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 280px;
+  background: linear-gradient(180deg, var(--hope-purple-deep) 0%, var(--hope-purple-dark) 55%, #4a0f7a 100%);
+  color: white;
+  position: fixed;
+  height: 100vh;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  z-index: 40;
+  box-shadow: 4px 0 32px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-brand {
+  padding: 8px 4px 12px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  color: var(--gray-light);
+  text-decoration: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.sidebar-link.active {
+  background: linear-gradient(135deg, var(--hope-purple) 0%, #7b2fc9 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.25);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+}
+
+.sidebar-link-icon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  background: var(--surface);
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.topbar-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.main-body {
+  padding: 32px;
+  flex: 1;
+}
+
+.page-header {
+  margin-bottom: 32px;
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--dark);
+  margin-bottom: 8px;
+}
+
+.page-subtitle {
+  font-size: 16px;
+  color: var(--gray);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: linear-gradient(155deg, #ffffff 0%, #faf6ff 55%, #fffdf8 100%);
+  border-radius: 1rem;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(92, 19, 156, 0.12);
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(212, 175, 55, 0.35);
+}
+
+.stat-card-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.stat-card-icon.primary {
+  background: linear-gradient(135deg, var(--hope-purple) 0%, #8b3dd4 100%);
+  color: white;
+  box-shadow: 0 4px 14px rgba(92, 19, 156, 0.35);
+}
+.stat-card-icon.success {
+  background: linear-gradient(135deg, var(--hope-purple-dark) 0%, var(--hope-gold-mid) 100%);
+  color: white;
+  box-shadow: 0 4px 14px rgba(201, 162, 39, 0.3);
+}
+.stat-card-icon.warning {
+  background: linear-gradient(135deg, #b8860b 0%, var(--hope-gold-light) 55%, var(--hope-gold) 100%);
+  color: #2d0660;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35);
+}
+.stat-card-icon.danger {
+  background: linear-gradient(135deg, #7c1d5c 0%, var(--hope-purple) 100%);
+  color: white;
+  box-shadow: 0 4px 14px rgba(124, 29, 92, 0.35);
+}
+
+.stat-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--hope-purple-deep);
+  line-height: 1;
+}
+
+.stat-change {
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-change.positive { color: var(--success); }
+.stat-change.negative { color: var(--danger); }
+
+.card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--hope-purple) 0%, var(--hope-purple-dark) 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(92, 19, 156, 0.35);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(92, 19, 156, 0.45), 0 0 0 1px rgba(212, 175, 55, 0.35);
+}
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--dark);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--background);
+  border-color: var(--gray);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+  color: white;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+  color: white;
+}
+
+.btn-sm {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.btn-icon {
+  padding: 10px;
+  min-width: 40px;
+}
+
+.btn-icon.btn-sm {
+  padding: 6px;
+  min-width: 32px;
+}
+
+.input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+  background: var(--surface);
+  color: var(--dark);
+  transition: all 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.input::placeholder {
+  color: var(--gray-light);
+}
+
+.select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+  background: var(--surface);
+  color: var(--dark);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.toolbar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: center;
+}
+
+.toolbar .input,
+.toolbar .select {
+  width: 280px;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  padding: 16px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gray);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--background);
+  border-bottom: 2px solid var(--border);
+}
+
+.table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+}
+
+.table tr:hover td {
+  background: var(--background);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.badge-success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+
+.badge-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+.badge-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning);
+}
+
+.badge-info {
+  background: rgba(14, 165, 233, 0.1);
+  color: var(--secondary);
+}
+
+.badge-primary {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary);
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.modal {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modalIn 0.3s ease;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--background);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--gray);
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  background: var(--danger);
+  color: white;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dark);
+  margin-bottom: 8px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.form-actions .btn {
+  flex: 1;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-state-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  border-radius: 20px;
+  background: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+
+.empty-state-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 8px;
+}
+
+.empty-state-text {
+  font-size: 15px;
+  color: var(--gray);
+}
+
+.dropdown {
+  position: relative;
+}
+
+.dropdown-toggle {
+  padding: 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  min-width: 180px;
+  z-index: 50;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s;
+}
+
+.dropdown-menu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.dropdown-item:first-child {
+  border-radius: 12px 12px 0 0;
+}
+
+.dropdown-item:last-child {
+  border-radius: 0 0 12px 12px;
+}
+
+.dropdown-item:hover {
+  background: var(--background);
+}
+
+.chart-container {
+  padding: 24px;
+}
+
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 240px;
+  padding: 20px 0;
+}
+
+.chart-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  max-width: 80px;
+}
+
+.chart-bar {
+  width: 100%;
+  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-light) 100%);
+  border-radius: 8px 8px 0 0;
+  min-height: 20px;
+  transition: height 0.5s ease;
+}
+
+.chart-bar-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 8px;
+}
+
+.chart-bar-label {
+  font-size: 13px;
+  color: var(--gray);
+  margin-top: 12px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 1280px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .main-content {
+    margin-left: 0;
+  }
+  
+  .grid-2, .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .toolbar {
+    flex-direction: column;
+  }
+  
+  .toolbar .input,
+  .toolbar .select {
+    width: 100%;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .topbar {
+    padding: 16px;
+  }
+  
+  .main-body {
+    padding: 16px;
+  }
+  
+  .modal {
+    padding: 20px;
+  }
+}
+
+@media print {
+  .sidebar, .topbar {
+    display: none;
+  }
+  
+  .main-content {
+    margin-left: 0;
+  }
+  
+  .card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+}
+
+.alert {
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.alert-success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.alert-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.group-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.group-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.group-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.group-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.group-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.group-card-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.group-card-label {
+  color: var(--gray);
+}
+
+.group-card-value {
+  font-weight: 600;
+  color: var(--dark);
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.avatar-sm {
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
+}
+
+.avatar-lg {
+  width: 56px;
+  height: 56px;
+  font-size: 20px;
+}
+
+.flex {
+  display: flex;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-2 {
+  gap: 8px;
+}
+
+.gap-3 {
+  gap: 12px;
+}
+
+.gap-4 {
+  gap: 16px;
+}
+
+.ml-auto {
+  margin-left: auto;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+/* —— hopenazorat: brand wordmark —— */
+.brand-logo-wrap {
+  text-align: center;
+}
+
+.brand-logo-wrap--hero {
+  margin-bottom: 8px;
+}
+
+.brand-logo-line1 {
+  font-family: var(--font-hope-display), Georgia, serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.1;
+}
+
+.sidebar .brand-logo-line1 {
+  font-size: 1.1rem;
+  letter-spacing: 0.22em;
+}
+
+.brand-logo-line2 {
+  margin-top: 2px;
+}
+
+.brand-logo-study {
+  font-family: var(--font-hope-display), Georgia, serif;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  background: linear-gradient(105deg, var(--hope-gold-light) 0%, var(--hope-gold-mid) 40%, var(--hope-gold) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 40px rgba(212, 175, 55, 0.35);
+}
+
+.sidebar .brand-logo-study {
+  font-size: 1.35rem;
+}
+
+.brand-logo-tagline {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(244, 228, 188, 0.85);
+}
+
+/* —— hopenazorat: login (poster + starfield) —— */
+.hope-login-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow: hidden;
+  background: linear-gradient(168deg, #1a0538 0%, var(--hope-purple-deep) 32%, var(--hope-purple) 58%, #3d0d6b 100%);
+}
+
+.hope-login-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 8% 12%, rgba(255, 255, 255, 0.95), transparent),
+    radial-gradient(1px 1px at 22% 8%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 38% 18%, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1px 1px at 55% 6%, rgba(255, 255, 255, 0.65), transparent),
+    radial-gradient(1.5px 1.5px at 72% 14%, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1px 1px at 88% 10%, rgba(255, 255, 255, 0.75), transparent),
+    radial-gradient(1px 1px at 12% 35%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 28% 42%, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1px 1px at 48% 38%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 65% 44%, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1px 1px at 82% 36%, rgba(255, 255, 255, 0.65), transparent),
+    radial-gradient(1.5px 1.5px at 92% 48%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 6% 58%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1.5px 1.5px at 18% 68%, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1px 1px at 35% 62%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 52% 72%, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1px 1px at 70% 66%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 86% 58%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 14% 82%, rgba(255, 255, 255, 0.65), transparent),
+    radial-gradient(1.5px 1.5px at 42% 88%, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1px 1px at 58% 92%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 78% 84%, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1px 1px at 94% 78%, rgba(255, 255, 255, 0.6), transparent);
+}
+
+.hope-login-glow {
+  position: absolute;
+  width: 140%;
+  height: 60%;
+  left: -20%;
+  bottom: -10%;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 100%, rgba(212, 175, 55, 0.18) 0%, transparent 55%);
+}
+
+.hope-login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 26rem;
+  border-radius: 1.25rem;
+  padding: 3px;
+  background: linear-gradient(145deg, rgba(244, 228, 188, 0.85) 0%, var(--hope-gold) 35%, rgba(184, 134, 11, 0.9) 100%);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+}
+
+.hope-login-card-inner {
+  border-radius: 1.1rem;
+  padding: 28px 24px 22px;
+  background: linear-gradient(180deg, rgba(45, 6, 96, 0.97) 0%, rgba(61, 13, 107, 0.98) 100%);
+  backdrop-filter: blur(8px);
+}
+
+.hope-login-roles {
+  text-align: center;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(244, 228, 188, 0.75);
+  margin-bottom: 20px;
+}
+
+.hope-login-title {
+  font-family: var(--font-hope-display), Georgia, serif;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  margin-bottom: 16px;
+}
+
+.hope-login-lang {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.hope-lang-btn {
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hope-lang-btn--active {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.35) 0%, rgba(92, 19, 156, 0.5) 100%);
+  color: #fff;
+  border-color: rgba(244, 228, 188, 0.6);
+}
+
+.hope-login-alert {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(185, 28, 92, 0.25);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  color: #fecaca;
+  font-size: 14px;
+}
+
+.hope-login-form .form-group {
+  margin-bottom: 14px;
+}
+
+.hope-form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(244, 228, 188, 0.88);
+}
+
+.hope-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hope-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.hope-input:focus {
+  border-color: rgba(244, 228, 188, 0.65);
+  box-shadow: 0 0 0 3px rgba(92, 19, 156, 0.35);
+}
+
+.hope-login-submit {
+  margin-top: 8px;
+}
+
+.hope-register-subtle {
+  position: relative;
+  z-index: 1;
+  margin-top: 28px;
+  text-align: center;
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.hope-register-link {
+  color: rgba(244, 228, 188, 0.7);
+  text-decoration: none;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+  padding-bottom: 1px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.hope-register-link:hover {
+  color: rgba(244, 228, 188, 0.95);
+  border-bottom-color: rgba(212, 175, 55, 0.5);
+}

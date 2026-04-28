@@ -1,0 +1,12 @@
+node_modules
+.next
+*.log
+.env
+.env.local
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+public/fallback-*.js
+public/uploads/homework/*
+!public/uploads/homework/.gitkeep
