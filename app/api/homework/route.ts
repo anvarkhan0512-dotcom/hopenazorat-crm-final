@@ -5,6 +5,8 @@ import { Homework } from '@/models/Homework';
 import { HomeworkSubmission } from '@/models/HomeworkSubmission';
 import { Group } from '@/models/Group';
 
+export const dynamic = 'force-dynamic';
+
 async function seedSubmissions(homeworkId: unknown, groupId: unknown) {
   const group = await Group.findById(groupId).select('studentIds').lean();
   if (!group?.studentIds?.length) return;

@@ -3,6 +3,8 @@ import connectDB from '@/lib/db';
 import { Group } from '@/models/Group';
 import { getAuthUser, isAdminRole } from '@/lib/auth-server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);

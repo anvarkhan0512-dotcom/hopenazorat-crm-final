@@ -4,6 +4,8 @@ import { Group } from '@/models/Group';
 import { Student } from '@/models/Student';
 import { getAuthUser, isAdminRole } from '@/lib/auth-server';
 
+export const dynamic = 'force-dynamic';
+
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const auth = await getAuthUser(request);

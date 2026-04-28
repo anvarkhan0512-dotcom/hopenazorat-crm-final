@@ -6,6 +6,8 @@ import { HomeworkSubmission } from '@/models/HomeworkSubmission';
 import { Student } from '@/models/Student';
 import { Group } from '@/models/Group';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }

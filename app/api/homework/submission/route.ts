@@ -3,6 +3,8 @@ import connectDB from '@/lib/db';
 import { getAuthUser, requireParentOnly, requireStudent } from '@/lib/auth-server';
 import { HomeworkSubmission } from '@/models/HomeworkSubmission';
 
+export const dynamic = 'force-dynamic';
+
 export async function PATCH(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);

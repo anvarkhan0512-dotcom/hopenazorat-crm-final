@@ -6,6 +6,8 @@ import { User } from '@/models/User';
 import { getAuthUser, isAdminRole } from '@/lib/auth-server';
 import { ensureUniqueParentCode } from '@/lib/parentCode';
 
+export const dynamic = 'force-dynamic';
+
 function serializeStudent(s: Record<string, unknown>) {
   const effective = computeStudentFinalPrice(s as any);
   return {

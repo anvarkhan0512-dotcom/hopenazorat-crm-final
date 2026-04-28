@@ -4,6 +4,8 @@ import fs from 'fs/promises';
 import crypto from 'crypto';
 import { getAuthUser, requireStudent } from '@/lib/auth-server';
 
+export const dynamic = 'force-dynamic';
+
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
