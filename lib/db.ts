@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/edu-crm';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 const mongooseOptions = {
   maxPoolSize: 50,
@@ -23,6 +23,9 @@ if (!cached) {
 }
 
 async function connectDB(): Promise<typeof mongoose> {
+  if (!MONGODB_URI) {
+    throw new Error('MONGODB_URI environment variable is not set');
+  }
   if (cached.conn?.connection?.readyState === 1) {
     cached.lastAccess = Date.now();
     return cached.conn;

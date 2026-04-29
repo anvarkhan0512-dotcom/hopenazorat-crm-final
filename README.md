@@ -35,9 +35,9 @@ npm install
 ```
 
 ### 2. Setup MongoDB
-Ensure MongoDB is running locally or update `.env.local`:
+Ensure MongoDB is reachable and update `.env.local`:
 ```
-MONGODB_URI=mongodb://localhost:27017/edu-crm
+MONGODB_URI=mongodb://<your-host>:27017/edu-crm
 ```
 
 ### 3. Seed Database
@@ -53,7 +53,7 @@ npm run dev
 
 ### 5. Open in Browser
 ```
-http://localhost:3000
+http://<your-host>:3000
 ```
 
 ---
