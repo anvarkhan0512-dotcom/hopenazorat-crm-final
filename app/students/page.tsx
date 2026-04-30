@@ -12,6 +12,8 @@ interface Student {
   phones?: string[];
   arrivalDate?: string;
   parentType?: string;
+  parentName?: string;
+  parentPhone?: string;
   groupId?: { _id: string; name: string };
   status: 'active' | 'inactive';
   basePrice?: number;
