@@ -26,7 +26,7 @@ export default function FreeLessonsPage() {
   const [students, setStudents] = useState<StudentOpt[]>([]);
   const [teachers, setTeachers] = useState<TeacherOpt[]>([]);
   const [form, setForm] = useState({
-    studentId: '',
+    studentName: '',
     notes: '',
     outcome: '' as '' | 'stayed' | 'left',
     reason: '',
@@ -68,7 +68,7 @@ export default function FreeLessonsPage() {
       }),
     });
     if (r.ok) {
-      setForm({ studentId: '', notes: '', outcome: '', reason: '', notifyTeacherUserId: '' });
+      setForm({ studentName: '', notes: '', outcome: '', reason: '', notifyTeacherUserId: '' });
       load();
     }
   };
@@ -94,20 +94,15 @@ export default function FreeLessonsPage() {
           <h3 className="card-title mb-4">Ma&apos;lumotlar (qo‘shish)</h3>
           <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
             <div className="form-group md:col-span-2">
-              <label className="form-label">Talaba</label>
-              <select
-                className="select w-full"
-                value={form.studentId}
-                onChange={(e) => setForm({ ...form, studentId: e.target.value })}
+              <label className="form-label">{t('name')}</label>
+              <input
+                type="text"
+                className="input w-full"
+                value={form.studentName}
+                onChange={(e) => setForm({ ...form, studentName: e.target.value })}
+                placeholder="Talaba ismi (qo'lda yozing)"
                 required
-              >
-                <option value="">Tanlang</option>
-                {students.map((s) => (
-                  <option key={s._id} value={s._id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div className="form-group md:col-span-2">
               <label className="form-label">Ma&apos;lumotlar / eslatma</label>
@@ -184,7 +179,7 @@ export default function FreeLessonsPage() {
               list.map((row) => (
                 <tr key={row._id}>
                   <td>{row.createdAt ? new Date(row.createdAt).toLocaleDateString('uz-UZ') : ''}</td>
-                  <td>{row.studentId?.name || '—'}</td>
+                  <td>{row.studentName || row.studentId?.name || '—'}</td>
                   <td>{row.notes || '—'}</td>
                   <td>{row.outcome === 'stayed' ? 'Qoldi' : row.outcome === 'left' ? 'Ketdi' : '—'}</td>
                   <td>{row.reason || '—'}</td>

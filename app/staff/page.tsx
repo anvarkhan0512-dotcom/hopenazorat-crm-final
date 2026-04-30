@@ -27,6 +27,7 @@ export default function StaffPage() {
   const [form, setForm] = useState({
     fullName: '',
     position: 'teacher' as Position,
+    specialty: '',
     monthlySalary: 0,
     phone: '',
   });
@@ -62,16 +63,17 @@ export default function StaffPage() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ fullName: '', position: 'teacher', monthlySalary: 0, phone: '' });
+    setForm({ fullName: '', position: 'teacher', specialty: '', monthlySalary: 0, phone: '' });
     setShowModal(true);
   };
 
-  const openEdit = (s: StaffRow) => {
+  const openEdit = (s: any) => {
     setEditing(s);
     setForm({
       fullName: s.fullName,
       position: s.position,
-      monthlySalary: s.monthlySalary,
+      specialty: s.specialty || '',
+      monthlySalary: s.monthlySalary || 0,
       phone: s.phone || '',
     });
     setShowModal(true);
@@ -195,6 +197,15 @@ export default function StaffPage() {
                 </option>
               ))}
             </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">{t('specialty')}</label>
+            <input
+              className="input w-full"
+              value={form.specialty}
+              onChange={(e) => setForm({ ...form, specialty: e.target.value })}
+              placeholder={form.position === 'teacher' ? 'Masalan: Matematika' : ''}
+            />
           </div>
           <div className="form-group">
             <label className="form-label">{t('salarySum')}</label>

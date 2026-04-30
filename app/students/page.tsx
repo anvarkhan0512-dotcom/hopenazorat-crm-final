@@ -46,6 +46,8 @@ export default function StudentsPage() {
     phones: [''] as string[],
     arrivalDate: '',
     parentType: '' as '' | 'father' | 'mother',
+    parentName: '',
+    parentPhone: '',
     groupId: '',
     status: 'active' as 'active' | 'inactive',
     basePrice: 0,
@@ -102,6 +104,8 @@ export default function StudentsPage() {
           phones: formData.phones.map((p) => p.trim()).filter(Boolean),
           arrivalDate: formData.arrivalDate || undefined,
           parentType: formData.parentType || undefined,
+          parentName: formData.parentName || undefined,
+          parentPhone: formData.parentPhone || undefined,
           groupId: formData.groupId || null,
           status: formData.status,
           basePrice: formData.basePrice,
@@ -155,6 +159,8 @@ export default function StudentsPage() {
         phones: plist.length ? plist : [''],
         arrivalDate: student.arrivalDate ? String(student.arrivalDate).split('T')[0] : '',
         parentType: (student.parentType as 'father' | 'mother' | '') || '',
+        parentName: student.parentName || '',
+        parentPhone: student.parentPhone || '',
         groupId: student.groupId?._id || '',
         status: student.status,
         basePrice: student.basePrice ?? student.monthlyPrice ?? 0,
@@ -175,6 +181,8 @@ export default function StudentsPage() {
         phones: [''],
         arrivalDate: '',
         parentType: '',
+        parentName: '',
+        parentPhone: '',
         groupId: '',
         status: 'active',
         basePrice: 0,
@@ -376,10 +384,39 @@ export default function StudentsPage() {
               }
             >
               <option value="">—</option>
-              <option value="father">Ota</option>
-              <option value="mother">Ona</option>
+              <option value="father">{t('father')}</option>
+              <option value="mother">{t('mother')}</option>
             </select>
           </div>
+
+          {formData.parentType && (
+            <>
+              <div className="form-group">
+                <label className="form-label">
+                  {formData.parentType === 'father' ? t('fatherName') : t('motherName')}
+                </label>
+                <input
+                  type="text"
+                  className="input"
+                  value={formData.parentName}
+                  onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
+                  placeholder={t('parentName')}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">
+                  {formData.parentType === 'father' ? t('fatherPhone') : t('motherPhone')}
+                </label>
+                <input
+                  type="text"
+                  className="input"
+                  value={formData.parentPhone}
+                  onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
+                  placeholder="+998..."
+                />
+              </div>
+            </>
+          )}
           <div className="form-group">
             <label className="form-label">{t('group')}</label>
             <select

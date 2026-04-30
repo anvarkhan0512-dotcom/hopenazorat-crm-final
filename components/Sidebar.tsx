@@ -24,6 +24,7 @@ const adminMenu: Item[] = [
   { key: 'reminders', href: '/reminders', icon: '🔔' },
   { key: 'reports', href: '/reports', icon: '📈' },
   { key: 'financeAdmin', href: '/admin/finances', icon: '🏦' },
+  { key: 'credentials', href: '/credentials', icon: '🔐' },
 ];
 
 const teacherMenu: Item[] = [
@@ -43,9 +44,10 @@ const studentMenu: Item[] = [{ key: 'studentHome', href: '/student', icon: '🎓
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  collapsed?: boolean;
 }
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, collapsed }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -79,10 +81,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         />
       )}
       <aside
-        className={`sidebar z-50 transition-transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
+        className={`sidebar z-50 transition-all duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 ${collapsed ? 'md:w-20' : 'md:w-[280px]'}`}
       >
-        <div className="sidebar-brand">
-          <BrandLogo variant="sidebar" />
+        <div className="sidebar-brand overflow-hidden">
+          <BrandLogo variant="sidebar" showText={!collapsed} />
         </div>
 
         <nav className="sidebar-nav">
@@ -90,23 +92,26 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <Link
               key={item.key}
               href={item.href}
-              className={`sidebar-link ${isActive(item.href) ? 'active' : ''}`}
+              className={`sidebar-link ${isActive(item.href) ? 'active' : ''} ${collapsed ? 'justify-center px-0' : ''}`}
               onClick={onClose}
+              title={collapsed ? t(item.key as any) || item.key : ''}
             >
-              <span className="sidebar-link-icon">{item.icon}</span>
-              {t(item.key as any) || item.key}
+              <span className={`sidebar-link-icon ${collapsed ? 'm-0 text-xl' : ''}`}>{item.icon}</span>
+              {!collapsed && (t(item.key as any) || item.key)}
             </Link>
           ))}
         </nav>
 
-        <div className="mt-auto pt-4 border-t border-white/10">
-          <div className="px-4 py-3 text-sm text-gray-400">
-            <p>
-              {t('appVersionLabel')} 1.2.0
-            </p>
-            <p className="text-xs mt-1">{t('copyrightShort')}</p>
+        {!collapsed && (
+          <div className="mt-auto pt-4 border-t border-white/10">
+            <div className="px-4 py-3 text-sm text-gray-400">
+              <p>
+                {t('appVersionLabel')} 1.2.0
+              </p>
+              <p className="text-xs mt-1">{t('copyrightShort')}</p>
+            </div>
           </div>
-        </div>
+        )}
       </aside>
     </>
   );

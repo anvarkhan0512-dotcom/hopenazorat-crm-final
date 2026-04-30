@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, ReactNode } from 'react';
+import { useState, ReactNode, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 
@@ -12,12 +12,31 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children, title, subtitle }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('sidebar-collapsed');
+    if (saved === 'true') {
+      setSidebarCollapsed(true);
+    }
+  }, []);
+
+  const toggleSidebarCollapse = () => {
+    const newState = !sidebarCollapsed;
+    setSidebarCollapsed(newState);
+    localStorage.setItem('sidebar-collapsed', String(newState));
+  };
 
   return (
-    <div className="layout">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className={`layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} collapsed={sidebarCollapsed} />
       <div className="main-content">
-        <Header title={title} onMenuClick={() => setSidebarOpen(true)} />
+        <Header 
+          title={title} 
+          onMenuClick={() => setSidebarOpen(true)} 
+          onToggleCollapse={toggleSidebarCollapse}
+          isCollapsed={sidebarCollapsed}
+        />
         <main className="main-body">
           {subtitle && (
             <div className="page-header">
