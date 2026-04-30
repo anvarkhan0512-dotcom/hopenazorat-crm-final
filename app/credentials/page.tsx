@@ -238,7 +238,7 @@ export default function CredentialsPage() {
               placeholder="Yangi parol..."
             />
             <p className="text-xs text-gray-500 mt-1">
-              Bo'sh qoldirilsa, parol o'zgarmaydi.
+              Bo&apos;sh qoldirilsa, parol o&apos;zgarmaydi.
             </p>
           </div>
           <div className="flex gap-2 mt-6">
