@@ -25,6 +25,7 @@ export default function CredentialsPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, string | null>>({});
   
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
@@ -114,6 +115,35 @@ export default function CredentialsPage() {
     }
   };
 
+  const togglePasswordVisibility = async (u: UserData) => {
+    if (visiblePasswords[u.id]) {
+      setVisiblePasswords((prev) => ({ ...prev, [u.id]: null }));
+      return;
+    }
+
+    try {
+      // reveal-password API-si admin parolini so'raydi, lekin biz gatekeeper-dan o'tganmiz.
+      // reveal-password API-sini adminPassword-siz ishlatish uchun yangilash yoki 
+      // bu yerda adminPassword-ni saqlab qolish kerak. 
+      // Hozircha adminPassword-ni gatekeeper-dan keyin saqlab qolamiz.
+      const res = await fetch('/api/admin/reveal-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminPassword, userId: u.id }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setVisiblePasswords((prev) => ({ ...prev, [u.id]: data.password || '—' }));
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Xatolik');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (authLoading || !authUser) {
     return (
       <DashboardLayout title={t('credentials')}>
@@ -184,7 +214,28 @@ export default function CredentialsPage() {
                     </td>
                     <td>{u.username}</td>
                     <td>
-                      <span className="font-mono text-gray-400">••••••••</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono">
+                          {visiblePasswords[u.id] ? visiblePasswords[u.id] : '••••••••'}
+                        </span>
+                        <button
+                          type="button"
+                          className="p-1 hover:bg-gray-100 rounded transition-colors text-gray-500"
+                          onClick={() => togglePasswordVisibility(u)}
+                          title={visiblePasswords[u.id] ? 'Yashirish' : 'Ko‘rish'}
+                        >
+                          {visiblePasswords[u.id] ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
                     </td>
                     <td>
                       <button
