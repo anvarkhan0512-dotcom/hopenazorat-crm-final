@@ -34,7 +34,7 @@ export default function InvoicesPage() {
   const [monthFilter, setMonthFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth() + 1;
@@ -242,15 +242,15 @@ export default function InvoicesPage() {
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-sm text-gray-500">Jami summa</div>
-              <div className="text-xl font-bold">{formatMoney(summary.totalAmount)}</div>
+              <div className="text-xl font-bold">{formatMoney(summary.totalAmount, locale)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">{t('paid')}</div>
-              <div className="text-xl font-bold" style={{ color: '#10b981' }}>{formatMoney(summary.totalPaid)}</div>
+              <div className="text-xl font-bold" style={{ color: '#10b981' }}>{formatMoney(summary.totalPaid, locale)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">{t('totalDebt')}</div>
-              <div className="text-xl font-bold" style={{ color: '#ef4444' }}>{formatMoney(summary.totalDebt)}</div>
+              <div className="text-xl font-bold" style={{ color: '#ef4444' }}>{formatMoney(summary.totalDebt, locale)}</div>
             </div>
           </div>
         </div>
@@ -289,10 +289,10 @@ export default function InvoicesPage() {
                     <td className="font-bold">{invoice.studentName}</td>
                     <td>{invoice.phone}</td>
                     <td>{invoice.groupName || '-'}</td>
-                    <td>{formatMoney(invoice.amount)}</td>
-                    <td>{formatMoney(invoice.paidAmount)}</td>
+                    <td>{formatMoney(invoice.amount, locale)}</td>
+                    <td>{formatMoney(invoice.paidAmount, locale)}</td>
                     <td className={invoice.debt > 0 ? 'text-red-600 font-bold' : ''}>
-                      {formatMoney(invoice.debt)}
+                      {formatMoney(invoice.debt, locale)}
                     </td>
                     <td>{getStatusBadge(invoice.status)}</td>
                   </tr>
@@ -306,6 +306,6 @@ export default function InvoicesPage() {
   );
 }
 
-function formatMoney(amount: number): string {
-  return new Intl.NumberFormat('uz-UZ').format(amount) + ' so\'m';
+function formatMoney(amount: number, locale: string): string {
+  return new Intl.NumberFormat(locale === 'uz' ? 'uz-UZ' : locale === 'ru' ? 'ru-RU' : 'en-US').format(amount) + ' so\'m';
 }

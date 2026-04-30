@@ -37,8 +37,8 @@ const empty: DashboardData = {
   last6MonthsIncome: [],
 };
 
-function formatMoney(amount: number): string {
-  return new Intl.NumberFormat('uz-UZ').format(amount || 0) + " so'm";
+function formatMoney(amount: number, locale: string): string {
+  return new Intl.NumberFormat(locale === 'uz' ? 'uz-UZ' : locale === 'ru' ? 'ru-RU' : 'en-US').format(amount || 0) + " so'm";
 }
 
 const IncomeBarRow = memo(function IncomeBarRow({
@@ -46,11 +46,13 @@ const IncomeBarRow = memo(function IncomeBarRow({
   income,
   max,
   variant,
+  locale,
 }: {
   label: string;
   income: number;
   max: number;
   variant: 'daily' | 'monthly';
+  locale: string;
 }) {
   const pct = max > 0 ? (income / max) * 100 : 0;
   const barClass =
@@ -63,13 +65,13 @@ const IncomeBarRow = memo(function IncomeBarRow({
       <div className="flex-1 h-8 bg-gray-100 rounded-lg overflow-hidden">
         <div className={barClass} style={{ width: `${pct}%`, minWidth: income > 0 ? '8px' : 0 }} />
       </div>
-      <span className="text-sm font-semibold w-32 text-right">{formatMoney(income)}</span>
+      <span className="text-sm font-semibold w-32 text-right">{formatMoney(income, locale)}</span>
     </div>
   );
 });
 
 export default function DashboardClient() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const isOffice = user?.role === 'admin' || user?.role === 'manager';
@@ -123,7 +125,7 @@ export default function DashboardClient() {
           <div className="stat-card-icon warning">💰</div>
           <div className="stat-label">{t('income')}</div>
           <div className="stat-value" style={{ fontSize: '26px' }}>
-            {formatMoney(dashboard.paymentsThisMonth)}
+            {formatMoney(dashboard.paymentsThisMonth, locale)}
           </div>
           <div className="stat-change">{t('payments')} — {t('monthlyReport')}</div>
         </div>
@@ -173,7 +175,7 @@ export default function DashboardClient() {
               <p className="text-gray-500">{t('noData')}</p>
             ) : (
               dashboard.last7DaysIncome.map((row) => (
-                <IncomeBarRow key={row.day} label={row.day} income={row.income} max={maxDaily} variant="daily" />
+                <IncomeBarRow key={row.day} label={row.day} income={row.income} max={maxDaily} variant="daily" locale={locale} />
               ))
             )}
           </div>
@@ -196,6 +198,7 @@ export default function DashboardClient() {
                   income={row.income}
                   max={maxMonthly}
                   variant="monthly"
+                  locale={locale}
                 />
               ))
             )}

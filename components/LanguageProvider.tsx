@@ -5,6 +5,7 @@ import { translations, Language, isValidLanguage } from '@/lib/translations';
 
 interface LanguageContextType {
   lang: Language;
+  locale: Language;
   setLang: (lang: Language) => void;
   t: (key: string) => string;
 }
@@ -31,7 +32,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
+    <LanguageContext.Provider value={{ lang, locale: lang, setLang, t }}>
       {children}
     </LanguageContext.Provider>
   );

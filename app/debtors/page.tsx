@@ -21,7 +21,7 @@ export default function DebtorsPage() {
   const [debtors, setDebtors] = useState<Debtor[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   useEffect(() => {
     fetchDebtors();
@@ -72,7 +72,7 @@ export default function DebtorsPage() {
           <div className="stat-card-icon warning">💰</div>
           <div className="stat-label">{t('totalDebt')}</div>
           <div className="stat-value" style={{ color: '#ef4444' }}>
-            {formatMoney(summary?.totalDebt || 0)}
+            {formatMoney(summary?.totalDebt || 0, locale)}
           </div>
         </div>
       </div>
@@ -104,10 +104,10 @@ export default function DebtorsPage() {
                     <td className="font-bold">{debtor.studentName}</td>
                     <td>{debtor.phone}</td>
                     <td>{debtor.groupName || '-'}</td>
-                    <td>{formatMoney(debtor.amount)}</td>
-                    <td>{formatMoney(debtor.paidAmount)}</td>
+                    <td>{formatMoney(debtor.amount, locale)}</td>
+                    <td>{formatMoney(debtor.paidAmount, locale)}</td>
                     <td style={{ color: '#ef4444', fontWeight: 700 }}>
-                      {formatMoney(debtor.debt)}
+                      {formatMoney(debtor.debt, locale)}
                     </td>
                     <td>
                       <span className={`badge ${debtor.status === 'pending' ? 'badge-danger' : 'badge-warning'}`}>
@@ -125,6 +125,6 @@ export default function DebtorsPage() {
   );
 }
 
-function formatMoney(amount: number): string {
-  return new Intl.NumberFormat('uz-UZ').format(amount) + ' so\'m';
+function formatMoney(amount: number, locale: string): string {
+  return new Intl.NumberFormat(locale === 'uz' ? 'uz-UZ' : locale === 'ru' ? 'ru-RU' : 'en-US').format(amount) + ' so\'m';
 }

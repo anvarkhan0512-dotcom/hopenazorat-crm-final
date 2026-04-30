@@ -39,7 +39,7 @@ export default function StudentsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -268,10 +268,10 @@ export default function StudentsPage() {
                   <td>{student.groupId?.name || '-'}</td>
                   <td className="font-mono text-xs">{student.parentAccessCode || '—'}</td>
                   <td>
-                    {formatMoney(student.monthlyPrice)}
+                    {formatMoney(student.monthlyPrice, locale)}
                     {(student.discountAmount ?? 0) > 0 && (
                       <span className="text-xs text-amber-700 block">
-                        −{formatMoney(student.discountAmount ?? 0)}
+                        −{formatMoney(student.discountAmount ?? 0, locale)}
                       </span>
                     )}
                   </td>
@@ -507,6 +507,6 @@ export default function StudentsPage() {
   );
 }
 
-function formatMoney(amount: number): string {
-  return new Intl.NumberFormat('uz-UZ').format(amount) + ' so\'m';
+function formatMoney(amount: number, locale: string): string {
+  return new Intl.NumberFormat(locale === 'uz' ? 'uz-UZ' : locale === 'ru' ? 'ru-RU' : 'en-US').format(amount) + ' so\'m';
 }

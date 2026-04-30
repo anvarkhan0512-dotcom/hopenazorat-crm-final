@@ -31,7 +31,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [reportType, setReportType] = useState<'daily' | 'monthly'>('daily');
   const [error, setError] = useState('');
-  const { t, lang } = useLanguage();
+  const { t, locale } = useLanguage();
 
   useEffect(() => {
     fetchReport();
@@ -149,13 +149,13 @@ export default function ReportsPage() {
                 (reportType === 'daily' ? dailyData : monthlyData).map((item, i) => (
                   <tr key={i}>
                     <td>{reportType === 'daily' ? (item as { day: string }).day : (item as { month: string }).month}</td>
-                    <td className="font-medium">{formatMoney(item.income || 0)}</td>
+                    <td className="font-medium">{formatMoney(item.income || 0, locale)}</td>
                   </tr>
                 ))
               )}
               <tr className="font-bold bg-gray-50">
                 <td>{t('total')}</td>
-                <td>{formatMoney(reportType === 'daily' ? dailyTotal : monthlyTotal)}</td>
+                <td>{formatMoney(reportType === 'daily' ? dailyTotal : monthlyTotal, locale)}</td>
               </tr>
             </tbody>
           </table>
@@ -166,7 +166,7 @@ export default function ReportsPage() {
           <div className="space-y-4">
             <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
               <span>{t('totalIncome')}</span>
-              <span className="font-bold text-green-600">{formatMoney(monthlyTotal)}</span>
+              <span className="font-bold text-green-600">{formatMoney(monthlyTotal, locale)}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
               <span>{t('debtorsCount')}</span>
@@ -187,6 +187,6 @@ export default function ReportsPage() {
   );
 }
 
-function formatMoney(amount: number): string {
-  return new Intl.NumberFormat('uz-UZ').format(amount || 0) + " so'm";
+function formatMoney(amount: number, locale: string): string {
+  return new Intl.NumberFormat(locale === 'uz' ? 'uz-UZ' : locale === 'ru' ? 'ru-RU' : 'en-US').format(amount || 0) + " so'm";
 }

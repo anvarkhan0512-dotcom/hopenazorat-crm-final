@@ -42,7 +42,7 @@ export default function PaymentsPage() {
   const [studentFilter, setStudentFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [periodEndManual, setPeriodEndManual] = useState(false);
 
   const currentDate = new Date();
@@ -218,7 +218,7 @@ export default function PaymentsPage() {
         </div>
         <div className="stat-card">
           <div className="stat-label">{t('totalIncome')}</div>
-          <div className="stat-value">{formatMoney(totalAmount)}</div>
+          <div className="stat-value">{formatMoney(totalAmount, locale)}</div>
         </div>
       </div>
 
@@ -279,7 +279,7 @@ export default function PaymentsPage() {
                 <tr key={payment._id}>
                   <td>{payment.studentId?.name || '-'}</td>
                   <td>{payment.studentId?.phone || '-'}</td>
-                  <td>{formatMoney(payment.amount)}</td>
+                  <td>{formatMoney(payment.amount, locale)}</td>
                   <td>
                     {payment.periodStart && payment.periodEnd ? (
                       <span className="text-sm">
@@ -338,7 +338,7 @@ export default function PaymentsPage() {
               <option value="">{t('selectStudent')}</option>
               {students.map((student) => (
                 <option key={student._id} value={student._id}>
-                  {student.name} - {formatMoney(student.monthlyPrice)}
+                  {student.name} - {formatMoney(student.monthlyPrice, locale)}
                 </option>
               ))}
             </select>
@@ -456,6 +456,6 @@ export default function PaymentsPage() {
   );
 }
 
-function formatMoney(amount: number): string {
-  return new Intl.NumberFormat('uz-UZ').format(amount) + ' so\'m';
+function formatMoney(amount: number, locale: string): string {
+  return new Intl.NumberFormat(locale === 'uz' ? 'uz-UZ' : locale === 'ru' ? 'ru-RU' : 'en-US').format(amount) + ' so\'m';
 }
