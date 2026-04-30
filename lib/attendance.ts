@@ -104,13 +104,13 @@ export async function markAttendance(data: {
       const group = await Group.findById(data.groupId || student.groupId);
 
       await sendTelegramMessage(
-        `⚠️ <b>Talaba darsda qatnashmadi</b>\n\n` +
-          `Ismi: ${student.name}\n` +
-          `Guruh: ${group?.name || '-'}\n` +
+        `⚠️ <b>Darsga kelmaganligi haqida</b>\n\n` +
+          `Oʻquvchi: ${student.name}\n` +
+          `Guruh: ${group?.name || '—'}\n` +
           `Sana: ${data.lessonDate}\n` +
           `Vaqt: ${data.lessonTime}\n` +
           `Fan: ${data.subject}\n` +
-          `O'qituvchi: ${data.teacherName}`
+          `Ustoz: ${data.teacherName}`
       );
     }
 

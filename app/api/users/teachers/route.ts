@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import { User } from '@/models/User';
-import { getAuthUser, requireAdmin } from '@/lib/auth-server';
+import { getAuthUser, requireTeacher } from '@/lib/auth-server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);
-    const forbidden = requireAdmin(auth);
+    const forbidden = requireTeacher(auth);
     if (forbidden) {
       return NextResponse.json({ error: forbidden.error }, { status: forbidden.status });
     }

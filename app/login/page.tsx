@@ -6,9 +6,25 @@ import { useLanguage } from '@/components/LanguageProvider';
 import { useAuth } from '@/components/AuthProvider';
 import BrandLogo from '@/components/BrandLogo';
 
+type LoginRole = 'student' | 'parent' | 'teacher' | 'center';
+
+const roleButtons: { id: LoginRole; labelKey: string }[] = [
+  { id: 'student', labelKey: 'roleStudent' },
+  { id: 'parent', labelKey: 'roleParent' },
+  { id: 'teacher', labelKey: 'roleTeacher' },
+  { id: 'center', labelKey: 'roleCenter' },
+];
+
+const ERR_CODE_MAP: Record<string, string> = {
+  USER_NOT_FOUND: 'errUserNotFound',
+  WRONG_PASSWORD: 'errWrongPassword',
+  ROLE_MISMATCH: 'errRoleMismatch',
+};
+
 function LoginForm() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loginRole, setLoginRole] = useState<LoginRole>('center');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -20,7 +36,7 @@ function LoginForm() {
     setError('');
     setLoading(true);
 
-    const result = await login(username, password);
+    const result = await login(username, password, loginRole);
 
     if (result.ok && result.user) {
       const role = result.user.role;
@@ -29,7 +45,8 @@ function LoginForm() {
       else if (role === 'student') router.push('/student');
       else router.push('/dashboard');
     } else {
-      setError(t('loginError'));
+      const errKey = result.code ? ERR_CODE_MAP[result.code] : undefined;
+      setError(errKey ? t(errKey) : t('loginError'));
     }
     setLoading(false);
   };
@@ -41,20 +58,32 @@ function LoginForm() {
 
       <div className="hope-login-card">
         <div className="hope-login-card-inner">
-          <BrandLogo variant="hero" />
-          <p className="hope-login-roles">Talaba · Ota-ona · Ustoz · Markaz</p>
+          <BrandLogo variant="hero" tagline={t('loginBrandTagline')} />
+
+          <div className="hope-login-role-grid" role="group" aria-label={t('loginAriaRoleGroup')}>
+            {roleButtons.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                className={`hope-role-btn ${loginRole === r.id ? 'hope-role-btn--active' : ''}`}
+                onClick={() => setLoginRole(r.id)}
+              >
+                {t(r.labelKey)}
+              </button>
+            ))}
+          </div>
 
           <h1 className="hope-login-title">{t('loginTitle')}</h1>
 
           <div className="hope-login-lang">
-            {(['uz', 'ru', 'en'] as const).map((l) => (
+            {(['uz', 'ru', 'en', 'kr'] as const).map((l) => (
               <button
                 key={l}
                 type="button"
                 onClick={() => setLang(l)}
                 className={`hope-lang-btn ${lang === l ? 'hope-lang-btn--active' : ''}`}
               >
-                {l.toUpperCase()}
+                {l === 'kr' ? 'CYR' : l.toUpperCase()}
               </button>
             ))}
           </div>
@@ -85,12 +114,11 @@ function LoginForm() {
               />
             </div>
             <button type="submit" className="btn btn-primary hope-login-submit w-full" disabled={loading}>
-              {loading ? '...' : t('login')}
+              {loading ? t('loading') : t('login')}
             </button>
           </form>
         </div>
       </div>
-
     </div>
   );
 }

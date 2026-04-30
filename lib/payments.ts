@@ -239,17 +239,17 @@ export async function getPaymentReminders(): Promise<{
     if (student.notificationEnabled) {
       if (diffDays <= 0) {
         await sendTelegramMessage(
-          `⚠️ <b>To'lov muddati o'tgan!</b>\n\n` +
-          `Talaba: ${student.name}\n` +
-          `Tel: ${student.phone}\n` +
-          `Sanasi: ${student.nextPaymentDate?.toLocaleDateString()}`
+          `⚠️ <b>Toʻlov muddati oʻtgan</b>\n\n` +
+          `Oʻquvchi: ${student.name}\n` +
+          `Telefon: ${student.phone}\n` +
+          `Toʻlov sanasi: ${student.nextPaymentDate?.toLocaleDateString('uz-UZ')}`
         );
       } else if (diffDays <= 3) {
         await sendTelegramMessage(
-          `⏰ <b>To'lov eslatmasi</b>\n\n` +
-          `Talaba: ${student.name}\n` +
-          `Tel: ${student.phone}\n` +
-          `Muddati: ${diffDays} kundan`
+          `⏰ <b>Toʻlov eslatmasi (markaz)</b>\n\n` +
+          `Oʻquvchi: ${student.name}\n` +
+          `Telefon: ${student.phone}\n` +
+          `Muddati: ${diffDays} kun qoldi`
         );
       }
     }

@@ -26,6 +26,9 @@ const months = [
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [groups, setGroups] = useState<{ _id: string; name: string }[]>([]);
+  const [financeGroupId, setFinanceGroupId] = useState('');
+  const [groupFinance, setGroupFinance] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [monthFilter, setMonthFilter] = useState('');
@@ -41,6 +44,19 @@ export default function InvoicesPage() {
     setMonthFilter(currentMonth.toString());
     setYearFilter(currentYear.toString());
   }, [currentMonth, currentYear]);
+
+  useEffect(() => {
+    fetch('/api/groups')
+      .then((r) => r.json())
+      .then((g) => setGroups(Array.isArray(g) ? g : []))
+      .catch(() => setGroups([]));
+  }, []);
+
+  const loadGroupFinance = async () => {
+    if (!financeGroupId) return;
+    const r = await fetch(`/api/groups/${financeGroupId}/finance`);
+    setGroupFinance(r.ok ? await r.json() : null);
+  };
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
@@ -115,6 +131,55 @@ export default function InvoicesPage() {
 
   return (
     <DashboardLayout title={t('payments')}>
+      <div className="card mb-4">
+        <h3 className="card-title mb-2">Guruh bo‘yicha real vaqtda hisob-kitob</h3>
+        <div className="flex flex-wrap gap-2 items-center">
+          <select
+            className="select"
+            value={financeGroupId}
+            onChange={(e) => setFinanceGroupId(e.target.value)}
+          >
+            <option value="">Guruh tanlang</option>
+            {groups.map((g) => (
+              <option key={g._id} value={g._id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+          <button type="button" className="btn btn-secondary" onClick={loadGroupFinance}>
+            Hisoblash
+          </button>
+        </div>
+        {groupFinance && (
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div>
+              <div className="text-gray-500">Kutilayotgan oylik</div>
+              <div className="font-semibold">
+                {groupFinance.expectedMonthlyTuition?.toLocaleString()} so&apos;m
+              </div>
+            </div>
+            <div>
+              <div className="text-gray-500">Joriy oy tushumi</div>
+              <div className="font-semibold">
+                {groupFinance.monthInflow?.toLocaleString()} so&apos;m
+              </div>
+            </div>
+            <div>
+              <div className="text-gray-500">Ustoz ulushi</div>
+              <div className="font-semibold text-amber-800">
+                {groupFinance.teacherShareMonth?.toLocaleString()} so&apos;m
+              </div>
+            </div>
+            <div>
+              <div className="text-gray-500">Markaz</div>
+              <div className="font-semibold text-emerald-800">
+                {groupFinance.centerShareMonth?.toLocaleString()} so&apos;m
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         <div className="stat-card">
           <div className="stat-label">Jami hisob-fakturalar</div>

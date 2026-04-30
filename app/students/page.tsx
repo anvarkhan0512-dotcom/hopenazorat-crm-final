@@ -9,6 +9,9 @@ interface Student {
   _id: string;
   name: string;
   phone: string;
+  phones?: string[];
+  arrivalDate?: string;
+  parentType?: string;
   groupId?: { _id: string; name: string };
   status: 'active' | 'inactive';
   basePrice?: number;
@@ -19,6 +22,7 @@ interface Student {
   parentAccessCode?: string;
   parentTelegramChatId?: string;
   parentUserId?: string;
+  debtReminderUntil?: string;
 }
 
 interface Group {
@@ -39,7 +43,9 @@ export default function StudentsPage() {
 
   const [formData, setFormData] = useState({
     name: '',
-    phone: '',
+    phones: [''] as string[],
+    arrivalDate: '',
+    parentType: '' as '' | 'father' | 'mother',
     groupId: '',
     status: 'active' as 'active' | 'inactive',
     basePrice: 0,
@@ -47,6 +53,7 @@ export default function StudentsPage() {
     discountEndDate: '',
     parentTelegramChatId: '',
     parentUserId: '',
+    debtReminderUntil: '',
   });
 
   useEffect(() => {
@@ -71,8 +78,9 @@ export default function StudentsPage() {
   };
 
   const filteredStudents = students.filter((student) => {
-    const matchesSearch = student.name.toLowerCase().includes(search.toLowerCase()) ||
-      student.phone.includes(search);
+    const phoneHay = [student.phone, ...(student.phones || [])].join(' ');
+    const matchesSearch =
+      student.name.toLowerCase().includes(search.toLowerCase()) || phoneHay.includes(search);
     const matchesStatus = !statusFilter || student.status === statusFilter;
     const matchesGroup = !groupFilter || student.groupId?._id === groupFilter;
     return matchesSearch && matchesStatus && matchesGroup;
@@ -90,13 +98,17 @@ export default function StudentsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name,
-          phone: formData.phone,
+          phone: formData.phones[0] || '',
+          phones: formData.phones.map((p) => p.trim()).filter(Boolean),
+          arrivalDate: formData.arrivalDate || undefined,
+          parentType: formData.parentType || undefined,
           groupId: formData.groupId || null,
           status: formData.status,
           basePrice: formData.basePrice,
           discountAmount: formData.discountAmount,
           discountEndDate: formData.discountEndDate || undefined,
           parentTelegramChatId: formData.parentTelegramChatId || undefined,
+          debtReminderUntil: formData.debtReminderUntil || undefined,
           ...(editingStudent && formData.parentUserId
             ? { parentUserId: formData.parentUserId || null }
             : {}),
@@ -136,9 +148,13 @@ export default function StudentsPage() {
   const openModal = (student?: Student) => {
     if (student) {
       setEditingStudent(student);
+      const plist =
+        student.phones && student.phones.length > 0 ? [...student.phones] : [student.phone];
       setFormData({
         name: student.name,
-        phone: student.phone,
+        phones: plist.length ? plist : [''],
+        arrivalDate: student.arrivalDate ? String(student.arrivalDate).split('T')[0] : '',
+        parentType: (student.parentType as 'father' | 'mother' | '') || '',
         groupId: student.groupId?._id || '',
         status: student.status,
         basePrice: student.basePrice ?? student.monthlyPrice ?? 0,
@@ -148,12 +164,17 @@ export default function StudentsPage() {
           : '',
         parentTelegramChatId: student.parentTelegramChatId || '',
         parentUserId: student.parentUserId ? String(student.parentUserId) : '',
+        debtReminderUntil: student.debtReminderUntil
+          ? String(student.debtReminderUntil).split('T')[0]
+          : '',
       });
     } else {
       setEditingStudent(null);
       setFormData({
         name: '',
-        phone: '',
+        phones: [''],
+        arrivalDate: '',
+        parentType: '',
         groupId: '',
         status: 'active',
         basePrice: 0,
@@ -161,6 +182,7 @@ export default function StudentsPage() {
         discountEndDate: '',
         parentTelegramChatId: '',
         parentUserId: '',
+        debtReminderUntil: '',
       });
     }
     setShowModal(true);
@@ -237,7 +259,12 @@ export default function StudentsPage() {
               filteredStudents.map((student) => (
                 <tr key={student._id}>
                   <td>{student.name}</td>
-                  <td>{student.phone}</td>
+                  <td className="text-sm">
+                    {(student.phones && student.phones.length > 0
+                      ? student.phones
+                      : [student.phone]
+                    ).join(', ')}
+                  </td>
                   <td>{student.groupId?.name || '-'}</td>
                   <td className="font-mono text-xs">{student.parentAccessCode || '—'}</td>
                   <td>
@@ -291,14 +318,67 @@ export default function StudentsPage() {
             />
           </div>
           <div className="form-group">
-            <label className="form-label">{t('phone')}</label>
+            <label className="form-label">Tel raqamlar (birinchi — asosiy login)</label>
+            {formData.phones.map((p, idx) => (
+              <div key={idx} className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  className="input flex-1"
+                  placeholder={idx === 0 ? '+998...' : '+998... qo‘shimcha'}
+                  value={p}
+                  onChange={(e) => {
+                    const next = [...formData.phones];
+                    next[idx] = e.target.value;
+                    setFormData({ ...formData, phones: next });
+                  }}
+                  required={idx === 0}
+                />
+                {idx > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        phones: formData.phones.filter((_, j) => j !== idx),
+                      })
+                    }
+                  >
+                    −
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm mt-1"
+              onClick={() => setFormData({ ...formData, phones: [...formData.phones, ''] })}
+            >
+              + telefon
+            </button>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Kelgan sanasi</label>
             <input
-              type="text"
+              type="date"
               className="input"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              required
+              value={formData.arrivalDate}
+              onChange={(e) => setFormData({ ...formData, arrivalDate: e.target.value })}
             />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Ota-ona turi</label>
+            <select
+              className="select"
+              value={formData.parentType}
+              onChange={(e) =>
+                setFormData({ ...formData, parentType: e.target.value as 'father' | 'mother' | '' })
+              }
+            >
+              <option value="">—</option>
+              <option value="father">Ota</option>
+              <option value="mother">Ona</option>
+            </select>
           </div>
           <div className="form-group">
             <label className="form-label">{t('group')}</label>
@@ -351,6 +431,18 @@ export default function StudentsPage() {
               onChange={(e) => setFormData({ ...formData, parentTelegramChatId: e.target.value })}
               placeholder="Telegram chat id (faqat raqam)"
             />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Qarz eslatmasi tugash sanasi (Telegram, kunlik)</label>
+            <input
+              type="date"
+              className="input"
+              value={formData.debtReminderUntil}
+              onChange={(e) => setFormData({ ...formData, debtReminderUntil: e.target.value })}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Bo‘sh qoldirilsa, avtomatik qarz xabarlari yuborilmaydi.
+            </p>
           </div>
           {editingStudent && (
             <>

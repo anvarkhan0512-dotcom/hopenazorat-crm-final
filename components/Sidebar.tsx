@@ -11,7 +11,9 @@ type Item = { key: string; href: string; icon: string };
 const adminMenu: Item[] = [
   { key: 'dashboard', href: '/dashboard', icon: '📊' },
   { key: 'students', href: '/students', icon: '👥' },
+  { key: 'staff', href: '/staff', icon: '👔' },
   { key: 'groups', href: '/groups', icon: '📚' },
+  { key: 'freeLessons', href: '/free-lessons', icon: '🎁' },
   { key: 'invoices', href: '/invoices', icon: '📄' },
   { key: 'payments', href: '/payments', icon: '💰' },
   { key: 'debtors', href: '/debtors', icon: '⚠️' },
@@ -27,6 +29,7 @@ const adminMenu: Item[] = [
 const teacherMenu: Item[] = [
   { key: 'teacherHome', href: '/teacher', icon: '👨‍🏫' },
   { key: 'homeworkMenu', href: '/teacher/homework', icon: '📝' },
+  { key: 'freeLessons', href: '/free-lessons', icon: '🎁' },
   { key: 'attendance', href: '/dashboard/attendance', icon: '✅' },
 ];
 
@@ -98,8 +101,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         <div className="mt-auto pt-4 border-t border-white/10">
           <div className="px-4 py-3 text-sm text-gray-400">
-            <p>v1.2.0</p>
-            <p className="text-xs mt-1">© 2026 hopenazorat</p>
+            <p>
+              {t('appVersionLabel')} 1.2.0
+            </p>
+            <p className="text-xs mt-1">{t('copyrightShort')}</p>
           </div>
         </div>
       </aside>

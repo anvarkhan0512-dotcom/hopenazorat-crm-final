@@ -53,10 +53,10 @@ export async function POST(request: NextRequest) {
 
     if (notify || student.notificationEnabled) {
       await sendTelegramMessage(
-        `✅ <b>To'lov qabul qilindi</b>\n\n` +
-        `Talaba: ${student.name}\n` +
-        `Summa: ${amount.toLocaleString()} so'm\n` +
-        `Keyingi to'lov: ${student.nextPaymentDate?.toLocaleDateString()}`
+        `✅ <b>Toʻlov qabul qilindi</b>\n\n` +
+        `Oʻquvchi: ${student.name}\n` +
+        `Summa: ${amount.toLocaleString('uz-UZ')} soʻm\n` +
+        `Keyingi toʻlov: ${student.nextPaymentDate?.toLocaleDateString('uz-UZ')}`
       );
     }
 

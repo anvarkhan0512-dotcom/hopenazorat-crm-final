@@ -3,6 +3,8 @@ import connectDB from '@/lib/db';
 import { Payment } from '@/models/Payment';
 import { Invoice } from '@/models/Invoice';
 import { Student } from '@/models/Student';
+import { Group } from '@/models/Group';
+import { computePeriodEndFromLessons } from '@/lib/lessonPeriod';
 import { getCached, invalidateCache, CacheKeys } from '@/lib/cache';
 import { sendTelegramMessage } from '@/lib/telegram';
 
@@ -28,16 +30,94 @@ export async function GET(request: NextRequest) {
   }
 }
 
+function startOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const data = await request.json();
-    
+
+    const student = await Student.findById(data.studentId);
+    if (!student) {
+      return NextResponse.json({ error: 'Talaba topilmadi' }, { status: 400 });
+    }
+
+    let month = Number(data.month);
+    let year = Number(data.year);
+    let periodStart = data.periodStart ? new Date(data.periodStart) : undefined;
+    let periodEnd =
+      data.periodEnd && String(data.periodEnd).trim() ? new Date(data.periodEnd) : undefined;
+    const lessonCount = Math.min(24, Math.max(1, Number(data.lessonCount) || 12));
+
+    if (periodStart && !periodEnd) {
+      let weekParity: 'all' | 'odd' | 'even' = 'all';
+      let weeklySchedule: { day: number }[] | undefined;
+      if (student.groupId) {
+        const g = await Group.findById(student.groupId)
+          .select('weeklySchedule lessonCalendarWeekParity')
+          .lean();
+        weeklySchedule = g?.weeklySchedule as { day: number }[] | undefined;
+        weekParity =
+          g?.lessonCalendarWeekParity === 'odd' || g?.lessonCalendarWeekParity === 'even'
+            ? g.lessonCalendarWeekParity
+            : 'all';
+      }
+      periodEnd = computePeriodEndFromLessons(periodStart, lessonCount, weeklySchedule, weekParity);
+      
+      /** 
+       * Keyingi to'lov sanasini (13-dars) avtomatik belgilash.
+       * computePeriodEndFromLessons(lessonCount + 1) -> 13-dars sanasi.
+       */
+      const nextDue = computePeriodEndFromLessons(periodStart, lessonCount + 1, weeklySchedule, weekParity);
+      student.nextPaymentDate = nextDue;
+      await student.save();
+    } else if (periodEnd) {
+      /** Agar qo'lda periodEnd kiritilgan bo'lsa, keyingi to'lovni 1 kun keyinga suramiz (taxminiy) */
+      const nextDue = new Date(periodEnd);
+      nextDue.setDate(nextDue.getDate() + 1);
+      student.nextPaymentDate = nextDue;
+      await student.save();
+    }
+
+    if (periodStart && periodEnd) {
+      const pe = periodEnd;
+      month = pe.getMonth() + 1;
+      year = pe.getFullYear();
+    }
+    if (!(month >= 1 && month <= 12 && year >= 2000)) {
+      const now = new Date();
+      month = now.getMonth() + 1;
+      year = now.getFullYear();
+    }
+
+    let expectedDueDate: Date | undefined = data.expectedDueDate
+      ? new Date(data.expectedDueDate)
+      : student.nextPaymentDate
+        ? new Date(student.nextPaymentDate)
+        : undefined;
+
+    const paidAt = new Date();
+    let daysVariance: number | undefined;
+    if (expectedDueDate) {
+      const a = startOfDay(paidAt);
+      const b = startOfDay(expectedDueDate);
+      daysVariance = Math.round((a.getTime() - b.getTime()) / 86400000);
+    }
+
     const payment = new Payment({
       studentId: data.studentId,
       amount: data.amount,
-      month: data.month,
-      year: data.year,
+      month,
+      year,
+      periodStart,
+      periodEnd,
+      lessonCount,
+      expectedDueDate,
+      daysVariance,
       description: data.description || '',
     });
 
@@ -46,8 +126,8 @@ export async function POST(request: NextRequest) {
 
     const invoice = await Invoice.findOne({
       studentId: data.studentId,
-      month: data.month,
-      year: data.year,
+      month,
+      year,
     });
 
     if (invoice) {
@@ -65,15 +145,16 @@ export async function POST(request: NextRequest) {
     invalidateCache('invoices:');
     invalidateCache('debtors:');
 
-    const student = await Student.findById(data.studentId);
-    if (student) {
-      sendTelegramMessage(
-        `💰 <b>To'lov qabul qilindi</b>\n\n` +
-        `Talaba: ${student.name}\n` +
-        `Summa: ${data.amount.toLocaleString()} so'm\n` +
-        `Oy: ${data.month}/${data.year}`
-      );
-    }
+    sendTelegramMessage(
+      `💰 <b>Toʻlov qabul qilindi</b>\n\n` +
+        `Oʻquvchi: <b>${student.name}</b>\n` +
+        `Summa: ${data.amount.toLocaleString('uz-UZ')} soʻm\n` +
+        `Davr: ${month}/${year}${
+          periodStart && periodEnd
+            ? ` (${periodStart.toLocaleDateString('uz-UZ')} — ${periodEnd.toLocaleDateString('uz-UZ')})`
+            : ''
+        }`
+    );
     
     return NextResponse.json(payment, { status: 201 });
   } catch (error) {

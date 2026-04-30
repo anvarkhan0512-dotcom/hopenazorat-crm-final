@@ -5,6 +5,14 @@ export interface IPayment extends Document {
   amount: number;
   month: number;
   year: number;
+  /** 12 darslik davr */
+  periodStart?: Date;
+  periodEnd?: Date;
+  lessonCount?: number;
+  /** Kutilgan to‘lov sanasi (kechikish hisobi) */
+  expectedDueDate?: Date;
+  /** To‘lov sanasi − kutilgan sana (kun, manfiy = kechikkan) */
+  daysVariance?: number;
   description: string;
   createdAt: Date;
 }
@@ -15,6 +23,11 @@ const PaymentSchema = new Schema<IPayment>(
     amount: { type: Number, required: true },
     month: { type: Number, required: true },
     year: { type: Number, required: true },
+    periodStart: { type: Date },
+    periodEnd: { type: Date },
+    lessonCount: { type: Number, default: 12 },
+    expectedDueDate: { type: Date },
+    daysVariance: { type: Number },
     description: { type: String, default: '' },
   },
   { timestamps: true }

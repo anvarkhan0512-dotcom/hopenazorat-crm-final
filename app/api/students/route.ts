@@ -35,27 +35,35 @@ export async function GET(request: NextRequest) {
     }
 
     if (auth.role === 'teacher') {
-      const groups = await Group.find({ teacherUserId: auth._id }).select('_id').lean();
+      const groups = await Group.find({
+        $or: [{ teacherUserId: auth._id }, { teacherUserId2: auth._id }],
+      })
+        .select('_id')
+        .lean();
       const gids = groups.map((g) => g._id);
       query.groupId = { $in: gids };
     }
 
     if (groupId) {
       if (auth.role === 'teacher') {
-        const ok = await Group.exists({ _id: groupId, teacherUserId: auth._id });
+        const ok = await Group.exists({
+          _id: groupId,
+          $or: [{ teacherUserId: auth._id }, { teacherUserId2: auth._id }],
+        });
         if (!ok) return NextResponse.json([]);
       }
       query.groupId = groupId;
     }
 
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } },
-      ];
+      const rx = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      query.$or = [{ name: rx }, { phone: rx }, { phones: rx }];
     }
 
-    const students = await Student.find(query).populate('groupId', 'name').sort({ createdAt: -1 }).lean();
+    const students = await Student.find(query)
+      .populate('groupId', 'name weeklySchedule lessonCalendarWeekParity schedule')
+      .sort({ createdAt: -1 })
+      .lean();
     return NextResponse.json(students.map((s) => serializeStudent(s as Record<string, unknown>)));
   } catch (error) {
     return NextResponse.json({ error: "O'quvchilarni yuklashda xato" }, { status: 500 });
@@ -88,9 +96,17 @@ export async function POST(request: NextRequest) {
 
     const parentAccessCode = await ensureUniqueParentCode();
 
+    const phoneList = Array.isArray(data.phones)
+      ? data.phones.map((p: string) => String(p).trim()).filter(Boolean)
+      : [];
+    const primaryPhone = phoneList[0] || String(data.phone || '').trim();
+
     const student = new Student({
       name: data.name,
-      phone: data.phone,
+      phone: primaryPhone,
+      phones: phoneList.length > 0 ? phoneList : primaryPhone ? [primaryPhone] : [],
+      arrivalDate: data.arrivalDate ? new Date(data.arrivalDate) : undefined,
+      parentType: data.parentType || '',
       groupId: data.groupId || null,
       status: data.status || 'active',
       basePrice,
@@ -103,6 +119,7 @@ export async function POST(request: NextRequest) {
       nextPaymentDate,
       parentAccessCode,
       parentTelegramChatId: data.parentTelegramChatId || '',
+      debtReminderUntil: data.debtReminderUntil ? new Date(data.debtReminderUntil) : undefined,
     });
 
     await student.save();

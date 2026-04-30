@@ -3,7 +3,8 @@ import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import { Attendance } from '@/models/Attendance';
 import { Student } from '@/models/Student';
-import { sendTelegramMessage } from '@/lib/telegram';
+import { sendTelegramMessage, sendTelegramToChat } from '@/lib/telegram';
+import { User } from '@/models/User';
 
 function buildAttendanceTelegramText(params: {
   studentName: string;
@@ -12,29 +13,39 @@ function buildAttendanceTelegramText(params: {
   date: string;
   checkInTime?: string | null;
   rescheduleDate?: string | null;
+  transferAt?: string | null;
 }): string {
   const lessonLine = `📘 Dars: <b>${params.lessonNumber}</b> | Sana: ${params.date}`;
   if (params.status === 'present') {
     return (
       `✅ <b>Davomat</b>\n\n` +
       `${lessonLine}\n` +
-      `O'quvchi: <b>${params.studentName}</b>\n` +
-      `Status: Keldi\n🕒 Vaqt: ${params.checkInTime || '--:--'}`
+      `Oʻquvchi: <b>${params.studentName}</b>\n` +
+      `Holat: darsga kelgan\n` +
+      `🕒 Kelgan vaqt: ${params.checkInTime || '—'}`
     );
   }
   if (params.status === 'rescheduled') {
     return (
-      `📅 <b>Dars ko'chirildi</b>\n\n` +
+      `📅 <b>Dars boshqa kunga koʻchirildi</b>\n\n` +
       `${lessonLine}\n` +
-      `O'quvchi: <b>${params.studentName}</b>\n` +
-      `Yangi sana: ${params.rescheduleDate || '-'}`
+      `Oʻquvchi: <b>${params.studentName}</b>\n` +
+      `Yangi sana: ${params.rescheduleDate || '—'}`
+    );
+  }
+  if (params.status === 'transferred') {
+    return (
+      `🔀 <b>Oʻquvchi boshqa ustozga oʻtkazildi</b>\n\n` +
+      `${lessonLine}\n` +
+      `Oʻquvchi: <b>${params.studentName}</b>\n` +
+      `Sana va vaqt: ${params.transferAt || '—'}`
     );
   }
   return (
     `❌ <b>Davomat</b>\n\n` +
     `${lessonLine}\n` +
-    `O'quvchi: <b>${params.studentName}</b>\n` +
-    `Status: Kelmadi`
+    `Oʻquvchi: <b>${params.studentName}</b>\n` +
+    `Holat: darsga kelmagan`
   );
 }
 
@@ -51,7 +62,16 @@ export async function POST(request: NextRequest) {
 
     for (const item of body) {
       try {
-        const { studentId, date, lessonNumber, status, rescheduleDate, checkInTime } = item;
+        const {
+          studentId,
+          date,
+          lessonNumber,
+          status,
+          rescheduleDate,
+          checkInTime,
+          transferAt,
+          redirectTeacherUserId,
+        } = item;
         if (!status) {
           results.errors.push(`ID ${studentId}: status tanlanmagan`);
           continue;
@@ -67,14 +87,36 @@ export async function POST(request: NextRequest) {
         const day = new Date(date);
         day.setHours(12, 0, 0, 0);
 
+        const st =
+          status === 'transferred'
+            ? 'transferred'
+            : status === 'rescheduled'
+              ? 'rescheduled'
+              : status === 'absent'
+                ? 'absent'
+                : 'present';
+
+        const transferDate =
+          status === 'transferred' && transferAt
+            ? new Date(transferAt)
+            : status === 'transferred'
+              ? new Date(String(date) + 'T12:00:00')
+              : null;
+        const redirectTid =
+          status === 'transferred' && redirectTeacherUserId
+            ? new mongoose.Types.ObjectId(String(redirectTeacherUserId))
+            : null;
+
         await Attendance.findOneAndUpdate(
           { studentId: sid, date: day, lessonNumber: numLesson },
           {
             $set: {
-              status: status === 'rescheduled' ? 'rescheduled' : status === 'absent' ? 'absent' : 'present',
+              status: st,
               groupId: student.groupId || undefined,
               rescheduleDate: status === 'rescheduled' && rescheduleDate ? new Date(rescheduleDate) : null,
               checkInTime: status === 'present' ? checkInTime || null : null,
+              transferAt: transferDate,
+              redirectTeacherUserId: redirectTid,
             },
           },
           { upsert: true, new: true }
@@ -87,8 +129,24 @@ export async function POST(request: NextRequest) {
           date: String(date),
           checkInTime,
           rescheduleDate: rescheduleDate ? String(rescheduleDate) : null,
+          transferAt: transferDate ? transferDate.toLocaleString('uz-UZ') : null,
         });
         await sendTelegramMessage(text);
+
+        if (status === 'transferred' && redirectTid) {
+          const teacher = await User.findById(redirectTid).select('telegramChatId displayName username').lean();
+          const chat = teacher?.telegramChatId?.trim();
+          if (chat) {
+            await sendTelegramToChat(
+              chat,
+              `Hurmatli ustoz,\n\n` +
+                `Sizga yangi oʻquvchi yoʻnaltirildi.\n\n` +
+                `Oʻquvchi: <b>${student.name}</b>\n` +
+                `Sana: ${transferDate ? transferDate.toLocaleString('uz-UZ') : String(date)}\n\n` +
+                `Iltimos, panel orqali maʼlumotlarni tekshiring.`
+            );
+          }
+        }
 
         results.success++;
       } catch (e: any) {
@@ -136,6 +194,8 @@ export async function GET(request: NextRequest) {
       status: a.status,
       checkInTime: a.checkInTime,
       rescheduleDate: a.rescheduleDate,
+      transferAt: a.transferAt,
+      redirectTeacherUserId: a.redirectTeacherUserId,
     }));
 
     return NextResponse.json(result);

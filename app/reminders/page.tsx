@@ -19,6 +19,7 @@ export default function RemindersPage() {
     tomorrow: Reminder[];
     overdue: Reminder[];
     upcoming: Reminder[];
+    forecast: Reminder[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
@@ -30,12 +31,14 @@ export default function RemindersPage() {
   const fetchReminders = async () => {
     setLoading(true);
     try {
-      const [upcomingRes, overdueRes] = await Promise.all([
+      const [upcomingRes, overdueRes, forecastRes] = await Promise.all([
         fetch('/api/schedule?type=upcoming&days=7'),
         fetch('/api/schedule?type=overdue'),
+        fetch('/api/schedule?type=upcoming&days=5'),
       ]);
       const upcoming = await upcomingRes.json();
       const overdue = await overdueRes.json();
+      const forecast = forecastRes.ok ? await forecastRes.json() : [];
 
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -59,6 +62,7 @@ export default function RemindersPage() {
           const date = r.nextPaymentDate?.split('T')[0];
           return date !== todayFormatted && date !== tomorrowFormatted;
         }),
+        forecast: Array.isArray(forecast) ? forecast : [],
       };
 
       setReminders(filtered);
@@ -118,6 +122,22 @@ export default function RemindersPage() {
 
   return (
     <DashboardLayout title="Eslatmalar">
+      {!loading && reminders?.forecast && reminders.forecast.length > 0 && (
+        <div className="card mb-6">
+          <h3 className="card-title mb-2">5 kunlik to‘lov prognozi</h3>
+          <p className="text-sm text-gray-600 mb-3">Yaqinlashayotgan to‘lovlar (5 kun)</p>
+          <ul className="space-y-2 text-sm max-h-48 overflow-y-auto">
+            {reminders.forecast.slice(0, 40).map((r: Reminder) => (
+              <li key={r.studentId + String(r.nextPaymentDate)} className="flex justify-between gap-2">
+                <span>{r.studentName}</span>
+                <span className="text-gray-500">
+                  {r.nextPaymentDate?.split('T')[0]} ({r.daysUntilDue} kun)
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {loading ? (
         <div className="loading">
           <div className="spinner"></div>

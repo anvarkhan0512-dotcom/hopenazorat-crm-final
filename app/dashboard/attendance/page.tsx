@@ -5,9 +5,12 @@ import Link from 'next/link';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useLanguage } from '@/components/LanguageProvider';
 
+type TeacherOpt = { id: string; username: string; displayName: string };
+
 export default function DashboardAttendancePage() {
   const { t } = useLanguage();
   const [students, setStudents] = useState<any[]>([]);
+  const [teachers, setTeachers] = useState<TeacherOpt[]>([]);
   const [attendance, setAttendance] = useState<any>({});
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [lessonNumber, setLessonNumber] = useState('1');
@@ -17,6 +20,10 @@ export default function DashboardAttendancePage() {
 
   useEffect(() => {
     fetchStudents();
+    fetch('/api/users/teachers')
+      .then((r) => r.json())
+      .then(setTeachers)
+      .catch(() => setTeachers([]));
   }, []);
 
   const fetchStudents = async () => {
@@ -59,6 +66,12 @@ export default function DashboardAttendancePage() {
       rescheduleDate:
         attendance[id].status === 'rescheduled' ? attendance[id].rescheduleDate : null,
       checkInTime: attendance[id].checkInTime || null,
+      transferAt:
+        attendance[id].status === 'transferred' ? attendance[id].transferAt || null : null,
+      redirectTeacherUserId:
+        attendance[id].status === 'transferred'
+          ? attendance[id].redirectTeacherUserId || null
+          : null,
     }));
 
     if (payload.length === 0) return alert("O'zgarishlar mavjud emas!");
@@ -150,7 +163,8 @@ export default function DashboardAttendancePage() {
                   <option value="">Tanlang</option>
                   <option value="present">Keldi</option>
                   <option value="absent">Kelmadi</option>
-                  <option value="rescheduled">{"Ko'chirildi"}</option>
+                  <option value="rescheduled">Boshqa kunga</option>
+                  <option value="transferred">{"Ko'chirildi"}</option>
                 </select>
 
                 {attendance[s._id]?.status === 'rescheduled' && (
@@ -160,6 +174,42 @@ export default function DashboardAttendancePage() {
                     style={{ maxWidth: '160px' }}
                     onChange={(e) => handleChange(s._id, 'rescheduleDate', e.target.value)}
                   />
+                )}
+
+                {attendance[s._id]?.status === 'transferred' && (
+                  <div className="flex flex-col gap-2 min-w-[200px]">
+                    <input
+                      type="datetime-local"
+                      className="input min-h-[44px]"
+                      onChange={(e) => handleChange(s._id, 'transferAt', e.target.value)}
+                    />
+                    <select
+                      className="select min-h-[44px]"
+                      value={attendance[s._id]?.redirectTeacherUserId || ''}
+                      onChange={(e) =>
+                        handleChange(s._id, 'redirectTeacherUserId', e.target.value)
+                      }
+                    >
+                      <option value="">Ustoz tanlang</option>
+                      {teachers.map((te) => (
+                        <option key={te.id} value={te.id}>
+                          {te.displayName || te.username}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={!attendance[s._id]?.redirectTeacherUserId}
+                      onClick={() => {
+                        const tid = attendance[s._id]?.redirectTeacherUserId;
+                        if (!tid) return;
+                        window.open(`/teacher`, '_blank');
+                      }}
+                    >
+                      Yangi ustozga yo‘naltirish (panel)
+                    </button>
+                  </div>
                 )}
 
                 {attendance[s._id]?.status === 'present' && (

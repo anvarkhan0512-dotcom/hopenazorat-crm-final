@@ -17,12 +17,12 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'hopenazorat',
-  description: 'hopenazorat — ta’lim markazi boshqaruvi',
+  title: 'Hope Study',
+  description: 'Hope Study — ta’lim markazi boshqaruvi',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    title: 'hopenazorat',
+    title: 'Hope Study',
     statusBarStyle: 'black-translucent',
   },
 };

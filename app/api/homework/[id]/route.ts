@@ -21,9 +21,6 @@ export async function GET(
     if (!hw) return NextResponse.json({ error: 'Topilmadi' }, { status: 404 });
 
     const group = await Group.findById(hw.groupId).lean();
-    if (auth.role === 'teacher' && group?.teacherUserId?.toString() !== auth.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
 
     const subs = await HomeworkSubmission.find({ homeworkId: hw._id })
       .populate('studentId', 'name phone')
@@ -50,8 +47,13 @@ export async function DELETE(
     if (!hw) return NextResponse.json({ error: 'Topilmadi' }, { status: 404 });
 
     const group = await Group.findById(hw.groupId);
-    if (auth!.role === 'teacher' && group?.teacherUserId?.toString() !== auth!.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (auth!.role === 'teacher' && group) {
+      const ok =
+        group.teacherUserId?.toString() === auth!.id ||
+        group.teacherUserId2?.toString() === auth!.id;
+      if (!ok) {
+        return NextResponse.json({ error: 'Faqat o‘z guruhidagi vazifani o‘chirishingiz mumkin' }, { status: 403 });
+      }
     }
 
     await HomeworkSubmission.deleteMany({ homeworkId: hw._id });

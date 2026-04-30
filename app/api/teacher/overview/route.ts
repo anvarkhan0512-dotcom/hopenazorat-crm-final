@@ -4,6 +4,7 @@ import { getAuthUser, requireTeacherOnly } from '@/lib/auth-server';
 import { Group } from '@/models/Group';
 import { Student } from '@/models/Student';
 import { getTeacherPaymentStats } from '@/lib/teacherFinance';
+import { serializeGroupForClient } from '@/lib/serializeGroup';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,10 @@ export async function GET(request: NextRequest) {
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
 
-    const groups = await Group.find({ teacherUserId: auth!._id, isActive: true })
+    const groups = await Group.find({
+      isActive: true,
+      $or: [{ teacherUserId: auth!._id }, { teacherUserId2: auth!._id }],
+    })
       .sort({ name: 1 })
       .lean();
 
@@ -36,7 +40,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       month,
       year,
-      groups,
+      groups: groups.map((g) => serializeGroupForClient(g as Record<string, unknown>, 'teacher')),
       students,
       finance,
     });

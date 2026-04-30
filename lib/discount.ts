@@ -1,3 +1,4 @@
+import type { Language } from '@/lib/translations';
 import connectDB from '@/lib/db';
 import { Discount } from '@/models/Discount';
 import { Student } from '@/models/Student';
@@ -28,23 +29,65 @@ export interface StudentWithDiscount {
   };
 }
 
-const discountReasons: Record<string, { uz: string; ru: string; en: string }> = {
-  family: { uz: 'Oilaviy chegirma', ru: 'Семейная скидка', en: 'Family discount' },
-  financial_aid: { uz: 'Moddiy yordam', ru: 'Материальная помощь', en: 'Financial aid' },
-  orphan: { uz: 'Yetim', ru: 'Сирота', en: 'Orphan' },
-  disabled: { uz: 'Nogiron', ru: 'Инвалид', en: 'Disabled' },
-  low_income: { uz: 'Kam ta\'minotli oila', ru: 'Малообеспеченная семья', en: 'Low income family' },
-  excellent: { uz: 'A\'lochi baholar', ru: 'Отличники', en: 'Excellent grades' },
-  special: { uz: 'Maxsus chegirma', ru: 'Особая скидка', en: 'Special discount' },
-  other: { uz: 'Boshqa', ru: 'Другое', en: 'Other' },
+const discountReasons: Record<string, { uz: string; ru: string; en: string; kr: string }> = {
+  family: {
+    uz: 'Oilaviy chegirma',
+    ru: 'Семейная скидка',
+    en: 'Family discount',
+    kr: 'Оилавий чегирма',
+  },
+  financial_aid: {
+    uz: 'Moddiy yordam',
+    ru: 'Материальная помощь',
+    en: 'Financial aid',
+    kr: 'Моддий ёрдам',
+  },
+  orphan: {
+    uz: 'Yetim',
+    ru: 'Сирота',
+    en: 'Orphan',
+    kr: 'Етим',
+  },
+  disabled: {
+    uz: 'Nogiron',
+    ru: 'Инвалид',
+    en: 'Disabled',
+    kr: 'Ногирон',
+  },
+  low_income: {
+    uz: 'Kam ta\'minotli oila',
+    ru: 'Малообеспеченная семья',
+    en: 'Low income family',
+    kr: 'Кам таъминотли оила',
+  },
+  excellent: {
+    uz: 'A\'lochi baholar',
+    ru: 'Отличники',
+    en: 'Excellent grades',
+    kr: 'Аълочи баҳоалар',
+  },
+  special: {
+    uz: 'Maxsus chegirma',
+    ru: 'Особая скидка',
+    en: 'Special discount',
+    kr: 'Махсус чегирма',
+  },
+  other: {
+    uz: 'Boshqa',
+    ru: 'Другое',
+    en: 'Other',
+    kr: 'Бошқа',
+  },
 };
 
 export function getDiscountReasons() {
   return discountReasons;
 }
 
-export function getDiscountReasonLabel(reason: string, lang: 'uz' | 'ru' | 'en' = 'uz'): string {
-  return discountReasons[reason]?.[lang] || reason;
+export function getDiscountReasonLabel(reason: string, lang: Language = 'uz'): string {
+  const row = discountReasons[reason];
+  if (!row) return reason;
+  return row[lang] || row.uz || reason;
 }
 
 export async function calculateStudentDiscount(

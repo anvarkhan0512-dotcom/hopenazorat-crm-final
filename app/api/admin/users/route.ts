@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
       role,
       displayName: displayName || '',
       linkedStudentIds: [],
+      revealablePassword: String(password),
     });
 
     return NextResponse.json({

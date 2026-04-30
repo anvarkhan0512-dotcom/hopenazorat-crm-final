@@ -1,7 +1,7 @@
 {
-  "name": "hopenazorat",
-  "short_name": "hopenazorat",
-  "description": "hopenazorat ta'lim markazi",
+  "name": "Hope Study",
+  "short_name": "Hope Study",
+  "description": "Hope Study ta'lim markazi",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

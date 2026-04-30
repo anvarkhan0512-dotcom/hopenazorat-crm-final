@@ -8,13 +8,18 @@ export type AppUser = {
   username: string;
   role: 'admin' | 'manager' | 'teacher' | 'parent' | 'student';
   displayName?: string;
+  avatarUrl?: string;
   linkedStudentIds?: string[];
 };
 
 interface AuthContextType {
   user: AppUser | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<{ ok: boolean; user?: AppUser }>;
+  login: (
+    username: string,
+    password: string,
+    expectedRole?: string
+  ) => Promise<{ ok: boolean; user?: AppUser; code?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -43,21 +48,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string, expectedRole?: string) => {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password }),
+        body: JSON.stringify({ username: username.trim(), password, expectedRole }),
       });
 
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        const data = await res.json();
         const u = data.user as AppUser;
         setUser(u);
         return { ok: true, user: u };
       }
-      return { ok: false };
+      return { ok: false, code: typeof data.code === 'string' ? data.code : undefined };
     } catch (error) {
       console.error('Login failed:', error);
       return { ok: false };

@@ -4,12 +4,20 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import Modal from '@/components/Modal';
 import { useLanguage } from '@/components/LanguageProvider';
+import { computePeriodEndFromLessons } from '@/lib/lessonPeriod';
+
+interface GroupRef {
+  _id?: string;
+  weeklySchedule?: { day: number; time: string }[];
+  lessonCalendarWeekParity?: 'all' | 'odd' | 'even';
+}
 
 interface Student {
   _id: string;
   name: string;
   phone: string;
   monthlyPrice: number;
+  groupId?: GroupRef | string;
 }
 
 interface Payment {
@@ -18,6 +26,10 @@ interface Payment {
   amount: number;
   month: number;
   year: number;
+  periodStart?: string;
+  periodEnd?: string;
+  lessonCount?: number;
+  daysVariance?: number;
   description: string;
   createdAt: string;
 }
@@ -31,6 +43,7 @@ export default function PaymentsPage() {
   const [monthFilter, setMonthFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
   const { t } = useLanguage();
+  const [periodEndManual, setPeriodEndManual] = useState(false);
 
   const currentDate = new Date();
   const [formData, setFormData] = useState({
@@ -38,12 +51,37 @@ export default function PaymentsPage() {
     amount: 0,
     month: currentDate.getMonth() + 1,
     year: currentDate.getFullYear(),
+    periodStart: '',
+    periodEnd: '',
+    lessonCount: 12,
+    expectedDueDate: '',
     description: '',
   });
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (periodEndManual) return;
+    const st = students.find((s) => s._id === formData.studentId);
+    const g = st?.groupId && typeof st.groupId === 'object' ? (st.groupId as GroupRef) : null;
+    if (!formData.periodStart || !formData.studentId) return;
+    const end = computePeriodEndFromLessons(
+      new Date(`${formData.periodStart}T12:00:00`),
+      formData.lessonCount || 12,
+      g?.weeklySchedule,
+      g?.lessonCalendarWeekParity || 'all'
+    );
+    const iso = end.toISOString().slice(0, 10);
+    setFormData((prev) => (prev.periodEnd === iso ? prev : { ...prev, periodEnd: iso }));
+  }, [
+    formData.studentId,
+    formData.periodStart,
+    formData.lessonCount,
+    students,
+    periodEndManual,
+  ]);
 
   const fetchData = async () => {
     try {
@@ -76,7 +114,17 @@ export default function PaymentsPage() {
       const res = await fetch('/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          studentId: formData.studentId,
+          amount: formData.amount,
+          month: formData.month,
+          year: formData.year,
+          periodStart: formData.periodStart || undefined,
+          periodEnd: formData.periodEnd || undefined,
+          lessonCount: formData.lessonCount,
+          expectedDueDate: formData.expectedDueDate || undefined,
+          description: formData.description,
+        }),
       });
 
       if (res.ok) {
@@ -102,12 +150,17 @@ export default function PaymentsPage() {
   };
 
   const openModal = () => {
-    const selectedStudent = students.find(s => s._id === formData.studentId);
+    const selectedStudent = students.find((s) => s._id === formData.studentId);
+    setPeriodEndManual(false);
     setFormData({
       studentId: '',
       amount: selectedStudent?.monthlyPrice || 0,
       month: currentDate.getMonth() + 1,
       year: currentDate.getFullYear(),
+      periodStart: '',
+      periodEnd: '',
+      lessonCount: 12,
+      expectedDueDate: '',
       description: '',
     });
     setShowModal(true);
@@ -115,17 +168,23 @@ export default function PaymentsPage() {
 
   const closeModal = () => {
     setShowModal(false);
+    setPeriodEndManual(false);
     setFormData({
       studentId: '',
       amount: 0,
       month: currentDate.getMonth() + 1,
       year: currentDate.getFullYear(),
+      periodStart: '',
+      periodEnd: '',
+      lessonCount: 12,
+      expectedDueDate: '',
       description: '',
     });
   };
 
   const handleStudentChange = (studentId: string) => {
-    const student = students.find(s => s._id === studentId);
+    const student = students.find((s) => s._id === studentId);
+    setPeriodEndManual(false);
     setFormData({
       ...formData,
       studentId,
@@ -221,7 +280,35 @@ export default function PaymentsPage() {
                   <td>{payment.studentId?.name || '-'}</td>
                   <td>{payment.studentId?.phone || '-'}</td>
                   <td>{formatMoney(payment.amount)}</td>
-                  <td>{months[payment.month - 1]} {payment.year}</td>
+                  <td>
+                    {payment.periodStart && payment.periodEnd ? (
+                      <span className="text-sm">
+                        {payment.periodStart.split('T')[0]} — {payment.periodEnd.split('T')[0]}
+                        <span className="block text-xs text-gray-500">{payment.lessonCount ?? 12} dars</span>
+                      </span>
+                    ) : (
+                      <span>
+                        {months[payment.month - 1]} {payment.year}
+                      </span>
+                    )}
+                    {payment.daysVariance != null && (
+                      <span
+                        className={`block text-xs font-medium ${
+                          payment.daysVariance > 0
+                            ? 'text-red-600'
+                            : payment.daysVariance < 0
+                              ? 'text-amber-700'
+                              : 'text-green-700'
+                        }`}
+                      >
+                        {payment.daysVariance > 0
+                          ? `+${payment.daysVariance} kun kechikkan`
+                          : payment.daysVariance < 0
+                            ? `${payment.daysVariance} kun oldin`
+                            : 'Vaqtida'}
+                      </span>
+                    )}
+                  </td>
                   <td>
                     <button
                       className="btn btn-danger"
@@ -266,16 +353,68 @@ export default function PaymentsPage() {
               required
             />
           </div>
+          <div className="form-group border rounded-lg p-3 mb-3">
+            <label className="form-label">12 darslik davr (boshlanish / tugash)</label>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="date"
+                className="input"
+                value={formData.periodStart}
+                onChange={(e) => {
+                  setPeriodEndManual(false);
+                  setFormData({ ...formData, periodStart: e.target.value });
+                }}
+              />
+              <input
+                type="date"
+                className="input"
+                value={formData.periodEnd}
+                onChange={(e) => {
+                  setPeriodEndManual(true);
+                  setFormData({ ...formData, periodEnd: e.target.value });
+                }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Tugash sanasi guruhning haftalik jadvali va (agar tanlangan boʻlsa) toq/juft hafta
+              filtri boʻyicha avtomatik hisoblanadi; qoʻlda oʻzgartirsangiz, avtomatik toʻxtaydi.
+            </p>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Darslar soni</label>
+            <input
+              type="number"
+              min={1}
+              max={24}
+              className="input"
+              value={formData.lessonCount}
+              onChange={(e) => {
+                setPeriodEndManual(false);
+                setFormData({ ...formData, lessonCount: parseInt(e.target.value, 10) || 12 });
+              }}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Kutilgan to‘lov sanasi (kechikish hisobi)</label>
+            <input
+              type="date"
+              className="input"
+              value={formData.expectedDueDate}
+              onChange={(e) => setFormData({ ...formData, expectedDueDate: e.target.value })}
+            />
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="form-group">
-              <label className="form-label">Oy</label>
+              <label className="form-label">Oy (davr yo‘q bo‘lsa)</label>
               <select
                 className="select"
                 value={formData.month}
-                onChange={(e) => setFormData({ ...formData, month: parseInt(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, month: parseInt(e.target.value, 10) })}
               >
                 {months.map((month, i) => (
-                  <option key={i + 1} value={i + 1}>{month}</option>
+                  <option key={i + 1} value={i + 1}>
+                    {month}
+                  </option>
                 ))}
               </select>
             </div>
@@ -284,10 +423,12 @@ export default function PaymentsPage() {
               <select
                 className="select"
                 value={formData.year}
-                onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value, 10) })}
               >
-                {[2024, 2025, 2026].map((year) => (
-                  <option key={year} value={year}>{year}</option>
+                {[2024, 2025, 2026, 2027].map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
                 ))}
               </select>
             </div>

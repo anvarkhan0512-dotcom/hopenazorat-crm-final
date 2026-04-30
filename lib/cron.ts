@@ -1,6 +1,6 @@
 import { generateMonthlyInvoices, getDebtorsReport } from '@/lib/billing';
 import { sendTelegramMessage } from '@/lib/telegram';
-import { runParentPaymentReminders } from '@/lib/parentReminders';
+import { runParentPaymentReminders, runDebtorTelegramReminders } from '@/lib/parentReminders';
 
 export interface CronJob {
   name: string;
@@ -27,6 +27,12 @@ export function initCronJobs(): void {
   cronJobs.set('parent-payment-reminder', {
     name: 'Parent payment Telegram reminders',
     schedule: '0 10 * * *',
+    enabled: true,
+  });
+
+  cronJobs.set('debtor-telegram-daily', {
+    name: 'Daily debtor Telegram to parents',
+    schedule: '0 9 * * *',
     enabled: true,
   });
 
@@ -64,7 +70,7 @@ export async function runMonthlyInvoiceJob(): Promise<{
         `📄 <b>Yangi hisob-fakturalar</b>\n\n` +
         `Yaratildi: ${result.generated} ta\n` +
         `Jami qarzdorlar: ${report.summary.pending + report.summary.partial}\n` +
-        `Jami qarz: ${report.totalDebt.toLocaleString()} so'm`
+        `Jami qarz: ${report.totalDebt.toLocaleString('uz-UZ')} soʻm`
       );
     }
 
@@ -97,9 +103,9 @@ export async function runDailyDebtorCheck(): Promise<{
     if (report.summary.partial > 0 || report.summary.pending > 0) {
       await sendTelegramMessage(
         `⚠️ <b>Kunlik qarzdorlik hisoboti</b>\n\n` +
-        `To'lanmagan: ${report.summary.pending} ta\n` +
-        `Qisman to'lagan: ${report.summary.partial} ta\n` +
-        `Jami qarz: ${report.totalDebt.toLocaleString()} so'm`
+        `Toʻlanmagan: ${report.summary.pending} ta\n` +
+        `Qisman toʻlagan: ${report.summary.partial} ta\n` +
+        `Jami qarz: ${report.totalDebt.toLocaleString('uz-UZ')} soʻm`
       );
     }
 
@@ -140,14 +146,19 @@ export function startCronScheduler(): void {
       await runMonthlyInvoiceJob();
     }
 
-    const debtorJob = cronJobs.get('daily-debtor-check');
-    if (debtorJob?.enabled && hour === 8 && minute === 0) {
+    const dailyDebtorJob = cronJobs.get('daily-debtor-check');
+    if (dailyDebtorJob?.enabled && hour === 8 && minute === 0) {
       await runDailyDebtorCheck();
     }
 
     const parentJob = cronJobs.get('parent-payment-reminder');
     if (parentJob?.enabled && hour === 10 && minute === 0) {
       await runParentPaymentReminders(3);
+    }
+
+    const debtorTeleJob = cronJobs.get('debtor-telegram-daily');
+    if (debtorTeleJob?.enabled && hour === 9 && minute === 0) {
+      await runDebtorTelegramReminders();
     }
   }, 60000);
 

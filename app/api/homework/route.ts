@@ -31,16 +31,7 @@ export async function GET(request: NextRequest) {
 
     const q: Record<string, unknown> = {};
     if (auth!.role === 'teacher') {
-      const groupDocs = await Group.find({ teacherUserId: auth!._id }).select('_id').lean();
-      const gids = groupDocs.map((g) => g._id);
-      if (groupId) {
-        if (!gids.some((g) => g.toString() === groupId)) {
-          return NextResponse.json([]);
-        }
-        q.groupId = groupId;
-      } else {
-        q.groupId = { $in: gids };
-      }
+      if (groupId) q.groupId = groupId;
     } else if (groupId) {
       q.groupId = groupId;
     }
@@ -60,7 +51,7 @@ export async function POST(request: NextRequest) {
     if (denied) return NextResponse.json({ error: denied.error }, { status: denied.status });
 
     const body = await request.json();
-    const { groupId, title, description, imageUrl, dueDate } = body;
+    const { groupId, title, description, imageUrl, attachmentUrl, dueDate } = body;
     if (!groupId || !title) {
       return NextResponse.json({ error: 'groupId va title majburiy' }, { status: 400 });
     }
@@ -70,8 +61,13 @@ export async function POST(request: NextRequest) {
     const group = await Group.findById(groupId);
     if (!group) return NextResponse.json({ error: 'Guruh topilmadi' }, { status: 404 });
 
-    if (auth!.role === 'teacher' && group.teacherUserId?.toString() !== auth!.id) {
-      return NextResponse.json({ error: 'Bu guruh sizga biriktirilmagan' }, { status: 403 });
+    if (auth!.role === 'teacher') {
+      const ok =
+        group.teacherUserId?.toString() === auth!.id ||
+        group.teacherUserId2?.toString() === auth!.id;
+      if (!ok) {
+        return NextResponse.json({ error: 'Bu guruh sizga biriktirilmagan' }, { status: 403 });
+      }
     }
 
     const hw = await Homework.create({
@@ -79,6 +75,7 @@ export async function POST(request: NextRequest) {
       title,
       description: description || '',
       imageUrl: imageUrl || '',
+      attachmentUrl: attachmentUrl || '',
       dueDate: dueDate ? new Date(dueDate) : undefined,
       createdBy: auth!._id,
     });

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { translations, Language } from '@/lib/translations';
+import { translations, Language, isValidLanguage } from '@/lib/translations';
 
 interface LanguageContextType {
   lang: Language;
@@ -15,8 +15,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Language>('uz');
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('crm-lang') as Language;
-    if (savedLang && translations.dashboard[savedLang]) {
+    const savedLang = localStorage.getItem('crm-lang');
+    if (isValidLanguage(savedLang)) {
       setLangState(savedLang);
     }
   }, []);

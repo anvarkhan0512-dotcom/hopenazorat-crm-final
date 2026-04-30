@@ -5,6 +5,7 @@ export interface IHomework extends Document {
   title: string;
   description: string;
   imageUrl: string;
+  attachmentUrl: string;
   createdBy: mongoose.Types.ObjectId;
   dueDate?: Date;
   createdAt: Date;
@@ -16,6 +17,7 @@ const HomeworkSchema = new Schema<IHomework>(
     title: { type: String, required: true, index: true },
     description: { type: String, default: '' },
     imageUrl: { type: String, default: '' },
+    attachmentUrl: { type: String, default: '' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     dueDate: { type: Date, index: true },
   },

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runMonthlyInvoiceJob, runDailyDebtorCheck, getCronJobsStatus } from '@/lib/cron';
+import {
+  runMonthlyInvoiceJob,
+  runDailyDebtorCheck,
+  getCronJobsStatus,
+} from '@/lib/cron';
+import { runDebtorTelegramReminders } from '@/lib/parentReminders';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,6 +22,9 @@ export async function POST(request: NextRequest) {
         break;
       case 'daily-debtor':
         result = await runDailyDebtorCheck();
+        break;
+      case 'debtor-telegram':
+        result = await runDebtorTelegramReminders();
         break;
       default:
         return NextResponse.json({ error: 'Unknown job' }, { status: 400 });

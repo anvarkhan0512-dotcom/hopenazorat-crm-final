@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import { User } from '@/models/User';
+import { Student } from '@/models/Student';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+
+/** Login uchun telefon variantlari (phones[0] / phone bilan solishtirish) */
+function phoneLoginVariants(raw: string): string[] {
+  const t = raw.replace(/\s+/g, '');
+  const noPlus = t.replace(/^\+/, '');
+  const digits = noPlus.replace(/\D/g, '');
+  return Array.from(new Set([t, noPlus, digits].filter(Boolean)));
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -15,20 +24,76 @@ export async function POST(request: NextRequest) {
     
     // 1. Frontenddan kelayotgan ma'lumotni o'qish
     const body = await request.json();
-    const { username, password } = body;
+    const { username, password, expectedRole } = body;
+
+    const roleMatches = (role: string, expected: string | undefined) => {
+      if (!expected || typeof expected !== 'string') return true;
+      const e = expected.trim();
+      if (e === 'center') return role === 'admin' || role === 'manager';
+      return role === e;
+    };
 
     // 2. Foydalanuvchini bazadan qidirish (Trim - bo'sh joylarni olib tashlaydi)
     const rawUsername = String(username ?? '').trim();
     const normalizedUsername = rawUsername.replace(/\s+/g, '');
     const phoneUsername = normalizedUsername.replace(/^\+/, '');
 
-    const user =
+    let user =
       (await User.findOne({ username: rawUsername })) ||
       (await User.findOne({ username: normalizedUsername })) ||
       (await User.findOne({ username: phoneUsername }));
-    
+
+    /** Ota-ona farzand kartasidagi birinchi telefon (phones[0]) bilan kirsa — bogʻlangan parent User */
+    if (!user && expectedRole === 'parent') {
+      const variants = phoneLoginVariants(phoneUsername || rawUsername);
+      if (variants.length) {
+        const linkedStudent = await Student.findOne({
+          status: 'active',
+          parentUserId: { $exists: true, $ne: null },
+          $or: [
+            { 'phones.0': { $in: variants } },
+            {
+              $and: [
+                { $or: [{ phones: { $exists: false } }, { phones: { $size: 0 } }] },
+                { phone: { $in: variants } },
+              ],
+            },
+          ],
+        })
+          .select('parentUserId')
+          .lean();
+
+        if (linkedStudent?.parentUserId) {
+          user = await User.findById(linkedStudent.parentUserId);
+        } else {
+          /** Agar boshqa raqam bilan kirmoqchi bo'lsa (phones[1] va h.k.) */
+          const secondaryMatch = await Student.findOne({
+            status: 'active',
+            parentUserId: { $exists: true, $ne: null },
+            phones: { $in: variants },
+            'phones.0': { $not: { $in: variants } },
+          })
+            .select('_id')
+            .lean();
+
+          if (secondaryMatch) {
+            return NextResponse.json(
+              {
+                error: 'Faqat asosiy raqam bilan kirish mumkin',
+                code: 'PRIMARY_PHONE_ONLY',
+              },
+              { status: 401 }
+            );
+          }
+        }
+      }
+    }
+
     if (!user) {
-      return NextResponse.json({ error: 'Foydalanuvchi topilmadi' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Foydalanuvchi topilmadi', code: 'USER_NOT_FOUND' },
+        { status: 401 }
+      );
     }
 
     // 3. Parolni tekshirish
@@ -46,7 +111,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (!isValidPassword) {
-      return NextResponse.json({ error: 'Parol noto‘g‘ri' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Parol noto‘g‘ri', code: 'WRONG_PASSWORD' },
+        { status: 401 }
+      );
+    }
+
+    if (!roleMatches(user.role, expectedRole)) {
+      return NextResponse.json(
+        { error: 'Tanlangan rol bilan akkaunt mos kelmaydi', code: 'ROLE_MISMATCH' },
+        { status: 403 }
+      );
     }
 
     // 4. JWT Token yaratish
@@ -66,6 +141,8 @@ export async function POST(request: NextRequest) {
         id: user._id.toString(),
         username: user.username,
         role: user.role,
+        displayName: user.displayName || '',
+        avatarUrl: user.avatarUrl || '',
       },
     });
 

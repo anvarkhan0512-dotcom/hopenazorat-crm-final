@@ -45,7 +45,23 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     student.name = data.name;
-    student.phone = data.phone;
+    const phoneList = Array.isArray(data.phones)
+      ? data.phones.map((p: string) => String(p).trim()).filter(Boolean)
+      : [];
+    if (phoneList.length > 0) {
+      student.phones = phoneList;
+      student.phone = phoneList[0];
+    } else if (data.phone !== undefined) {
+      student.phone = String(data.phone);
+      student.phones = student.phone ? [student.phone] : [];
+    }
+    if (data.arrivalDate !== undefined) {
+      student.arrivalDate = data.arrivalDate ? new Date(data.arrivalDate) : undefined;
+    }
+    if (data.parentType !== undefined) student.parentType = data.parentType || '';
+    if (data.debtReminderUntil !== undefined) {
+      student.debtReminderUntil = data.debtReminderUntil ? new Date(data.debtReminderUntil) : undefined;
+    }
     student.groupId = data.groupId || null;
     student.status = data.status;
 

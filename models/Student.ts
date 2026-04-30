@@ -21,9 +21,17 @@ export function computeStudentFinalPrice(s: {
   return rawBase;
 }
 
+export type ParentType = 'father' | 'mother';
+
 export interface IStudent extends Document {
   name: string;
   phone: string;
+  /** Qo‘shimcha telefonlar; birinchi login uchun ham ishlatiladi */
+  phones: string[];
+  /** Kelgan sanasi */
+  arrivalDate?: Date;
+  /** Ota yoki ona */
+  parentType?: ParentType;
   groupId?: mongoose.Types.ObjectId;
   status: 'active' | 'inactive';
   /** Base monthly tuition before discount */
@@ -52,6 +60,9 @@ export interface IStudent extends Document {
   /** Parent Telegram chat for payment reminders (separate from center CHAT_ID) */
   parentTelegramChatId?: string;
   lastParentPaymentReminderAt?: Date;
+  /** Qarz uchun Telegram eslatmalari shu sanagacha (kunlik) */
+  debtReminderUntil?: Date;
+  lastDebtorTelegramAt?: Date;
   notificationEnabled: boolean;
   createdAt: Date;
 }
@@ -60,6 +71,9 @@ const StudentSchema = new Schema<IStudent>(
   {
     name: { type: String, required: true, index: true },
     phone: { type: String, required: true, index: true },
+    phones: { type: [String], default: [] },
+    arrivalDate: { type: Date },
+    parentType: { type: String, enum: ['father', 'mother', ''], default: '' },
     groupId: { type: Schema.Types.ObjectId, ref: 'Group', index: true },
     status: { type: String, enum: ['active', 'inactive'], default: 'active', index: true },
     basePrice: { type: Number, default: 0, index: true },
@@ -95,6 +109,8 @@ const StudentSchema = new Schema<IStudent>(
     },
     parentTelegramChatId: { type: String, default: '', index: true },
     lastParentPaymentReminderAt: { type: Date },
+    debtReminderUntil: { type: Date, index: true },
+    lastDebtorTelegramAt: { type: Date },
     notificationEnabled: { type: Boolean, default: true },
   },
   { timestamps: true }
@@ -109,6 +125,13 @@ StudentSchema.set('toObject', { virtuals: true });
 
 StudentSchema.pre('save', function (next) {
   const doc = this as IStudent;
+  const list = (doc.phones || []).map((p) => String(p).trim()).filter(Boolean);
+  if (list.length === 0 && doc.phone) {
+    doc.phones = [doc.phone];
+  } else if (list.length > 0) {
+    doc.phones = list;
+    doc.phone = list[0];
+  }
   if ((doc.basePrice == null || doc.basePrice === 0) && doc.monthlyPrice > 0) {
     doc.basePrice = doc.monthlyPrice;
   }

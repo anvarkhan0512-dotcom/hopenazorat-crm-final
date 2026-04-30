@@ -7,6 +7,14 @@ export interface IUser extends Document {
   password: string;
   role: UserRole;
   displayName?: string;
+  avatarUrl?: string;
+  /** Ustozga bildirishnomalar (Telegram chat id) */
+  telegramChatId?: string;
+  /**
+   * Admin yaratganida bir martalik ko‘rsatish uchun saqlanadi (ichki CRM).
+   * Foydalanuvchi parolini o‘zgartirganda tozalanadi.
+   */
+  revealablePassword?: string;
   /** For parent role: students this account can view */
   linkedStudentIds: Types.ObjectId[];
   createdAt: Date;
@@ -23,6 +31,9 @@ const UserSchema = new Schema<IUser>(
       index: true,
     },
     displayName: { type: String, default: '' },
+    avatarUrl: { type: String, default: '' },
+    telegramChatId: { type: String, default: '', index: true },
+    revealablePassword: { type: String, default: '' },
     linkedStudentIds: [{ type: Schema.Types.ObjectId, ref: 'Student', index: true }],
   },
   { timestamps: true }

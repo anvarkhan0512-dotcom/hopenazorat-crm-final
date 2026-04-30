@@ -66,28 +66,31 @@ export async function sendTelegramToChat(chatId: string, message: string): Promi
 }
 
 export async function notifyStudentAdded(data: StudentNotification): Promise<void> {
-  const message = `👤 <b>Yangi talaba qo'shildi</b>\n\n` +
-    `Ismi: ${data.studentName}\n` +
-    `Holat: ${data.action}\n` +
-    `Ma'lumot: ${data.details}`;
-  
+  const message =
+    `👤 <b>Yangi oʻquvchi roʻyxatdan oʻtdi</b>\n\n` +
+    `Ism: ${data.studentName}\n` +
+    `Amal: ${data.action}\n` +
+    `Qoʻshimcha: ${data.details}`;
+
   await sendTelegramMessage(message);
 }
 
 export async function notifyPayment(data: PaymentNotification): Promise<void> {
-  const message = `💰 <b>To'lov qabul qilindi</b>\n\n` +
-    `Talaba: ${data.studentName}\n` +
-    `Summa: ${data.amount.toLocaleString()} so'm\n` +
+  const message =
+    `💰 <b>Toʻlov qabul qilindi</b>\n\n` +
+    `Oʻquvchi: ${data.studentName}\n` +
+    `Summa: ${data.amount.toLocaleString('uz-UZ')} soʻm\n` +
     `Oy: ${data.month}/${data.year}`;
-  
+
   await sendTelegramMessage(message);
 }
 
 export async function notifyNewDebtor(name: string, debt: number): Promise<void> {
-  const message = `⚠️ <b>Yangi qarzdor!</b>\n\n` +
-    `Talaba: ${name}\n` +
-    `Qarz: ${debt.toLocaleString()} so'm`;
-  
+  const message =
+    `⚠️ <b>Yangi qarzdor</b>\n\n` +
+    `Oʻquvchi: ${name}\n` +
+    `Qarz summasi: ${debt.toLocaleString('uz-UZ')} soʻm`;
+
   await sendTelegramMessage(message);
 }
 
@@ -96,11 +99,12 @@ export async function notifyDailyReport(stats: {
   income: number;
   debtorsCount: number;
 }): Promise<void> {
-  const message = `📊 <b>Kunlik hisobot</b>\n\n` +
-    `Talabalar: ${stats.totalStudents}\n` +
-    `Daromad: ${stats.income.toLocaleString()} so'm\n` +
-    `Qarzdorlar: ${stats.debtorsCount}`;
-  
+  const message =
+    `📊 <b>Kunlik hisobot</b>\n\n` +
+    `Oʻquvchilar: ${stats.totalStudents}\n` +
+    `Daromad: ${stats.income.toLocaleString('uz-UZ')} soʻm\n` +
+    `Qarzdorlar soni: ${stats.debtorsCount}`;
+
   await sendTelegramMessage(message);
 }
 

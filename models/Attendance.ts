@@ -5,9 +5,12 @@ export interface IAttendance extends Document {
   groupId?: mongoose.Types.ObjectId;
   date: Date;
   lessonNumber: number;
-  status: 'present' | 'absent' | 'rescheduled';
+  status: 'present' | 'absent' | 'rescheduled' | 'transferred';
   rescheduleDate?: Date | null;
   checkInTime?: string | null;
+  /** Ko‘chirildi / transferred */
+  transferAt?: Date | null;
+  redirectTeacherUserId?: mongoose.Types.ObjectId | null;
   createdAt: Date;
 }
 
@@ -19,11 +22,13 @@ const AttendanceSchema = new Schema<IAttendance>(
     lessonNumber: { type: Number, required: true, min: 1, max: 12 },
     status: {
       type: String,
-      enum: ['present', 'absent', 'rescheduled'],
+      enum: ['present', 'absent', 'rescheduled', 'transferred'],
       default: 'present',
     },
     rescheduleDate: { type: Date, default: null },
     checkInTime: { type: String, default: null },
+    transferAt: { type: Date, default: null },
+    redirectTeacherUserId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   },
   { timestamps: true }
 );

@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  /* hopenazorat brand */
+  /* Hope Study brand */
   --hope-purple: #5c139c;
   --hope-purple-dark: #3d0d6b;
   --hope-purple-deep: #2d0660;
@@ -903,7 +903,7 @@ body {
   font-weight: 700;
 }
 
-/* —— hopenazorat: brand wordmark —— */
+/* —— Hope Study: brand wordmark —— */
 .brand-logo-wrap {
   text-align: center;
 }
@@ -954,7 +954,18 @@ body {
   color: rgba(244, 228, 188, 0.85);
 }
 
-/* —— hopenazorat: login (poster + starfield) —— */
+.brand-logo-tagline--hero {
+  text-transform: none;
+  letter-spacing: 0.04em;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  max-width: 22rem;
+  margin-left: auto;
+  margin-right: auto;
+  font-weight: 500;
+}
+
+/* —— Hope Study: login (poster + starfield) —— */
 .hope-login-page {
   position: relative;
   min-height: 100vh;
@@ -1033,6 +1044,40 @@ body {
   text-transform: uppercase;
   color: rgba(244, 228, 188, 0.75);
   margin-bottom: 20px;
+}
+
+.hope-login-role-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.hope-role-btn {
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+  transform: scale(1);
+}
+
+.hope-role-btn--active {
+  background: linear-gradient(135deg, var(--hope-gold) 0%, var(--hope-gold-mid) 100%);
+  color: var(--hope-purple-deep);
+  border-color: rgba(244, 228, 188, 0.85);
+  transform: scale(1.05);
+  z-index: 1;
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.6);
 }
 
 .hope-login-title {

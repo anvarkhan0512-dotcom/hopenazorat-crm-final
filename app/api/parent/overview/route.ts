@@ -5,8 +5,17 @@ import { Student, computeStudentFinalPrice } from '@/models/Student';
 import { Attendance } from '@/models/Attendance';
 import { Homework } from '@/models/Homework';
 import { HomeworkSubmission } from '@/models/HomeworkSubmission';
+import { tashkentCalendarDayKey } from '@/lib/tashkentDay';
 
 export const dynamic = 'force-dynamic';
+
+const UZ_DAYS = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
+
+function parityLabel(p: string | undefined): string {
+  if (p === 'odd') return 'Faqat toq haftalar (takvim)';
+  if (p === 'even') return 'Faqat juft haftalar (takvim)';
+  return 'Barcha haftalar';
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     const students = await Student.find({ _id: { $in: ids } })
-      .populate('groupId', 'name schedule')
+      .populate('groupId', 'name schedule weeklySchedule lessonCalendarWeekParity')
       .lean();
 
     const children = [];
@@ -46,6 +55,18 @@ export async function GET(request: NextRequest) {
         }));
 
       const groupId = st.groupId as any;
+      const todayKey = tashkentCalendarDayKey(new Date());
+      const nextKey = st.nextPaymentDate ? tashkentCalendarDayKey(new Date(st.nextPaymentDate)) : '';
+      const isOverdue = !!nextKey && nextKey < todayKey;
+
+      const scheduleLines: string[] = [];
+      if (Array.isArray(groupId?.weeklySchedule) && groupId.weeklySchedule.length) {
+        for (const slot of groupId.weeklySchedule) {
+          const dn = UZ_DAYS[slot.day] ?? String(slot.day);
+          scheduleLines.push(`${dn} ${slot.time || ''}`.trim());
+        }
+      }
+
       let pendingHomework = 0;
       if (groupId?._id) {
         const hws = await Homework.find({ groupId: groupId._id }).select('_id').lean();
@@ -63,8 +84,15 @@ export async function GET(request: NextRequest) {
         name: st.name,
         phone: st.phone,
         group: groupId?.name || '',
+        groupScheduleText: groupId?.schedule || '',
+        groupScheduleLines: scheduleLines,
+        lessonCalendarWeekParityLabel: parityLabel(groupId?.lessonCalendarWeekParity),
         monthlyPrice: effective,
         nextPaymentDate: st.nextPaymentDate,
+        debt: {
+          isOverdue,
+          hintAmount: isOverdue ? effective : 0,
+        },
         attendance: recentAttendance.slice(0, 15).map((a) => ({
           date: a.date,
           lessonNumber: a.lessonNumber,

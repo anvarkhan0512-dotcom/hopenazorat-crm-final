@@ -42,6 +42,8 @@ export default function TeacherHomeworkPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [attachmentUrl, setAttachmentUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [groupId, setGroupId] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [saving, setSaving] = useState(false);
@@ -59,12 +61,20 @@ export default function TeacherHomeworkPage() {
       const res = await fetch('/api/homework', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ groupId, title, description, imageUrl, dueDate: dueDate || undefined }),
+        body: JSON.stringify({
+          groupId,
+          title,
+          description,
+          imageUrl,
+          attachmentUrl,
+          dueDate: dueDate || undefined,
+        }),
       });
       if (res.ok) {
         setTitle('');
         setDescription('');
         setImageUrl('');
+        setAttachmentUrl('');
         setDueDate('');
         mutate();
       }
@@ -117,6 +127,34 @@ export default function TeacherHomeworkPage() {
             <label className="form-label">Rasm URL</label>
             <input className="input w-full" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://" />
           </div>
+          <div className="form-group md:col-span-2">
+            <label className="form-label">Fayl yuklash (PDF, rasm)</label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              className="input w-full min-h-[48px] text-base file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-violet-100 file:text-violet-800"
+              disabled={uploading}
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                setUploading(true);
+                try {
+                  const fd = new FormData();
+                  fd.append('file', f);
+                  const r = await fetch('/api/teacher/upload', { method: 'POST', body: fd });
+                  const j = await r.json();
+                  if (r.ok) setAttachmentUrl(j.url);
+                } finally {
+                  setUploading(false);
+                }
+              }}
+            />
+            {attachmentUrl ? (
+              <p className="text-xs text-green-700 mt-1 break-all">
+                Yuklandi: {attachmentUrl}
+              </p>
+            ) : null}
+          </div>
           <div className="form-group">
             <label className="form-label">Muddat</label>
             <input type="datetime-local" className="input w-full" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
@@ -165,6 +203,18 @@ export default function TeacherHomeworkPage() {
             <div className="px-4 pb-4">
               <p className="text-xs text-gray-600 mb-1">Vazifa rasmi</p>
               <HomeworkThumb src={detail.homework.imageUrl} alt={detail.homework.title} />
+            </div>
+          ) : null}
+          {detail.homework?.attachmentUrl ? (
+            <div className="px-4 pb-4">
+              <a
+                href={detail.homework.attachmentUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-violet-700 underline text-sm"
+              >
+                Yuklangan faylni ochish
+              </a>
             </div>
           ) : null}
           <table className="table text-sm">

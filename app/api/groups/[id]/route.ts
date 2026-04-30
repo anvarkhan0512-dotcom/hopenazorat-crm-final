@@ -16,14 +16,23 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     await connectDB();
     const data = await request.json();
 
+    const parity = ['all', 'odd', 'even'].includes(data.lessonCalendarWeekParity)
+      ? data.lessonCalendarWeekParity
+      : 'all';
+
     const group = await Group.findByIdAndUpdate(
       params.id,
       {
         name: data.name,
         teacherName: data.teacherName,
         teacherUserId: data.teacherUserId || null,
+        teacherUserId2: data.teacherUserId2 || null,
         schedule: data.schedule,
+        weeklySchedule: Array.isArray(data.weeklySchedule) ? data.weeklySchedule : [],
         price: data.price,
+        teacherSharePercent: data.teacherSharePercent ?? 30,
+        teacherPayoutFixed: data.teacherPayoutFixed ?? 0,
+        lessonCalendarWeekParity: parity,
       },
       { new: true }
     );
