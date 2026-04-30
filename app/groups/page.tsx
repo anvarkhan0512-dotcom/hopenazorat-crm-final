@@ -50,6 +50,8 @@ export default function GroupsPage() {
     { v: 6, l: t('saturday') || 'Shanba' },
     { v: 0, l: t('sunday') || 'Yakshanba' },
   ];
+
+  const [formData, setFormData] = useState({
     name: '',
     teacherName: '',
     teacherUserId: '',
