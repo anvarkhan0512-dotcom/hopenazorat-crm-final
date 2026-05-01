@@ -145,7 +145,6 @@ StudentSchema.pre('save', function (next) {
 
 StudentSchema.index({ name: 'text', phone: 'text' });
 StudentSchema.index({ status: 1, groupId: 1 });
-StudentSchema.index({ nextPaymentDate: 1 });
 StudentSchema.index({ nextPaymentDate: 1, status: 1 });
 
 export const Student: Model<IStudent> =

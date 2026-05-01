@@ -10,7 +10,7 @@
     "seed": "npx tsx seed.ts"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.11.4",
+    "@google/generative-ai": "^0.21.0",
     "bcryptjs": "^2.4.3",
     "dotenv": "^17.4.2",
     "face-api.js": "^0.22.2",

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { askGemini, sendToolResult } from '@/lib/gemini';
 import { getAuthUser } from '@/lib/auth-server';

@@ -35,7 +35,6 @@ const AttendanceSchema = new Schema<IAttendance>(
 
 AttendanceSchema.index({ studentId: 1, date: 1, lessonNumber: 1 }, { unique: true });
 AttendanceSchema.index({ groupId: 1, date: 1 });
-AttendanceSchema.index({ date: 1 });
 AttendanceSchema.index({ studentId: 1, date: -1, status: 1 });
 AttendanceSchema.index({ status: 1, date: -1 });
 

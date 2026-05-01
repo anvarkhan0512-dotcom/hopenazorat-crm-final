@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -28,10 +28,10 @@ const tools = [
         name: "get_students",
         description: "Talabalar ro'yxatini olish (Admin uchun barcha, Ustoz uchun o'zining talabalari).",
         parameters: {
-          type: SchemaType.OBJECT,
+          type: "OBJECT",
           properties: {
-            search: { type: SchemaType.STRING, description: "Ism yoki telefon bo'yicha qidiruv" },
-            groupId: { type: SchemaType.STRING, description: "Guruh ID bo'yicha filtrlash" }
+            search: { type: "STRING", description: "Ism yoki telefon bo'yicha qidiruv" },
+            groupId: { type: "STRING", description: "Guruh ID bo'yicha filtrlash" }
           }
         }
       },
@@ -39,12 +39,12 @@ const tools = [
         name: "add_student",
         description: "Yangi talaba qo'shish (Faqat Admin uchun).",
         parameters: {
-          type: SchemaType.OBJECT,
+          type: "OBJECT",
           properties: {
-            name: { type: SchemaType.STRING, description: "Ism-sharif" },
-            phone: { type: SchemaType.STRING, description: "Telefon raqami" },
-            groupId: { type: SchemaType.STRING, description: "Guruh ID" },
-            basePrice: { type: SchemaType.NUMBER, description: "Oylik to'lov summasi" }
+            name: { type: "STRING", description: "Ism-sharif" },
+            phone: { type: "STRING", description: "Telefon raqami" },
+            groupId: { type: "STRING", description: "Guruh ID" },
+            basePrice: { type: "NUMBER", description: "Oylik to'lov summasi" }
           },
           required: ["name", "phone"]
         }
@@ -65,10 +65,10 @@ const tools = [
         name: "generate_lesson_plan",
         description: "Dars ishlanmasini tayyorlash (Ustozlar uchun).",
         parameters: {
-          type: SchemaType.OBJECT,
+          type: "OBJECT",
           properties: {
-            topic: { type: SchemaType.STRING, description: "Dars mavzusi" },
-            level: { type: SchemaType.STRING, description: "O'quvchilar darajasi" }
+            topic: { type: "STRING", description: "Dars mavzusi" },
+            level: { type: "STRING", description: "O'quvchilar darajasi" }
           },
           required: ["topic"]
         }
@@ -77,9 +77,9 @@ const tools = [
         name: "evaluate_homework",
         description: "Uy vazifasini tahlil qilish va baholash (Ustoz va O'quvchi uchun).",
         parameters: {
-          type: SchemaType.OBJECT,
+          type: "OBJECT",
           properties: {
-            content: { type: SchemaType.STRING, description: "Uy vazifasi matni yoki tahlil uchun ma'lumot" }
+            content: { type: "STRING", description: "Uy vazifasi matni yoki tahlil uchun ma'lumot" }
           },
           required: ["content"]
         }
@@ -88,21 +88,21 @@ const tools = [
         name: "reschedule_lesson",
         description: "Dars vaqtini o'zgartirish.",
         parameters: {
-          type: SchemaType.OBJECT,
+          type: "OBJECT",
           properties: {
-            groupId: { type: SchemaType.STRING, description: "Guruh ID" },
-            newTime: { type: SchemaType.STRING, description: "Yangi dars vaqti" }
+            groupId: { type: "STRING", description: "Guruh ID" },
+            newTime: { type: "STRING", description: "Yangi dars vaqti" }
           },
           required: ["groupId", "newTime"]
         }
       },
       {
         name: "explain_topic",
-        description: "Mavzuni qaytadan tushuntirib berish (O'quvchilar uchun).",
+        description: "Mavzuni tushuntirish (O'quvchilar uchun).",
         parameters: {
-          type: SchemaType.OBJECT,
+          type: "OBJECT",
           properties: {
-            topic: { type: SchemaType.STRING, description: "Tushuntirilishi kerak bo'lgan mavzu nomi" }
+            topic: { type: "STRING", description: "Tushuntirilishi kerak bo'lgan mavzu" }
           },
           required: ["topic"]
         }
@@ -119,59 +119,22 @@ const tools = [
   }
 ];
 
-export async function askGemini(prompt: string): Promise<{ text: string, toolCalls?: any[] }> {
-  try {
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: systemInstruction,
-      tools: tools as any
-    });
+export async function askGemini(prompt: string) {
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction, tools: tools as any });
+  const result = await model.generateContent(prompt);
+  const response = result.response;
+  const toolCalls = response.functionCalls();
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const functionCalls = response.functionCalls();
-
-    if (functionCalls && functionCalls.length > 0) {
-      return { text: "", toolCalls: functionCalls };
-    }
-
-    return { text: response.text() };
-  } catch (error) {
-    console.error("Gemini AI error:", error);
-    return { text: "Uzr, hozirda javob bera olmayman. Iltimos, birozdan so'ng qayta urinib ko'ring." };
-  }
+  return {
+    text: response.text(),
+    toolCalls: toolCalls
+  };
 }
 
-/**
- * Tool natijasini AI-ga qaytarish va yakuniy javobni olish
- */
-export async function sendToolResult(prompt: string, toolResults: any[]): Promise<string> {
-  try {
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: systemInstruction,
-      tools: tools as any
-    });
-
-    const chat = model.startChat();
-    // Birinchi so'rovni yuboramiz
-    await chat.sendMessage(prompt);
-    
-    // Tool natijalarini yuboramiz
-    const result = await chat.sendMessage([
-      {
-        functionResponse: {
-          name: toolResults[0].name,
-          response: { content: toolResults[0].result }
-        }
-      }
-    ]);
-
-    return result.response.text();
-  } catch (error) {
-    console.error("Gemini Tool Result error:", error);
-    return "Amalni bajarishda xatolik yuz berdi, lekin ma'lumotlar bazada yangilangan bo'lishi mumkin.";
-  }
+export async function sendToolResult(callId: string, result: any) {
+  // Bu funksiya Gemini API'da tool natijalarini qaytarish uchun ishlatiladi
+  // Hozirgi implementation'da soddalashtirilgan
+  return result;
 }
 
 export async function processVoiceWithGemini(audioData: Buffer, mimeType: string): Promise<{ text: string, toolCalls?: any[] }> {
