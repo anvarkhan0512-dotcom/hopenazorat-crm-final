@@ -205,5 +205,7 @@
   "edit": "Tahrirlash",
   "save": "Saqlash",
   "cancel": "Bekor qilish",
-  "enter": "Kirish"
+  "enter": "Kirish",
+  "aiAssistant": "AI Assistant",
+  "optional": "ixtiyoriy"
 }

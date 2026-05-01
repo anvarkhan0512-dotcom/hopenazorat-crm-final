@@ -10,13 +10,14 @@
     "seed": "npx tsx seed.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.11.4",
     "bcryptjs": "^2.4.3",
     "dotenv": "^17.4.2",
+    "face-api.js": "^0.22.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.4.0",
     "next": "14.2.3",
     "node-telegram-bot-api": "^0.66.0",
-    "@google/generative-ai": "^0.11.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "swr": "^2.4.1"
@@ -24,8 +25,8 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.6",
-    "@types/node-telegram-bot-api": "^0.64.6",
     "@types/node": "^20.12.12",
+    "@types/node-telegram-bot-api": "^0.64.6",
     "@types/react": "^18.3.2",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.19",

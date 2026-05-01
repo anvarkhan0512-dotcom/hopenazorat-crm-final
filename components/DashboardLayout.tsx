@@ -3,6 +3,7 @@
 import { useState, ReactNode, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import FloatingMic from '@/components/FloatingMic';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -52,6 +53,7 @@ export default function DashboardLayout({ children, title, subtitle }: Dashboard
           {children}
         </main>
       </div>
+      <FloatingMic />
     </div>
   );
 }

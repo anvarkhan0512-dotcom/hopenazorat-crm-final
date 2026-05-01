@@ -205,5 +205,7 @@
   "edit": "Edit",
   "save": "Save",
   "cancel": "Cancel",
-  "enter": "Enter"
+  "enter": "Enter",
+  "aiAssistant": "AI Assistant",
+  "optional": "optional"
 }

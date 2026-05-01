@@ -3,6 +3,8 @@ import { DM_Sans, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { LanguageProvider } from '@/components/LanguageProvider';
 import { AuthProvider } from '@/components/AuthProvider';
+import { AIProvider } from '@/components/AIProvider';
+import InstallPrompt from '@/components/InstallPrompt';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -40,7 +42,12 @@ export default function RootLayout({
     <html lang="uz" className={`${playfair.variable} ${dmSans.variable}`}>
       <body>
         <LanguageProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <AIProvider>
+              {children}
+              <InstallPrompt />
+            </AIProvider>
+          </AuthProvider>
         </LanguageProvider>
       </body>
     </html>

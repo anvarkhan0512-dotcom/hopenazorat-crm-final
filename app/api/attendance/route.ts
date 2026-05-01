@@ -133,6 +133,10 @@ export async function POST(request: NextRequest) {
         });
         await sendTelegramMessage(text);
 
+        if (student.parentTelegramChatId && student.notificationEnabled !== false) {
+          await sendTelegramToChat(student.parentTelegramChatId, text);
+        }
+
         if (status === 'transferred' && redirectTid) {
           const teacher = await User.findById(redirectTid).select('telegramChatId displayName username').lean();
           const chat = teacher?.telegramChatId?.trim();

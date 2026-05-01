@@ -64,6 +64,8 @@ export interface IStudent extends Document {
   debtReminderUntil?: Date;
   lastDebtorTelegramAt?: Date;
   notificationEnabled: boolean;
+  avatarUrl?: string;
+  faceDescriptor?: number[];
   createdAt: Date;
 }
 
@@ -112,6 +114,8 @@ const StudentSchema = new Schema<IStudent>(
     debtReminderUntil: { type: Date, index: true },
     lastDebtorTelegramAt: { type: Date },
     notificationEnabled: { type: Boolean, default: true },
+    avatarUrl: { type: String, default: '' },
+    faceDescriptor: { type: [Number], default: undefined },
   },
   { timestamps: true }
 );
