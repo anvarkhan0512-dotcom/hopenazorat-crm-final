@@ -41,7 +41,7 @@ export default function StaffPage() {
 
   function formatSalary(n: number): string {
     return (
-      new Intl.NumberFormat(locale === 'uz' ? 'uz-UZ' : locale === 'ru' ? 'ru-RU' : 'en-US', { maximumFractionDigits: 0 }).format(n).replace(/,/g, ' ') + " so'm"
+      new Intl.NumberFormat(locale === 'uz' ? 'uz-UZ' : locale === 'ru' ? 'ru-RU' : 'en-US', { maximumFractionDigits: 0 }).format(n).replace(/,/g, ' ') + " so&apos;m"
     );
   }
 

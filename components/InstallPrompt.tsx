@@ -40,15 +40,15 @@ export default function InstallPrompt() {
           🎓
         </div>
         <div className="flex-1">
-          <h4 className="font-bold text-gray-800 text-sm">Ilovani o'rnatish</h4>
-          <p className="text-gray-500 text-xs mt-1">Hope Study CRM ilovasini tezroq kirish uchun o'rnatib oling.</p>
+          <h4 className="font-bold text-gray-800 text-sm">Ilovani o&apos;rnatish</h4>
+          <p className="text-gray-500 text-xs mt-1">Hope Study CRM ilovasini tezroq kirish uchun o&apos;rnatib oling.</p>
         </div>
         <div className="flex flex-col gap-2">
           <button 
             onClick={handleInstall}
             className="btn btn-primary text-[10px] py-1.5 px-3"
           >
-            O'rnatish
+            O&apos;rnatish
           </button>
           <button 
             onClick={() => setShowPrompt(false)}

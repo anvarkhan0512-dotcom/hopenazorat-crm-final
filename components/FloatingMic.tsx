@@ -30,7 +30,7 @@ export default function FloatingMic() {
     };
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     
     // If moving, cancel long press
@@ -43,15 +43,15 @@ export default function FloatingMic() {
       x: e.clientX - dragStartPos.current.x,
       y: e.clientY - dragStartPos.current.y
     });
-  };
+  }, [isDragging]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false);
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (isDragging) {
@@ -62,7 +62,7 @@ export default function FloatingMic() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging]);
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   if (!isVisible || !canUseAI) return null;
 
@@ -102,7 +102,7 @@ export default function FloatingMic() {
               setShowMenu(false);
             }}
           >
-            O'chirish
+            O&apos;chirish
           </button>
           <button 
             className="w-full px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 text-left"

@@ -91,7 +91,7 @@ export default function FreeLessonsPage() {
     <DashboardLayout title={t('freeLessons')}>
       {isAdmin && (
         <div className="card mb-6">
-          <h3 className="card-title mb-4">Ma&apos;lumotlar (qo‘shish)</h3>
+          <h3 className="card-title mb-4">Ma&apos;lumotlar (qo&apos;shish)</h3>
           <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
             <div className="form-group md:col-span-2">
               <label className="form-label">{t('name')}</label>

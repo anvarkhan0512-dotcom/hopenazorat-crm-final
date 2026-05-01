@@ -51,7 +51,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
         setRecognition(rec);
       }
     }
-  }, []);
+  }, [isListening]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim()) return;

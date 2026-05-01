@@ -39,7 +39,7 @@ export default function AIAssistantPage() {
   const isStudent = role === 'student' || role === 'parent';
 
   return (
-    <DashboardLayout title="AI Assistant" subtitle={isStudent ? "O'qituvchi yordamchisi" : "Hope Study aqlli menejeri bilan muloqot"}>
+    <DashboardLayout title="AI Assistant" subtitle={isStudent ? "O&apos;qituvchi yordamchisi" : "Hope Study aqlli menejeri bilan muloqot"}>
       <div className="flex flex-col h-[calc(100vh-220px)] bg-white rounded-xl shadow-sm border overflow-hidden">
         {/* Chat Header */}
         <div className="px-6 py-4 border-bottom flex justify-between items-center bg-gray-50">
@@ -76,8 +76,8 @@ export default function AIAssistantPage() {
               </h4>
               <p className="text-gray-500 max-w-xs mx-auto">
                 {isStudent 
-                  ? "Men sizga darslaringizni tushunishda va uy vazifalarida yo'nalish berishda yordam beraman."
-                  : "Men Hope Study aqlli menejeriman. Markazimiz haqida har qanday savolingiz bo'lsa, so'rashingiz mumkin."}
+                  ? "Men sizga darslaringizni tushunishda va uy vazifalarida yo&apos;nalish berishda yordam beraman."
+                  : "Men Hope Study aqlli menejeriman. Markazimiz haqida har qanday savolingiz bo&apos;lsa, so&apos;rashingiz mumkin."}
               </p>
             </div>
           )}
