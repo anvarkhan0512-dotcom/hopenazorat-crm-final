@@ -179,6 +179,8 @@ export default function StudentsPage() {
         debtReminderUntil: student.debtReminderUntil
           ? String(student.debtReminderUntil).split('T')[0]
           : '',
+        username: '',
+        password: '',
       });
     } else {
       setEditingStudent(null);
