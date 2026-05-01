@@ -80,7 +80,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const toggleListening = () => {
+  const toggleListening = async () => {
     if (!recognition) {
       alert('Speech recognition is not supported in this browser.');
       return;
@@ -93,9 +93,18 @@ export function AIProvider({ children }: { children: ReactNode }) {
         sendMessage(transcript);
       }
     } else {
-      setTranscript('');
-      recognition.start();
-      setIsListening(true);
+      try {
+        // Check for microphone permission explicitly
+        const permission = await navigator.mediaDevices.getUserMedia({ audio: true });
+        permission.getTracks().forEach(track => track.stop()); // Close stream immediately
+        
+        setTranscript('');
+        recognition.start();
+        setIsListening(true);
+      } catch (err) {
+        console.error('Microphone permission error:', err);
+        alert('Mikrofon ruxsatnomasi rad etilgan. Iltimos, brauzer sozlamalaridan mikrofonni yoqing.');
+      }
     }
   };
 

@@ -33,7 +33,7 @@ export interface IStudent extends Document {
   /** Ota yoki ona */
   parentType?: ParentType;
   groupId?: mongoose.Types.ObjectId;
-  status: 'active' | 'inactive';
+  status: 'active' | 'inactive' | 'left';
   /** Base monthly tuition before discount */
   basePrice: number;
   discountAmount: number;
@@ -77,7 +77,7 @@ const StudentSchema = new Schema<IStudent>(
     arrivalDate: { type: Date },
     parentType: { type: String, enum: ['father', 'mother', ''], default: '' },
     groupId: { type: Schema.Types.ObjectId, ref: 'Group', index: true },
-    status: { type: String, enum: ['active', 'inactive'], default: 'active', index: true },
+    status: { type: String, enum: ['active', 'inactive', 'left'], default: 'active', index: true },
     basePrice: { type: Number, default: 0, index: true },
     discountAmount: { type: Number, default: 0 },
     discountEndDate: { type: Date },

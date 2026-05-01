@@ -15,7 +15,7 @@ interface Student {
   parentName?: string;
   parentPhone?: string;
   groupId?: { _id: string; name: string };
-  status: 'active' | 'inactive';
+  status: 'active' | 'inactive' | 'left';
   basePrice?: number;
   monthlyPrice: number;
   finalPrice?: number;
@@ -51,7 +51,7 @@ export default function StudentsPage() {
     parentName: '',
     parentPhone: '',
     groupId: '',
-    status: 'active' as 'active' | 'inactive',
+    status: 'active' as 'active' | 'inactive' | 'left',
     basePrice: 0,
     discountAmount: 0,
     discountEndDate: '',
@@ -81,6 +81,17 @@ export default function StudentsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateDuration = (arrivalDate?: string) => {
+    if (!arrivalDate) return '-';
+    const start = new Date(arrivalDate);
+    const end = new Date();
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const months = Math.floor(diffDays / 30);
+    const days = diffDays % 30;
+    return `${months} oy, ${days} kun`;
   };
 
   const filteredStudents = students.filter((student) => {
@@ -294,8 +305,8 @@ export default function StudentsPage() {
                     )}
                   </td>
                   <td>
-                    <span className={`badge ${student.status === 'active' ? 'badge-success' : 'badge-danger'}`}>
-                      {student.status === 'active' ? t('active') : t('inactive')}
+                    <span className={`badge ${student.status === 'active' ? 'badge-success' : student.status === 'left' ? 'badge-warning' : 'badge-danger'}`}>
+                      {student.status === 'active' ? t('active') : student.status === 'left' ? 'Ketgan' : t('inactive')}
                     </span>
                   </td>
                   <td>
@@ -552,14 +563,24 @@ export default function StudentsPage() {
           )}
           <div className="form-group">
             <label className="form-label">{t('status')}</label>
-            <select
-              className="select"
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' })}
-            >
-              <option value="active">{t('active')}</option>
-              <option value="inactive">{t('inactive')}</option>
-            </select>
+            <div className="flex flex-col gap-2">
+              <select
+                className="select"
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+              >
+                <option value="active">{t('active')}</option>
+                <option value="inactive">{t('inactive')}</option>
+                <option value="left">Ketgan (Arxiv)</option>
+              </select>
+              {formData.status === 'left' && editingStudent && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                  <p className="font-bold mb-1">Xayrlashuv ma&apos;lumotlari:</p>
+                  <p>O&apos;qish muddati: {calculateDuration(editingStudent.arrivalDate)}</p>
+                  <p className="mt-2 italic">&quot;Hope Study bilan birga o&apos;tkazgan vaqtingiz uchun rahmat! Kelajakda buyuk natijalarga erishishingizga ishonamiz.&quot;</p>
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex gap-2 mt-4">
             <button type="submit" className="btn btn-primary flex-1">
@@ -573,6 +594,21 @@ export default function StudentsPage() {
       </Modal>
     </DashboardLayout>
   );
+}
+
+function calculateDuration(arrivalDate?: string | Date): string {
+  if (!arrivalDate) return '—';
+  const start = new Date(arrivalDate);
+  const now = new Date();
+  const diffTime = Math.max(0, now.getTime() - start.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const months = Math.floor(diffDays / 30);
+  const remainingDays = diffDays % 30;
+
+  if (months > 0) {
+    return `${months} oy ${remainingDays} kun`;
+  }
+  return `${remainingDays} kun`;
 }
 
 function formatMoney(amount: number, locale: string): string {

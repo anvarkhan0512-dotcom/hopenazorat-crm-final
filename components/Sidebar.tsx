@@ -23,6 +23,8 @@ const adminMenu: Item[] = [
   { key: 'schedule', href: '/schedule', icon: '📅' },
   { key: 'reminders', href: '/reminders', icon: '🔔' },
   { key: 'reports', href: '/reports', icon: '📈' },
+  { key: 'attendanceMonitoring', href: '/admin/attendance/monitoring', icon: '🕵️' },
+  { key: 'faceId', href: '/admin/attendance/face-id', icon: '🤳' },
   { key: 'financeAdmin', href: '/admin/finances', icon: '🏦' },
   { key: 'credentials', href: '/credentials', icon: '🔐' },
   { key: 'aiAssistant', href: '/ai-assistant', icon: '🤖' },

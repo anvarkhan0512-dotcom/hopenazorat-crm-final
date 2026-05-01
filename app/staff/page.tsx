@@ -30,7 +30,10 @@ export default function StaffPage() {
     specialty: '',
     monthlySalary: 0,
     phone: '',
+    username: '',
+    password: '',
   });
+  const [generatedPassword, setGeneratedPassword] = useState('');
 
   const posLabels: Record<Position, string> = {
     teacher: t('posTeacher'),
@@ -41,7 +44,7 @@ export default function StaffPage() {
 
   function formatSalary(n: number): string {
     return (
-      new Intl.NumberFormat(locale === 'uz' ? 'uz-UZ' : locale === 'ru' ? 'ru-RU' : 'en-US', { maximumFractionDigits: 0 }).format(n).replace(/,/g, ' ') + " so&apos;m"
+      new Intl.NumberFormat(locale === 'uz' ? 'uz-UZ' : locale === 'ru' ? 'ru-RU' : 'en-US', { maximumFractionDigits: 0 }).format(n).replace(/,/g, ' ') + " so'm"
     );
   }
 
@@ -63,7 +66,8 @@ export default function StaffPage() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ fullName: '', position: 'teacher', specialty: '', monthlySalary: 0, phone: '' });
+    setForm({ fullName: '', position: 'teacher', specialty: '', monthlySalary: 0, phone: '', username: '', password: '' });
+    setGeneratedPassword('');
     setShowModal(true);
   };
 
@@ -75,22 +79,60 @@ export default function StaffPage() {
       specialty: s.specialty || '',
       monthlySalary: s.monthlySalary || 0,
       phone: s.phone || '',
+      username: '',
+      password: '',
     });
+    setGeneratedPassword('');
     setShowModal(true);
   };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    let currentPassword = form.password;
+    if (!editing && !currentPassword) {
+      currentPassword = Math.random().toString(36).slice(-8);
+      setGeneratedPassword(currentPassword);
+    }
+
     const url = editing ? `/api/staff/${editing._id}` : '/api/staff';
     const method = editing ? 'PUT' : 'POST';
+
+    // First create user if needed
+    let userId = undefined;
+    if (!editing && form.username) {
+      const userRes = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: form.username,
+          password: currentPassword,
+          role: form.position === 'teacher' ? 'teacher' : 'manager',
+          displayName: form.fullName
+        }),
+      });
+      if (userRes.ok) {
+        const userData = await userRes.json();
+        userId = userData.id;
+      } else {
+        const err = await userRes.json();
+        alert(err.error || 'User yaratishda xato');
+        return;
+      }
+    }
+
     const r = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, userId, password: currentPassword }),
     });
     if (r.ok) {
       load();
-      setShowModal(false);
+      if (!editing && currentPassword) {
+        // Don't close modal immediately to show password
+      } else {
+        setShowModal(false);
+      }
     }
   };
 
@@ -224,9 +266,60 @@ export default function StaffPage() {
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
             />
           </div>
-          <button type="submit" className="btn btn-primary">
-            {t('saveBtn')}
-          </button>
+
+          {!editing && (
+            <>
+              <div className="form-group border-t pt-3 mt-3">
+                <p className="text-xs font-bold text-hope-primary uppercase tracking-wider mb-2">Tizimga kirish (Login/Parol)</p>
+                <label className="form-label">Username</label>
+                <input
+                  className="input w-full"
+                  value={form.username}
+                  onChange={(e) => setForm({ ...form, username: e.target.value })}
+                  placeholder="Masalan: ali_ustoz"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Parol (bo&apos;sh qolsa avto-yaratiladi)</label>
+                <input
+                  className="input w-full"
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+              </div>
+            </>
+          )}
+
+          {generatedPassword && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800 font-bold mb-1">Yangi xodim paroli:</p>
+              <code className="text-lg bg-white px-2 py-1 rounded border border-green-300 select-all">{generatedPassword}</code>
+              <p className="text-xs text-green-600 mt-2">Iltimos, ushbu parolni saqlab oling va xodimga yetkazing.</p>
+              <button 
+                type="button" 
+                className="mt-3 w-full btn btn-success btn-sm"
+                onClick={() => setShowModal(false)}
+              >
+                Tushunarli
+              </button>
+            </div>
+          )}
+
+          {!generatedPassword && (
+            <div className="flex gap-2 pt-4">
+              <button type="submit" className="btn btn-primary flex-1">
+                {t('saveBtn')}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowModal(false)}
+              >
+                {t('cancel')}
+              </button>
+            </div>
+          )}
         </form>
       </Modal>
     </DashboardLayout>

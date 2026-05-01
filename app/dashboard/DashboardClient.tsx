@@ -38,7 +38,7 @@ const empty: DashboardData = {
 };
 
 function formatMoney(amount: number, locale: string): string {
-  return new Intl.NumberFormat(locale === 'uz' ? 'uz-UZ' : locale === 'ru' ? 'ru-RU' : 'en-US').format(amount || 0) + " so&apos;m";
+  return new Intl.NumberFormat(locale === 'uz' ? 'uz-UZ' : locale === 'ru' ? 'ru-RU' : 'en-US').format(amount || 0) + " so'm";
 }
 
 const IncomeBarRow = memo(function IncomeBarRow({

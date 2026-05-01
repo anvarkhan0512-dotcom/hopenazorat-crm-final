@@ -23,6 +23,7 @@ export default function CredentialsPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [users, setUsers] = useState<UserData[]>([]);
+  const [activeTab, setActiveTab] = useState<'student' | 'parent' | 'teacher' | 'admin'>('student');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, string | null>>({});
@@ -151,9 +152,20 @@ export default function CredentialsPage() {
   if (!isAuthorized) {
     return (
       <DashboardLayout title={t('credentials')}>
+        <div className="mb-6">
+          <button 
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-gray-500 hover:text-hope-primary transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Ortga qaytish
+          </button>
+        </div>
         <div className="flex justify-center items-center py-20">
           <div className="card w-full max-w-md">
-            <h3 className="card-title text-center mb-6">{t('adminPasswordPrompt')}</h3>
+            <h3 className="card-title text-center mb-6">Xavfsizlik bo&apos;limiga kirish</h3>
             <form onSubmit={handleGatekeeperSubmit} className="space-y-4">
               <div className="form-group">
                 <input
@@ -177,15 +189,51 @@ export default function CredentialsPage() {
     );
   }
 
+  const filteredUsers = users.filter(u => {
+    if (activeTab === 'student') return u.role === 'student';
+    if (activeTab === 'parent') return u.role === 'parent';
+    if (activeTab === 'teacher') return u.role === 'teacher';
+    if (activeTab === 'admin') return u.role === 'admin' || u.role === 'manager';
+    return false;
+  });
+
   return (
     <DashboardLayout title={t('credentials')}>
+      <div className="mb-6 flex justify-between items-center">
+        <button 
+          onClick={() => router.back()}
+          className="flex items-center gap-2 text-gray-500 hover:text-hope-primary transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Ortga qaytish
+        </button>
+        <div className="flex bg-white p-1 rounded-lg border shadow-sm">
+          {(['student', 'parent', 'teacher', 'admin'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                activeTab === tab 
+                  ? 'bg-hope-primary text-white' 
+                  : 'text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              {tab === 'student' ? 'Talabalar' : 
+               tab === 'parent' ? 'Ota-onalar' : 
+               tab === 'teacher' ? 'Ustozlar' : 'Adminlar'}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="card">
         <div className="table-container">
           <table className="table">
             <thead>
               <tr>
                 <th>{t('name')}</th>
-                <th>{t('role')}</th>
                 <th>{t('username')}</th>
                 <th>{t('password')}</th>
                 <th>{t('actions')}</th>
@@ -193,20 +241,15 @@ export default function CredentialsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="text-center py-10"><div className="spinner mx-auto" /></td></tr>
-              ) : users.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-10 text-gray-500">{t('noData')}</td></tr>
+                <tr><td colSpan={4} className="text-center py-10"><div className="spinner mx-auto" /></td></tr>
+              ) : filteredUsers.length === 0 ? (
+                <tr><td colSpan={4} className="text-center py-10 text-gray-500">{t('noData')}</td></tr>
               ) : (
-                users.map((u) => (
+                filteredUsers.map((u) => (
                   <tr key={u.id}>
                     <td>
                       <div className="font-medium">{u.displayName || '-'}</div>
                       <div className="text-xs text-gray-500">{u.id}</div>
-                    </td>
-                    <td>
-                      <span className={`badge badge-${u.role === 'admin' ? 'danger' : u.role === 'teacher' ? 'primary' : 'secondary'}`}>
-                        {u.role}
-                      </span>
                     </td>
                     <td>{u.username}</td>
                     <td>

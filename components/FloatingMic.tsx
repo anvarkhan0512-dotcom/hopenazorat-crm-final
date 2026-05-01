@@ -30,6 +30,19 @@ export default function FloatingMic() {
     };
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    longPressTimer.current = setTimeout(() => {
+      setShowMenu(true);
+    }, 800);
+
+    setIsDragging(true);
+    const touch = e.touches[0];
+    dragStartPos.current = {
+      x: touch.clientX - position.x,
+      y: touch.clientY - position.y
+    };
+  };
+
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     
@@ -45,6 +58,22 @@ export default function FloatingMic() {
     });
   }, [isDragging]);
 
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+
+    const touch = e.touches[0];
+    setPosition({
+      x: touch.clientX - dragStartPos.current.x,
+      y: touch.clientY - dragStartPos.current.y
+    });
+  }, [isDragging]);
+
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
     if (longPressTimer.current) {
@@ -57,18 +86,22 @@ export default function FloatingMic() {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleMouseUp);
     }
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleMouseUp);
     };
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove]);
 
   if (!isVisible || !canUseAI) return null;
 
   return (
     <div 
-      className="fixed z-[9999] select-none"
+      className="fixed z-[9999] select-none touch-none"
       style={{ 
         left: `${position.x}px`, 
         top: `${position.y}px`,
@@ -80,6 +113,7 @@ export default function FloatingMic() {
           isListening ? 'bg-green-500 scale-110 pulse' : 'bg-red-500'
         } hover:scale-105`}
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
         onClick={() => !isDragging && toggleListening()}
       >
         <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
