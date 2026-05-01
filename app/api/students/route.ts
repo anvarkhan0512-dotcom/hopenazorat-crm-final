@@ -6,6 +6,7 @@ import { calculateNextPaymentDate } from '@/lib/payments';
 import { getAuthUser, isAdminRole } from '@/lib/auth-server';
 import { ensureUniqueParentCode } from '@/lib/parentCode';
 import { createStudentLoginUser } from '@/lib/studentUser';
+import { notifyStudentAdded } from '@/lib/telegram';
 
 function serializeStudent(s: Record<string, unknown>) {
   const effective = computeStudentFinalPrice(s as any);
@@ -146,6 +147,17 @@ export async function POST(request: NextRequest) {
         await Group.findByIdAndUpdate(data.groupId, { $pull: { studentIds: student._id } });
       }
       return NextResponse.json({ error: 'Talaba akkaunti yaratilmadi' }, { status: 500 });
+    }
+
+    // Botga xabar yuborish
+    try {
+      await notifyStudentAdded({
+        studentName: student.name,
+        action: 'added',
+        details: student.phone,
+      });
+    } catch (err) {
+      console.error('Telegram notification failed:', err);
     }
 
     const lean = student.toObject();
