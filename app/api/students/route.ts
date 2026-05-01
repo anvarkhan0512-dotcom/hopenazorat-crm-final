@@ -157,11 +157,12 @@ export async function POST(request: NextRequest) {
 
     // Botga xabar yuborish
     try {
-      await notifyStudentAdded({
-        studentName: student.name,
-        action: 'added',
-        details: student.phone,
-      });
+      if (credentials) {
+        await notifyStudentAdded({
+          studentName: student.name,
+          username: credentials.username,
+        });
+      }
     } catch (err) {
       console.error('Telegram notification failed:', err);
     }

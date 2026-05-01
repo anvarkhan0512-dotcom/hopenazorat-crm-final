@@ -68,12 +68,11 @@ export async function sendTelegramToChat(chatId: string, message: string): Promi
   return telegramSend(chatId, message);
 }
 
-export async function notifyStudentAdded(data: StudentNotification): Promise<void> {
+export async function notifyStudentAdded(data: { studentName: string; username: string }): Promise<void> {
   const message =
-    `👤 <b>Yangi oʻquvchi roʻyxatdan oʻtdi</b>\n\n` +
-    `Ism: ${data.studentName}\n` +
-    `Amal: ${data.action}\n` +
-    `Qoʻshimcha: ${data.details}`;
+    `🔔 <b>Yangi talaba qoʻshildi!</b>\n\n` +
+    `👤 Ismi: ${data.studentName}\n` +
+    `🔑 Logini: ${data.username}`;
 
   await sendTelegramMessage(message);
 }
@@ -126,7 +125,7 @@ export async function handleBotCommand(chatId: string, text: string) {
   } else {
     // Agar buyruq bo'lmasa, Gemini AI ga yuboramiz
     const aiResponse = await askGemini(text);
-    await bot.sendMessage(chatId, aiResponse);
+    await bot.sendMessage(chatId, `<b>Hope Study Menejeri:</b>\n\n${aiResponse}`, { parse_mode: 'HTML' });
   }
 }
 
@@ -149,7 +148,7 @@ export async function handleVoiceMessage(chatId: string, voice: TelegramBot.Voic
 
     // Gemini AI ga yuborish
     const aiResponse = await processVoiceWithGemini(buffer, voice.mime_type || 'audio/ogg');
-    await bot.sendMessage(chatId, aiResponse);
+    await bot.sendMessage(chatId, `<b>Hope Study Menejeri (Ovozli xabarga javob):</b>\n\n${aiResponse}`, { parse_mode: 'HTML' });
   } catch (error) {
     console.error('Voice processing error:', error);
     await bot.sendMessage(chatId, "Ovozli xabarni qayta ishlashda xatolik yuz berdi.");
@@ -193,5 +192,11 @@ export function setupTelegramWebhook(): string | null {
   const webhookUrl = process.env.WEBHOOK_URL;
   if (!webhookUrl || !token) return null;
   
+  // Webhookni avtomatik sozlash uchun fetch ishlatamiz
+  fetch(`https://api.telegram.org/bot${token}/setWebhook?url=${webhookUrl}`)
+    .then(res => res.json())
+    .then(data => console.log('Telegram Webhook set:', data))
+    .catch(err => console.error('Telegram Webhook error:', err));
+
   return `https://api.telegram.org/bot${token}/setWebhook?url=${webhookUrl}`;
 }
