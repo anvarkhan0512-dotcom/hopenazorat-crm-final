@@ -4,6 +4,7 @@ import { Student } from '@/models/Student';
 import { User } from '@/models/User';
 import { Group } from '@/models/Group';
 import { Payment } from '@/models/Payment';
+import { askGemini, processVoiceWithGemini } from '@/lib/gemini';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const adminChatId = process.env.ADMIN_CHAT_ID;
@@ -90,7 +91,8 @@ export async function handleBotCommand(chatId: string, text: string) {
     await bot.sendMessage(chatId, 
       `Assalomu alaykum, Admin! 🌟\n\n` +
       `"Hope Study" CRM botiga xush kelibsiz.\n` +
-      `Buyruqlar:\n/stats - Umumiy statistika`
+      `Buyruqlar:\n/stats - Umumiy statistika\n\n` +
+      `Siz har qanday savolingizni matn yoki ovozli xabar ko'rinishida yuborishingiz mumkin. Gemini AI sizga yordam beradi!`
     );
   } else if (text === '/stats') {
     await connectDB();
@@ -121,6 +123,36 @@ export async function handleBotCommand(chatId: string, text: string) {
       `💰 <b>Bugungi tushum:</b> ${incomeToday.toLocaleString('uz-UZ')} so'm`;
 
     await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+  } else {
+    // Agar buyruq bo'lmasa, Gemini AI ga yuboramiz
+    const aiResponse = await askGemini(text);
+    await bot.sendMessage(chatId, aiResponse);
+  }
+}
+
+/**
+ * Ovozli xabarni qayta ishlash
+ */
+export async function handleVoiceMessage(chatId: string, voice: TelegramBot.Voice) {
+  if (!bot || !token) return;
+
+  if (String(chatId) !== String(adminChatId)) return;
+
+  try {
+    // Telegramdan audio faylni yuklab olish
+    const file = await bot.getFile(voice.file_id);
+    const fileUrl = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+    
+    const response = await fetch(fileUrl);
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Gemini AI ga yuborish
+    const aiResponse = await processVoiceWithGemini(buffer, voice.mime_type || 'audio/ogg');
+    await bot.sendMessage(chatId, aiResponse);
+  } catch (error) {
+    console.error('Voice processing error:', error);
+    await bot.sendMessage(chatId, "Ovozli xabarni qayta ishlashda xatolik yuz berdi.");
   }
 }
 
