@@ -12,23 +12,15 @@ export async function POST(request: NextRequest) {
     const denied = requireAdmin(auth);
     if (denied) return NextResponse.json({ error: denied.error }, { status: denied.status });
 
-    const { adminPassword, userId } = await request.json();
-    if (!adminPassword || !userId) {
-      return NextResponse.json({ error: 'adminPassword va userId kerak' }, { status: 400 });
+    const { userId } = await request.json();
+    if (!userId) {
+      return NextResponse.json({ error: 'userId kerak' }, { status: 400 });
     }
 
     await connectDB();
-    const admin = await User.findById(auth!.id);
     const target = await User.findById(userId).select('revealablePassword');
-    if (!admin || !target) {
-      return NextResponse.json({ error: 'Topilmadi' }, { status: 404 });
-    }
-
-    const raw = String(adminPassword);
-    let ok = await bcrypt.compare(raw, admin.password);
-    if (!ok && admin.password === raw) ok = true;
-    if (!ok) {
-      return NextResponse.json({ error: 'Admin paroli noto‘g‘ri' }, { status: 403 });
+    if (!target) {
+      return NextResponse.json({ error: 'Foydalanuvchi topilmadi' }, { status: 404 });
     }
 
     const revealed = target.revealablePassword?.trim() || '';

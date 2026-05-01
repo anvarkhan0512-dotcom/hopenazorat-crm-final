@@ -131,11 +131,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Login va parol admin tomonidan qo'lda kiritilishi mumkin
+    const customUsername = data.username?.trim();
+    const customPassword = data.password?.trim();
+
     let credentials: { username: string; password: string } | undefined;
     try {
       const { user: stuUser, username, plainPassword } = await createStudentLoginUser({
         studentId: student._id,
         displayName: student.name,
+        customUsername,
+        customPassword,
       });
       student.studentUserId = stuUser._id;
       await student.save();

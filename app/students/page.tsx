@@ -58,6 +58,8 @@ export default function StudentsPage() {
     parentTelegramChatId: '',
     parentUserId: '',
     debtReminderUntil: '',
+    username: '',
+    password: '',
   });
 
   useEffect(() => {
@@ -109,6 +111,8 @@ export default function StudentsPage() {
           parentName: formData.parentName || undefined,
           parentPhone: formData.parentPhone || undefined,
           groupId: formData.groupId || null,
+          username: formData.username || undefined,
+          password: formData.password || undefined,
           status: formData.status,
           basePrice: formData.basePrice,
           discountAmount: formData.discountAmount,
@@ -193,6 +197,8 @@ export default function StudentsPage() {
         parentTelegramChatId: '',
         parentUserId: '',
         debtReminderUntil: '',
+        username: '',
+        password: '',
       });
     }
     setShowModal(true);
@@ -376,6 +382,27 @@ export default function StudentsPage() {
               onChange={(e) => setFormData({ ...formData, arrivalDate: e.target.value })}
             />
           </div>
+          <div className="form-group">
+            <label className="form-label">{t('username')} ({t('optional')})</label>
+            <input
+              type="text"
+              className="input"
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              placeholder="Login kiriting..."
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">{t('password')} ({t('optional')})</label>
+            <input
+              type="text"
+              className="input"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              placeholder="Parol kiriting..."
+            />
+          </div>
+
           <div className="form-group">
             <label className="form-label">Ota-ona turi</label>
             <select

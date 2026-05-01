@@ -122,14 +122,10 @@ export default function CredentialsPage() {
     }
 
     try {
-      // reveal-password API-si admin parolini so'raydi, lekin biz gatekeeper-dan o'tganmiz.
-      // reveal-password API-sini adminPassword-siz ishlatish uchun yangilash yoki 
-      // bu yerda adminPassword-ni saqlab qolish kerak. 
-      // Hozircha adminPassword-ni gatekeeper-dan keyin saqlab qolamiz.
       const res = await fetch('/api/admin/reveal-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminPassword, userId: u.id }),
+        body: JSON.stringify({ userId: u.id }),
       });
 
       if (res.ok) {
