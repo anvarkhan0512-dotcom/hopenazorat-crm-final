@@ -91,12 +91,12 @@ export default function Sidebar({ isOpen, onClose, collapsed }: SidebarProps) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 bg-[#1e1e2d] text-white transition-transform duration-300 ease-in-out transform 
+        className={`fixed inset-y-0 left-0 z-50 bg-[#1e1e2d] text-white transition-transform duration-300 ease-in-out transform flex flex-col h-full
           ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
           lg:translate-x-0 
           ${collapsed ? 'lg:w-20' : 'lg:w-64'}`}
       >
-        <div className="sidebar-brand flex items-center justify-between overflow-hidden">
+        <div className="sidebar-brand flex items-center justify-between overflow-hidden flex-shrink-0 p-4">
           <BrandLogo variant="sidebar" showText={!collapsed} />
           {/* Close button for mobile */}
           <button 
@@ -110,7 +110,7 @@ export default function Sidebar({ isOpen, onClose, collapsed }: SidebarProps) {
           </button>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav flex-1 overflow-y-auto px-2 pb-4 scrollbar-thin scrollbar-thumb-purple-600">
           {menuItems.map((item) => (
             <Link
               key={item.key}
@@ -126,8 +126,8 @@ export default function Sidebar({ isOpen, onClose, collapsed }: SidebarProps) {
         </nav>
 
         {!collapsed && (
-          <div className="mt-auto pt-4 border-t border-white/10">
-            <div className="px-4 py-3 text-sm text-gray-400">
+          <div className="mt-auto pt-4 border-t border-white/10 flex-shrink-0 p-4">
+            <div className="text-sm text-gray-400">
               <p>
                 {t('appVersionLabel')} 1.2.0
               </p>
