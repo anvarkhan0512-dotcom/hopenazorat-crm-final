@@ -9,10 +9,13 @@ export default function FloatingMic() {
   const { user } = useAuth();
   const [position, setPosition] = useState({ x: 20, y: 100 });
   const [isDragging, setIsDragging] = useState(false);
+  const [hasMoved, setHasMoved] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const dragStartPos = useRef({ x: 0, y: 0 });
+  const initialClickPos = useRef({ x: 0, y: 0 });
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const dragThreshold = 5;
 
   const canUseAI = user && (user.role === 'admin' || user.role === 'manager' || user.role === 'teacher' || user.role === 'student' || user.role === 'parent');
 
@@ -24,10 +27,12 @@ export default function FloatingMic() {
     }, 800);
 
     setIsDragging(true);
+    setHasMoved(false);
     dragStartPos.current = {
       x: e.clientX - position.x,
       y: e.clientY - position.y
     };
+    initialClickPos.current = { x: e.clientX, y: e.clientY };
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -36,20 +41,28 @@ export default function FloatingMic() {
     }, 800);
 
     setIsDragging(true);
+    setHasMoved(false);
     const touch = e.touches[0];
     dragStartPos.current = {
       x: touch.clientX - position.x,
       y: touch.clientY - position.y
     };
+    initialClickPos.current = { x: touch.clientX, y: touch.clientY };
   };
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     
-    // If moving, cancel long press
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
+    const dx = Math.abs(e.clientX - initialClickPos.current.x);
+    const dy = Math.abs(e.clientY - initialClickPos.current.y);
+    
+    if (dx > dragThreshold || dy > dragThreshold) {
+      setHasMoved(true);
+      // If moving, cancel long press
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
     }
 
     setPosition({
@@ -60,14 +73,19 @@ export default function FloatingMic() {
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (!isDragging) return;
-    e.preventDefault();
     
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
+    const touch = e.touches[0];
+    const dx = Math.abs(touch.clientX - initialClickPos.current.x);
+    const dy = Math.abs(touch.clientY - initialClickPos.current.y);
+    
+    if (dx > dragThreshold || dy > dragThreshold) {
+      setHasMoved(true);
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
     }
 
-    const touch = e.touches[0];
     setPosition({
       x: touch.clientX - dragStartPos.current.x,
       y: touch.clientY - dragStartPos.current.y
@@ -114,7 +132,7 @@ export default function FloatingMic() {
         } hover:scale-105`}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
-        onClick={() => !isDragging && toggleListening()}
+        onClick={() => !hasMoved && toggleListening()}
       >
         <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />

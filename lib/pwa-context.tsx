@@ -51,6 +51,7 @@ export function PWAProvider({ children }: { children: ReactNode }) {
 
     // 4. Listen for 'beforeinstallprompt'
     const handleBeforeInstallPrompt = (e: any) => {
+      console.log('PWA install prompt fired!');
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
       // Stash the event so it can be triggered later.
