@@ -1,7 +1,17 @@
 import OpenAI from "openai";
 
+const getApiKey = () => {
+  const key = process.env.TOGETHER_AI_API_KEY || process.env.TOGETHER_API_KEY || "";
+  // Ba'zi hollarda Together AI "Bearer " prefiksini talab qilishi mumkin
+  if (key && !key.startsWith('Bearer ')) {
+    // OpenAI SDK odatda prefiksni o'zi qo'shadi, lekin xatolik bo'lsa buni tekshirish muhim
+    return key;
+  }
+  return key;
+};
+
 const together = new OpenAI({
-  apiKey: process.env.TOGETHER_AI_API_KEY || process.env.TOGETHER_API_KEY || "",
+  apiKey: getApiKey(),
   baseURL: "https://api.together.xyz/v1",
 });
 
@@ -85,24 +95,18 @@ export const tools = [
   }
 ];
 
-export async function askTogether(messages: any[], useTools: boolean = false) {
+export async function askTogether(messages: any[]) {
   const modelName = "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo";
   
-  const options: any = {
-    model: modelName,
-    messages: [
-      { role: "system", content: systemPrompt },
-      ...messages
-    ],
-  };
-
-  if (useTools) {
-    options.tools = tools as any;
-    options.tool_choice = "auto";
-  }
-
   try {
-    const response = await together.chat.completions.create(options);
+    const response = await together.chat.completions.create({
+      model: modelName,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...messages
+      ],
+      stream: false,
+    });
     return response.choices[0].message;
   } catch (error: any) {
     console.error('Together AI API error details:', error.response?.data || error.message);

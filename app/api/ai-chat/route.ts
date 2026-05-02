@@ -25,100 +25,14 @@ export async function POST(request: NextRequest) {
     const messages = [
       ...history.map((h: any) => ({
         role: h.role,
-        content: h.content,
-        ...(h.tool_calls ? { tool_calls: h.tool_calls } : {}),
-        ...(h.tool_call_id ? { tool_call_id: h.tool_call_id } : {})
+        content: h.content
       })),
       { role: 'user', content: message }
     ];
 
-    console.log('Sending request to Together AI with model Meta-Llama-3.1-70B-Instruct-Turbo');
-    // Set useTools to false for debugging simple chat
-    const aiRes = await askTogether(messages, false);
+    console.log('Sending simple request to Together AI (No Tools)');
+    const aiRes = await askTogether(messages);
     console.log('Together AI response received:', !!aiRes);
-
-    if (aiRes.tool_calls && aiRes.tool_calls.length > 0) {
-      await connectDB();
-      // Important: Convert tool_calls to the format OpenAI expects
-      const assistantMessageWithTools = {
-        role: 'assistant',
-        content: aiRes.content || "",
-        tool_calls: aiRes.tool_calls
-      };
-      
-      const toolMessages = [...messages, assistantMessageWithTools];
-
-      for (const toolCall of aiRes.tool_calls) {
-        let resultData;
-        try {
-          const args = JSON.parse(toolCall.function.arguments);
-          const functionName = toolCall.function.name;
-
-          if (functionName === 'archive_student') {
-            if (auth.role !== 'admin' && auth.role !== 'manager') {
-              resultData = { error: "Ushbu amal uchun ruxsat yo'q." };
-            } else {
-              const student = await Student.findByIdAndUpdate(args.id, { 
-                status: 'left',
-                archiveReason: args.reason 
-              }, { new: true });
-              resultData = student ? { success: true, name: student.name } : { error: "Talaba topilmadi" };
-            }
-          }
-          else if (functionName === 'get_attendance_stats') {
-            const query: any = {};
-            if (args.groupId) query.groupId = args.groupId;
-            if (args.date) query.date = new Date(args.date);
-            
-            const stats = await Attendance.aggregate([
-              { $match: query },
-              { $group: {
-                  _id: "$status",
-                  count: { $sum: 1 }
-              }}
-            ]);
-            resultData = stats;
-          }
-          else if (functionName === 'create_staff_password') {
-            if (auth.role !== 'admin' && auth.role !== 'manager') {
-              resultData = { error: "Ushbu amal uchun ruxsat yo'q." };
-            } else {
-              const password = Math.random().toString(36).slice(-8);
-              resultData = { name: args.name, password };
-            }
-          }
-          else if (functionName === 'get_students') {
-            const query: any = {};
-            if (auth.role === 'teacher') {
-              const groups = await Group.find({
-                $or: [{ teacherUserId: auth._id }, { teacherUserId2: auth._id }],
-              }).select('_id');
-              query.groupId = { $in: groups.map(g => g._id) };
-            }
-            if (args.search) {
-              const rx = new RegExp(args.search, 'i');
-              query.$or = [{ name: rx }, { phone: rx }];
-            }
-            resultData = await Student.find(query).limit(5).lean();
-          } else {
-            resultData = { error: "Funksiya topilmadi" };
-          }
-        } catch (e) {
-          console.error('Tool argument parsing error:', e);
-          resultData = { error: "Argumentlarni o'qishda xatolik" };
-        }
-
-        toolMessages.push({
-          role: 'tool',
-          tool_call_id: toolCall.id,
-          content: JSON.stringify(resultData),
-        });
-      }
-
-      // Get final response after tool calls
-      const finalRes = await askTogether(toolMessages);
-      return NextResponse.json({ reply: finalRes.content || "AI javob qaytarishda xatolik yuz berdi." });
-    }
 
     return NextResponse.json({ reply: aiRes.content || "AI hech qanday ma'lumot qaytarmadi." });
   } catch (error) {
