@@ -31,7 +31,11 @@ export async function POST(request: NextRequest) {
       })),
       { role: 'user', content: message }
     ];
-    const aiRes = await askTogether(messages);
+
+    console.log('Sending request to Together AI with model Meta-Llama-3.1-70B-Instruct-Turbo');
+    // Set useTools to false for debugging simple chat
+    const aiRes = await askTogether(messages, false);
+    console.log('Together AI response received:', !!aiRes);
 
     if (aiRes.tool_calls && aiRes.tool_calls.length > 0) {
       await connectDB();

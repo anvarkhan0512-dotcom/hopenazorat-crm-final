@@ -85,18 +85,29 @@ export const tools = [
   }
 ];
 
-export async function askTogether(messages: any[]) {
-  const response = await together.chat.completions.create({
-    model: "meta-llama/Llama-3-70b-chat-hf",
+export async function askTogether(messages: any[], useTools: boolean = false) {
+  const modelName = "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo";
+  
+  const options: any = {
+    model: modelName,
     messages: [
       { role: "system", content: systemPrompt },
       ...messages
     ],
-    tools: tools as any,
-    tool_choice: "auto",
-  });
+  };
 
-  return response.choices[0].message;
+  if (useTools) {
+    options.tools = tools as any;
+    options.tool_choice = "auto";
+  }
+
+  try {
+    const response = await together.chat.completions.create(options);
+    return response.choices[0].message;
+  } catch (error: any) {
+    console.error('Together AI API error details:', error.response?.data || error.message);
+    throw error;
+  }
 }
 
 export async function transcribeAudio(audioBlob: Blob) {
