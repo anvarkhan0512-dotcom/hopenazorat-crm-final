@@ -33,7 +33,7 @@ export interface IGroup extends Document {
 
 const GroupSchema = new Schema<IGroup>(
   {
-    name: { type: String, required: true, index: true },
+    name: { type: String, required: true },
     teacherName: { type: String, required: true, index: true },
     teacherUserId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     teacherUserId2: { type: Schema.Types.ObjectId, ref: 'User', index: true },

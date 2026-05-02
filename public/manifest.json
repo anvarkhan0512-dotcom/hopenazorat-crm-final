@@ -1,31 +1,26 @@
-{
-  "name": "Hope Study CRM",
-  "short_name": "Hope Study",
-  "description": "Educational Center Management System",
-  "start_url": "/",
-  "scope": "/",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#5C139C",
-  "icons": [
-    {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-maskable-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
-  ]
+{ 
+  "name": "Hope Study", 
+  "short_name": "Hope Study", 
+  "description": "Hope Study - Online ta'lim platformasi", 
+  "start_url": "/", 
+  "display": "standalone", 
+  "background_color": "#6B21A8", 
+  "theme_color": "#6B21A8", 
+  "orientation": "portrait", 
+  "icons": [ 
+    { 
+      "src": "/icons/icon-192x192.png", 
+      "sizes": "192x192", 
+      "type": "image/png", 
+      "purpose": "any maskable" 
+    }, 
+    { 
+      "src": "/icons/icon-512x512.png", 
+      "sizes": "512x512", 
+      "type": "image/png", 
+      "purpose": "any maskable" 
+    } 
+  ], 
+  "categories": ["education"], 
+  "lang": "uz" 
 }

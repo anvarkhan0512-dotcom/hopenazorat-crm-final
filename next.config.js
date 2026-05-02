@@ -14,15 +14,13 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        path: false,
-        encoding: false,
-      };
-    }
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      path: false,
+      encoding: false,
+    };
     return config;
   },
 };

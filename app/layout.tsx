@@ -4,7 +4,9 @@ import './globals.css';
 import { LanguageProvider } from '@/components/LanguageProvider';
 import { AuthProvider } from '@/components/AuthProvider';
 import { AIProvider } from '@/components/AIProvider';
-import InstallPrompt from '@/components/InstallPrompt';
+import { PWAProvider } from '@/lib/pwa-context';
+import PWAInstallModal from '@/components/PWAInstallModal';
+import PWAInitializer from '@/components/PWAInitializer';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -20,12 +22,15 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: 'Hope Study',
-  description: 'Hope Study — ta’lim markazi boshqaruvi',
+  description: 'Hope Study - Online ta\'lim platformasi',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     title: 'Hope Study',
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
+  },
+  icons: {
+    apple: '/icons/icon-192x192.png',
   },
 };
 
@@ -43,10 +48,13 @@ export default function RootLayout({
       <body>
         <LanguageProvider>
           <AuthProvider>
-            <AIProvider>
-              {children}
-              <InstallPrompt />
-            </AIProvider>
+            <PWAProvider>
+              <AIProvider>
+                <PWAInitializer />
+                {children}
+                <PWAInstallModal />
+              </AIProvider>
+            </PWAProvider>
           </AuthProvider>
         </LanguageProvider>
       </body>
