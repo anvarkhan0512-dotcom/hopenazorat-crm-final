@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -26,6 +26,9 @@ export function AIProvider({ children }: { children: ReactNode }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [recognition, setRecognition] = useState<any>(null);
+
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const audioChunks = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -64,7 +67,13 @@ export function AIProvider({ children }: { children: ReactNode }) {
       const res = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ 
+          message: text,
+          history: messages.slice(-10).map(m => ({
+            role: m.role,
+            content: m.content
+          }))
+        }),
       });
 
       if (res.ok) {
@@ -80,30 +89,62 @@ export function AIProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const toggleListening = async () => {
-    if (!recognition) {
-      alert('Speech recognition is not supported in this browser.');
-      return;
-    }
-
-    if (isListening) {
-      recognition.stop();
-      setIsListening(false);
-      if (transcript.trim()) {
-        sendMessage(transcript);
+  const handleAudioUpload = async (audioBlob: Blob) => {
+    const formData = new FormData();
+    formData.append('file', audioBlob);
+    
+    try {
+      const res = await fetch('/api/ai-chat/transcribe', {
+        method: 'POST',
+        body: formData
+      });
+      if (res.ok) {
+        const { text } = await res.json();
+        if (text) sendMessage(text);
       }
+    } catch (err) {
+      console.error('Transcription error:', err);
+    }
+  };
+
+  const toggleListening = async () => {
+    if (isListening) {
+      if (mediaRecorder) {
+        mediaRecorder.stop();
+      }
+      if (recognition) {
+        recognition.stop();
+      }
+      setIsListening(false);
     } else {
       try {
-        // Check for microphone permission explicitly
-        const permission = await navigator.mediaDevices.getUserMedia({ audio: true });
-        permission.getTracks().forEach(track => track.stop()); // Close stream immediately
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         
-        setTranscript('');
-        recognition.start();
+        const recorder = new MediaRecorder(stream);
+        audioChunks.current = [];
+        
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunks.current.push(e.data);
+        };
+        
+        recorder.onstop = () => {
+          const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
+          handleAudioUpload(audioBlob);
+          stream.getTracks().forEach(track => track.stop());
+        };
+        
+        setMediaRecorder(recorder);
+        recorder.start();
+        
+        if (recognition) {
+          setTranscript('');
+          recognition.start();
+        }
+        
         setIsListening(true);
       } catch (err) {
-        console.error('Microphone permission error:', err);
-        alert('Mikrofon ruxsatnomasi rad etilgan. Iltimos, brauzer sozlamalaridan mikrofonni yoqing.');
+        console.error('Microphone error:', err);
+        alert('Mikrofon xatosi. Iltimos, ruxsatni tekshiring.');
       }
     }
   };
