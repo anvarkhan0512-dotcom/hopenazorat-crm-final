@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useAuth } from '@/components/AuthProvider';
 import BrandLogo from '@/components/BrandLogo';
+import { usePWA } from '@/lib/pwa-context';
 
 type LoginRole = 'student' | 'parent' | 'teacher' | 'center';
 
@@ -30,6 +31,7 @@ function LoginForm() {
   const { login } = useAuth();
   const { t, lang, setLang } = useLanguage();
   const router = useRouter();
+  const { canInstall, showInstallPrompt, isIOS, isInAppBrowser } = usePWA();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,6 +119,38 @@ function LoginForm() {
               {loading ? t('loading') : t('login')}
             </button>
           </form>
+
+          <div className="mt-4 text-center">
+            {canInstall && (
+              <button
+                onClick={showInstallPrompt}
+                className="w-full py-3 px-4 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"
+              >
+                📲 Ilovani telefonga o&apos;rnatish
+              </button>
+            )}
+            
+            {isIOS && (
+              <div className="mt-3 p-3 bg-white/10 rounded-xl text-white text-sm backdrop-blur-sm border border-white/10">
+                <p className="font-bold mb-1">📱 iPhone ga o&apos;rnatish:</p>
+                <p>1. Pastdagi <strong>↑ Share</strong> tugmasini bosing</p>
+                <p>2. <strong>&quot;Add to Home Screen&quot;</strong> tanlang</p>
+                <p>3. <strong>&quot;Add&quot;</strong> bosing ✅</p>
+              </div>
+            )}
+
+            {isInAppBrowser && (
+              <div className="mt-3 p-3 bg-yellow-500/20 rounded-xl text-white text-sm border border-yellow-500/30">
+                ⚠️ Yuklab olish uchun Chrome yoki Safari da oching
+              </div>
+            )}
+            
+            {!canInstall && !isIOS && !isInAppBrowser && (
+              <p className="text-white/50 text-xs mt-2">
+                💡 Chrome brauzerida oching va o&apos;rnating
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>

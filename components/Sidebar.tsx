@@ -91,10 +91,10 @@ export default function Sidebar({ isOpen, onClose, collapsed }: SidebarProps) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#1e1e2d] text-white transition-transform duration-300 ease-in-out transform 
+        className={`fixed inset-y-0 left-0 z-50 bg-[#1e1e2d] text-white transition-transform duration-300 ease-in-out transform 
           ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
-          lg:translate-x-0 lg:static lg:block 
-          ${collapsed ? 'lg:w-20' : 'lg:w-[280px]'}`}
+          lg:translate-x-0 
+          ${collapsed ? 'lg:w-20' : 'lg:w-64'}`}
       >
         <div className="sidebar-brand flex items-center justify-between overflow-hidden">
           <BrandLogo variant="sidebar" showText={!collapsed} />
