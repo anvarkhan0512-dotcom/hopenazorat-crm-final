@@ -18,10 +18,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { message, history = [], hasMedia = false } = await request.json();
-    if (!message && !hasMedia) {
-      return NextResponse.json({ error: 'Message or media is required' }, { status: 400 });
-    }
+    const formData = await request.formData();
+    const message = formData.get('message') as string;
+    const historyJson = formData.get('history') as string;
+    const history = historyJson ? JSON.parse(historyJson) : [];
+    const files = formData.getAll('files') as File[];
+    const userRole = auth.role || 'student';
+
+    const systemPrompts = {
+      admin: `Siz Hope Study CRM administratori uchun AI yordamchisisiz. 
+        Rasmlarni tahlil qiling, to'lov chekini tasdiqlang, 
+        hisobotlar yarating. O'zbek tilida javob bering.`,
+      teacher: `Siz Hope Study o'quv markazi o'qituvchisi uchun AI yordamchisisiz. 
+        Doskadagi rasmlarni o'qing, vazifalarni tekshiring, 
+        dars materiallarini tahlil qiling. O'zbek tilida javob bering.`,
+      student: `Siz Hope Study o'quv markazi talabasi uchun AI yordamchisisiz. 
+        Vazifalarni tushuntiring, savollarga javob bering, 
+        o'quv materiallarini tahlil qiling. O'zbek tilida javob bering.`,
+      parent: `Siz Hope Study o'quv markazi ota-onasi uchun AI yordamchisisiz. 
+        To'lov chekini tasdiqlang, farzand natijalarini tushuntiring. 
+        O'zbek tilida javob bering.`
+    };
+
+    const activeSystemPrompt = (systemPrompts as any)[userRole] || systemPrompts.student;
 
     const messages = [
       ...history.map((h: any) => ({
@@ -31,72 +50,53 @@ export async function POST(request: NextRequest) {
       { role: 'user', content: message }
     ];
 
-    let reply = "";
-    let useGemini = hasMedia;
-
-    if (!useGemini) {
-      try {
-        console.log('Attempting request with Groq (Llama 3.3 70B)');
-        reply = await askGroq(messages);
-      } catch (groqError) {
-        console.error('Groq failed, falling back to Gemini:', groqError);
-        useGemini = true;
+    const imageContents = [];
+    const documentFiles = [];
+    
+    for (const file of files) {
+      const bytes = await file.arrayBuffer();
+      const base64 = Buffer.from(bytes).toString('base64');
+      
+      if (file.type.startsWith('image/')) {
+        imageContents.push({
+          inlineData: { data: base64, mimeType: file.type }
+        });
+      } else {
+        documentFiles.push({
+          name: file.name,
+          type: file.type,
+          size: file.size
+        });
       }
     }
 
-    if (useGemini) {
-      console.log('Sending request to Gemini 2.0 Flash');
-      const aiRes = await askGemini(messages);
-      
-      if (aiRes.toolCalls && aiRes.toolCalls.length > 0) {
-        await connectDB();
-        const toolResults = [];
+    let reply = "";
+    const hasMedia = imageContents.length > 0;
 
-        for (const call of aiRes.toolCalls) {
-          const { name, args } = call;
-          let result = { success: false, message: "Noma'lum funksiya" };
+    if (!hasMedia) {
+      try {
+        console.log('Attempting request with Groq');
+        reply = await askGroq(messages);
+      } catch (groqError) {
+        console.error('Groq failed, fallback to Gemini:', groqError);
+        const aiRes = await askGemini(messages, { systemInstruction: activeSystemPrompt });
+        reply = aiRes.text;
+      }
+    } else {
+      console.log('Using Gemini for multi-modal request');
+      const aiRes = await askGemini(messages, { 
+        systemInstruction: activeSystemPrompt,
+        inlineData: imageContents
+      });
+      reply = aiRes.text;
 
-          try {
-            if (name === 'archive_student') {
-              const { id, reason } = args as any;
-              const student = await Student.findByIdAndUpdate(id, { status: 'left' }, { new: true });
-              result = { 
-                success: !!student, 
-                message: student ? `Talaba ${student.name} arxivga olindi. Sabab: ${reason}` : "Talaba topilmadi" 
-              };
-            } else if (name === 'get_attendance_stats') {
-              const { groupId, date } = args as any;
-              const query: any = {};
-              if (groupId) query.groupId = groupId;
-              if (date) query.date = new Date(date);
-              
-              const stats = await Attendance.aggregate([
-                { $match: query },
-                { $group: { _id: '$status', count: { $sum: 1 } } }
-              ]);
-              result = { success: true, message: JSON.stringify(stats) };
-            } else if (name === 'create_staff_password') {
-              const { name: staffName } = args as any;
-              const password = Math.random().toString(36).slice(-8);
-              result = { success: true, message: `Xodim ${staffName} uchun yangi parol: ${password}` };
-            } else if (name === 'get_students') {
-              const { search, groupId } = args as any;
-              const query: any = {};
-              if (search) query.name = { $regex: search, $options: 'i' };
-              if (groupId) query.groupId = groupId;
-              const students = await Student.find(query).limit(10).lean();
-              result = { success: true, message: JSON.stringify(students) };
-            }
-          } catch (err: any) {
-            result = { success: false, message: `Xatolik: ${err.message}` };
-          }
-          
-          toolResults.push({ name, result });
+      // Payment receipt detection for parents/students
+      if (userRole === 'parent' || userRole === 'student') {
+        const isReceipt = reply.toLowerCase().includes('to\'lov') || reply.toLowerCase().includes('chek');
+        if (isReceipt) {
+          // Save notification logic would go here
+          console.log('Payment receipt detected, notifying admin...');
         }
-
-        reply = toolResults.map(r => r.result.message).join('\n');
-      } else {
-        reply = aiRes.text || "AI hech qanday ma'lumot qaytarmadi.";
       }
     }
 

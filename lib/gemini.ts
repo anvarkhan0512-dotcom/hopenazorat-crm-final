@@ -151,10 +151,10 @@ const tools = [
   }
 ];
 
-export async function askGemini(messages: { role: string, content: string }[]) {
+export async function askGemini(messages: { role: string, content: string }[], options: { systemInstruction?: string, inlineData?: any[] } = {}) {
   const model = genAI.getGenerativeModel({ 
     model: "gemini-2.0-flash", 
-    systemInstruction, 
+    systemInstruction: options.systemInstruction || systemInstruction, 
     tools: tools as any 
   });
 
@@ -165,12 +165,17 @@ export async function askGemini(messages: { role: string, content: string }[]) {
   }));
   
   const lastMessage = messages[messages.length - 1].content;
+  const parts: any[] = [{ text: lastMessage }];
+  
+  if (options.inlineData && options.inlineData.length > 0) {
+    parts.unshift(...options.inlineData);
+  }
 
   const chat = model.startChat({
     history: history,
   });
 
-  const result = await chat.sendMessage(lastMessage);
+  const result = await chat.sendMessage(parts);
   const response = result.response;
   const toolCalls = response.functionCalls();
 

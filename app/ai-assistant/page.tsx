@@ -13,6 +13,8 @@ export default function AIAssistantPage() {
   const router = useRouter();
   const { messages, isProcessing, sendMessage, clearMessages } = useAI();
   const [input, setInput] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,10 +31,21 @@ export default function AIAssistantPage() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isProcessing) return;
+    if ((!input.trim() && selectedFiles.length === 0) || isProcessing) return;
     const text = input;
+    const files = [...selectedFiles];
     setInput('');
-    await sendMessage(text);
+    setSelectedFiles([]);
+    await sendMessage(text, files);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setSelectedFiles(prev => [...prev, ...files]);
+  };
+
+  const removeFile = (file: File) => {
+    setSelectedFiles(prev => prev.filter(f => f !== file));
   };
 
   const role = authUser?.role;
@@ -94,6 +107,42 @@ export default function AIAssistantPage() {
                     : 'bg-white text-gray-800 border rounded-tl-none'
                 }`}
               >
+                {msg.files && msg.files.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {msg.files.map((file, idx) => (
+                      <div key={idx} className="w-full">
+                        {file.type.startsWith('image/') ? (
+                          <img 
+                            src={file.url} 
+                            alt={file.name} 
+                            className="max-w-full h-auto rounded-lg mb-1 cursor-pointer hover:opacity-90"
+                            onClick={() => window.open(file.url, '_blank')}
+                          />
+                        ) : (
+                          <div className={`flex items-center gap-3 p-3 rounded-xl border ${msg.role === 'user' ? 'bg-white/10 border-white/20' : 'bg-gray-50 border-gray-100'}`}>
+                            <span className="text-2xl">
+                              {file.type.includes('pdf') ? '📄' : 
+                               file.type.includes('sheet') || file.type.includes('excel') ? '📊' : '📁'}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium truncate ${msg.role === 'user' ? 'text-white' : 'text-gray-800'}`}>{file.name}</p>
+                              <p className={`text-[10px] ${msg.role === 'user' ? 'text-white/60' : 'text-gray-400'}`}>{(file.size / 1024).toFixed(1)} KB</p>
+                            </div>
+                            <a 
+                              href={file.url} 
+                              download={file.name}
+                              className={`p-2 rounded-lg transition-colors ${msg.role === 'user' ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-600'}`}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                 <span className={`text-[10px] block mt-1 opacity-70 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
                   {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -115,9 +164,49 @@ export default function AIAssistantPage() {
           )}
         </div>
 
+        {/* Selected Files Preview */}
+        {selectedFiles.length > 0 && (
+          <div className="px-4 py-2 border-t flex flex-wrap gap-2 bg-gray-50">
+            {selectedFiles.map((file, i) => (
+              <div key={i} className="flex items-center gap-2 bg-indigo-100 rounded-lg px-3 py-1 text-xs text-indigo-700 border border-indigo-200">
+                <span>
+                  {file.type.startsWith('image/') ? '🖼️' : 
+                   file.type.includes('pdf') ? '📄' : 
+                   file.type.includes('sheet') || file.type.includes('excel') ? '📊' : '📁'}
+                </span>
+                <span className="max-w-[100px] truncate">{file.name}</span>
+                <button 
+                  onClick={() => removeFile(file)}
+                  className="text-indigo-400 hover:text-indigo-600 font-bold ml-1"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Chat Input */}
         <form onSubmit={handleSend} className="p-4 border-t bg-white">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileSelect} 
+              multiple 
+              accept="image/*,.pdf,.xlsx,.xls,.docx,.doc,.txt" 
+              className="hidden" 
+            />
+            <button 
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+              title="Fayl yuklash"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+            </button>
             <input
               type="text"
               className="input flex-1 focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -129,9 +218,9 @@ export default function AIAssistantPage() {
             <button 
               type="submit" 
               className="btn btn-primary px-6 flex items-center gap-2"
-              disabled={isProcessing || !input.trim()}
+              disabled={isProcessing || (!input.trim() && selectedFiles.length === 0)}
             >
-              <span>Yuborish</span>
+              <span className="hidden sm:inline">Yuborish</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>

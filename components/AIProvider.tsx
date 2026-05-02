@@ -6,6 +6,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  files?: { name: string; url: string; type: string; size: number }[];
 }
 
 interface AIContextType {
@@ -13,7 +14,7 @@ interface AIContextType {
   isListening: boolean;
   isProcessing: boolean;
   toggleListening: () => void;
-  sendMessage: (text: string) => Promise<void>;
+  sendMessage: (text: string, files?: File[]) => Promise<void>;
   clearMessages: () => void;
   transcript: string;
 }
@@ -56,24 +57,52 @@ export function AIProvider({ children }: { children: ReactNode }) {
     }
   }, [isListening]);
 
-  const sendMessage = async (text: string) => {
-    if (!text.trim()) return;
+  const sendMessage = async (text: string, files?: File[]) => {
+    if (!text.trim() && (!files || files.length === 0)) return;
 
-    const userMsg: Message = { role: 'user', content: text, timestamp: new Date() };
+    let uploadedFilesInfo: any[] = [];
+    if (files && files.length > 0) {
+      const uploadFormData = new FormData();
+      files.forEach(file => uploadFormData.append('files', file));
+      
+      try {
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: uploadFormData
+        });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          uploadedFilesInfo = uploadData.files;
+        }
+      } catch (err) {
+        console.error('File upload failed:', err);
+      }
+    }
+
+    const userMsg: Message = { 
+      role: 'user', 
+      content: text, 
+      timestamp: new Date(),
+      files: uploadedFilesInfo
+    };
     setMessages((prev) => [...prev, userMsg]);
     setIsProcessing(true);
 
     try {
+      const formData = new FormData();
+      formData.append('message', text);
+      formData.append('history', JSON.stringify(messages.slice(-10).map(m => ({
+        role: m.role,
+        content: m.content
+      }))));
+      
+      if (files) {
+        files.forEach(file => formData.append('files', file));
+      }
+
       const res = await fetch('/api/ai-chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          message: text,
-          history: messages.slice(-10).map(m => ({
-            role: m.role,
-            content: m.content
-          }))
-        }),
+        body: formData,
       });
 
       const data = await res.json();
