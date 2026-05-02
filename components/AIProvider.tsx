@@ -76,13 +76,31 @@ export function AIProvider({ children }: { children: ReactNode }) {
         }),
       });
 
+      const data = await res.json();
+      
       if (res.ok) {
-        const data = await res.json();
-        const assistantMsg: Message = { role: 'assistant', content: data.reply, timestamp: new Date() };
+        const assistantMsg: Message = { 
+          role: 'assistant', 
+          content: data.reply || "AI javob qaytarmadi.", 
+          timestamp: new Date() 
+        };
         setMessages((prev) => [...prev, assistantMsg]);
+      } else {
+        const errorMsg: Message = { 
+          role: 'assistant', 
+          content: `Xatolik: ${data.error || 'AI tizimida muammo yuz berdi.'}`, 
+          timestamp: new Date() 
+        };
+        setMessages((prev) => [...prev, errorMsg]);
       }
     } catch (err) {
       console.error('AI Chat error:', err);
+      const errorMsg: Message = { 
+        role: 'assistant', 
+        content: "Tarmoq xatosi yoki AI tizimi ulanib bo'lmadi.", 
+        timestamp: new Date() 
+      };
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsProcessing(false);
       setTranscript('');

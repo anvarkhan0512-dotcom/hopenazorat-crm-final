@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 const together = new OpenAI({
-  apiKey: process.env.TOGETHER_AI_API_KEY || "",
+  apiKey: process.env.TOGETHER_AI_API_KEY || process.env.TOGETHER_API_KEY || "",
   baseURL: "https://api.together.xyz/v1",
 });
 
