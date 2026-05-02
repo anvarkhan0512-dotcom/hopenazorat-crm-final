@@ -1,8 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-// API versiyasini v1 qilib belgilash (Google SDK-da v1 default, lekin aniq ko'rsatish tavsiya etiladi)
-// Eslatma: SDK-ning yangi versiyalarida apiVersion ob'ekt orqali berilishi mumkin
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 const systemInstruction = `Siz "Hope Study" o'quv markazining professional va aqlli menejerisiz. 
 Sizning vazifangiz markaz faoliyatini boshqarish va o'qitish jarayonini qo'llab-quvvatlashdir.
@@ -155,7 +153,7 @@ const tools = [
 
 export async function askGemini(messages: { role: string, content: string }[]) {
   const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-pro", 
+    model: "gemini-2.0-flash", 
     systemInstruction, 
     tools: tools as any 
   });
@@ -191,7 +189,7 @@ export async function sendToolResult(callId: string, result: any) {
 export async function processVoiceWithGemini(audioData: Buffer, mimeType: string): Promise<{ text: string, toolCalls?: any[] }> {
   try {
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-pro",
+      model: "gemini-2.0-flash",
       systemInstruction: systemInstruction,
       tools: tools as any
     });
@@ -224,7 +222,7 @@ export async function transcribeAudioWithGemini(audioBlob: Blob): Promise<string
   const arrayBuffer = await audioBlob.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
   
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   
   const result = await model.generateContent([
     {
