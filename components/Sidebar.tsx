@@ -82,17 +82,32 @@ export default function Sidebar({ isOpen, onClose, collapsed }: SidebarProps) {
 
   return (
     <>
+      {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 md:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300"
           onClick={onClose}
         />
       )}
+
       <aside
-        className={`sidebar z-50 transition-all duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 ${collapsed ? 'md:w-20' : 'md:w-[280px]'}`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#1e1e2d] text-white transition-transform duration-300 ease-in-out transform 
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
+          lg:translate-x-0 lg:static lg:block 
+          ${collapsed ? 'lg:w-20' : 'lg:w-[280px]'}`}
       >
-        <div className="sidebar-brand overflow-hidden">
+        <div className="sidebar-brand flex items-center justify-between overflow-hidden">
           <BrandLogo variant="sidebar" showText={!collapsed} />
+          {/* Close button for mobile */}
+          <button 
+            onClick={onClose} 
+            className="p-2 lg:hidden text-gray-400 hover:text-white"
+            aria-label="Close menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         <nav className="sidebar-nav">

@@ -22,6 +22,17 @@ export default function DashboardLayout({ children, title, subtitle }: Dashboard
     }
   }, []);
 
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [sidebarOpen]);
+
   const toggleSidebarCollapse = () => {
     const newState = !sidebarCollapsed;
     setSidebarCollapsed(newState);
