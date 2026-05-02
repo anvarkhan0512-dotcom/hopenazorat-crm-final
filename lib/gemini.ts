@@ -2,28 +2,60 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-const systemInstruction = `Siz "Hope Study" o'quv markazining aqlli va to'liq vakolatli menejerisiz.
-Sizga markazni boshqarish va o'qitish jarayonini qo'llab-quvvatlash uchun barcha vositalar (tools) berilgan.
+const systemInstruction = `Siz "Hope Study" o'quv markazining professional va aqlli menejerisiz. 
+Sizning vazifangiz markaz faoliyatini boshqarish va o'qitish jarayonini qo'llab-quvvatlashdir.
 
-Rollar bo'yicha vazifalaringiz:
-1. Admin/Manager: To'liq boshqaruv (talabalar, xodimlar, moliya).
-2. Ustozlar: Dars ishlanmalari yaratish, uy vazifalarini baholash, o'z guruhlarini boshqarish.
-3. O'quvchilar va Ota-onalar (Support Teacher): 
-   - Qat'iy qoida: Hech qachon uy vazifasini tayyor yechib bermang!
-   - O'quvchiga yo'nalish bering, mavzuni sodda misollar bilan tushuntiring.
-   - Dars jadvali va o'zlashtirish haqida ma'lumot bering.
+Qat'iy qoidalar:
+1. FAQAT O'ZBEK TILIDA javob bering.
+2. Barcha pul miqdorlarini "so'm" valyutasida ko'rsating (masalan, 500 000 so'm).
+3. Doimo professional, xushmuomala va yordamga tayyor bo'ling.
+4. "Hope Study" menejeri sifatida ish yuriting.
+5. Whisper orqali kelgan ovozli xabarlarni (o'zbek tilida) mukammal tushunasiz va ularga mos ravishda javob berasiz.
 
-"Hope Study" metodikasi:
-- O'quvchiga yo'naltirilgan ta'lim (Student-centered learning).
-- Interaktiv darslar va amaliyotga asoslangan yondashuv.
-- Har bir dars oxirida qayta aloqa (feedback) berish muhim.
+Rollar bo'yicha vazifalar:
+- Admin/Manager: To'liq boshqaruv (talabalar, xodimlar, moliya).
+- Ustozlar: Dars ishlanmalari, uy vazifalarini baholash, guruhlarni boshqarish.
+- O'quvchilar/Ota-onalar: Yo'nalish berish, mavzularni tushuntirish (echimni tayyor bermaslik!), dars jadvali va o'zlashtirish haqida ma'lumot.
 
-Sizning javoblaringiz doimo o'zbek tilida, professional va xushmuomala bo'lishi kerak.
-Har bir amalni bajargandan so'ng, nima qilganingizni tasdiqlang.`;
+Har bir amalni bajargandan so'ng, nima qilinganini foydalanuvchiga tasdiqlang.`;
 
 const tools = [
   {
     functionDeclarations: [
+      {
+        name: "archive_student",
+        description: "Talabani arxivga (ketganlar ro'yxatiga) olish.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            id: { type: "STRING", description: "Talaba ID-si" },
+            reason: { type: "STRING", description: "Ketish sababi" }
+          },
+          required: ["id", "reason"]
+        }
+      },
+      {
+        name: "get_attendance_stats",
+        description: "Davomat ma'lumotlarini va statistikasini olish.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            groupId: { type: "STRING", description: "Guruh ID-si (ixtiyoriy)" },
+            date: { type: "STRING", description: "Sana (ixtiyoriy, YYYY-MM-DD)" }
+          }
+        }
+      },
+      {
+        name: "create_staff_password",
+        description: "Yangi xodim uchun avtomatik parol yaratish.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            name: { type: "STRING", description: "Xodim ismi" }
+          },
+          required: ["name"]
+        }
+      },
       {
         name: "get_students",
         description: "Talabalar ro'yxatini olish (Admin uchun barcha, Ustoz uchun o'zining talabalari).",
@@ -119,9 +151,26 @@ const tools = [
   }
 ];
 
-export async function askGemini(prompt: string) {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction, tools: tools as any });
-  const result = await model.generateContent(prompt);
+export async function askGemini(messages: { role: string, content: string }[]) {
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-1.5-pro-latest", 
+    systemInstruction, 
+    tools: tools as any 
+  });
+
+  // Convert history to Gemini format
+  const history = messages.slice(0, -1).map(m => ({
+    role: m.role === 'user' ? 'user' : 'model',
+    parts: [{ text: m.content }]
+  }));
+  
+  const lastMessage = messages[messages.length - 1].content;
+
+  const chat = model.startChat({
+    history: history,
+  });
+
+  const result = await chat.sendMessage(lastMessage);
   const response = result.response;
   const toolCalls = response.functionCalls();
 
@@ -140,7 +189,7 @@ export async function sendToolResult(callId: string, result: any) {
 export async function processVoiceWithGemini(audioData: Buffer, mimeType: string): Promise<{ text: string, toolCalls?: any[] }> {
   try {
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-1.5-pro-latest",
       systemInstruction: systemInstruction,
       tools: tools as any
     });
@@ -152,14 +201,14 @@ export async function processVoiceWithGemini(audioData: Buffer, mimeType: string
           mimeType: mimeType
         }
       },
-      { text: "Ushbu ovozli xabarni eshitib, unga Hope Study menejeri sifatida javob bering yoki kerakli amalni bajaring." }
+      { text: "Ushbu ovozli xabarni matnga o'giring (transkripsiya qiling) va agar unda biror buyruq bo'lsa, tegishli funksiyani chaqiring. Agar faqat matn bo'lsa, uni 'text' maydonida qaytaring." }
     ]);
     
     const response = await result.response;
     const functionCalls = response.functionCalls();
 
     if (functionCalls && functionCalls.length > 0) {
-      return { text: "", toolCalls: functionCalls };
+      return { text: response.text() || "", toolCalls: functionCalls };
     }
 
     return { text: response.text() };
@@ -167,4 +216,23 @@ export async function processVoiceWithGemini(audioData: Buffer, mimeType: string
     console.error("Gemini Audio error:", error);
     return { text: "Ovozli xabarni qayta ishlashda xatolik yuz berdi." };
   }
+}
+
+export async function transcribeAudioWithGemini(audioBlob: Blob): Promise<string> {
+  const arrayBuffer = await audioBlob.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+  
+  const result = await model.generateContent([
+    {
+      inlineData: {
+        data: buffer.toString("base64"),
+        mimeType: audioBlob.type || "audio/webm"
+      }
+    },
+    { text: "Ushbu ovozli xabarni so'zma-so'z matnga o'giring. Faqat matnni qaytaring, hech qanday qo'shimcha izoh bermang." }
+  ]);
+  
+  return result.response.text();
 }

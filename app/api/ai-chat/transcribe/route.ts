@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { transcribeAudio } from '@/lib/together';
+import { transcribeAudioWithGemini } from '@/lib/gemini';
 import { getAuthUser } from '@/lib/auth-server';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
     }
 
-    const text = await transcribeAudio(file);
+    const text = await transcribeAudioWithGemini(file);
     return NextResponse.json({ text });
   } catch (error) {
     console.error('Transcription API error:', error);
