@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { useAI } from '@/components/AIProvider';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
@@ -11,8 +10,74 @@ export default function AIAssistantPage() {
   const { t } = useLanguage();
   const { user: authUser, loading: authLoading } = useAuth();
   const router = useRouter();
-  const { messages, isProcessing, sendMessage, clearMessages } = useAI();
+  const [messages, setMessages] = useState<any[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [input, setInput] = useState('');
+
+  // Load on mount:
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('chat_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Convert string timestamps back to Date objects
+        const formatted = parsed.map((msg: any) => ({
+          ...msg,
+          timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date()
+        }));
+        setMessages(formatted);
+      }
+    } catch (e) {
+      console.error('Error loading chat history:', e);
+    }
+  }, []);
+
+  // Save when messages change:
+  useEffect(() => {
+    if (messages.length > 0) {
+      try {
+        localStorage.setItem('chat_history', JSON.stringify(messages));
+      } catch (e) {
+        console.error('Error saving chat history:', e);
+      }
+    }
+  }, [messages]);
+
+  const clearMessages = () => {
+    setMessages([]);
+    localStorage.removeItem('chat_history');
+  };
+
+  const sendMessage = async (messageText: string, files: File[] = []) => {
+    const userMsg = { 
+      role: 'user', 
+      content: messageText,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, userMsg]);
+    setIsProcessing(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('message', messageText);
+      formData.append('history', JSON.stringify(messages));
+      files.forEach(file => formData.append('files', file));
+
+      const res = await fetch('/api/ai-chat', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: data.reply || data.message,
+        timestamp: new Date()
+      }]);
+    } catch (e) {
+      console.error(e);
+    }
+    setIsProcessing(false);
+  };
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
