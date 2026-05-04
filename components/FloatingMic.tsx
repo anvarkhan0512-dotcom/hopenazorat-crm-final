@@ -20,6 +20,7 @@ export default function FloatingMic() {
       (window as any).webkitSpeechRecognition;
     
     if (!SpeechRecognition) {
+      // Fallback for Android APK - show message
       console.log('Speech recognition not supported');
       return;
     }
@@ -28,6 +29,7 @@ export default function FloatingMic() {
     recognition.lang = 'uz-UZ';
     recognition.continuous = false;
     recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
@@ -52,7 +54,11 @@ export default function FloatingMic() {
   }, []);
 
   const startRecording = () => {
-    if (recognitionRef.current && !isRecording) {
+    if (!recognitionRef.current) {
+      alert('Mikrofon uchun Chrome brauzeri kerak');
+      return;
+    }
+    if (!isRecording) {
       setIsRecording(true);
       try {
         recognitionRef.current.start();

@@ -14,6 +14,7 @@ export default function AIAssistantPage() {
   const { messages, isProcessing, sendMessage, clearMessages } = useAI();
   const [input, setInput] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -23,11 +24,37 @@ export default function AIAssistantPage() {
     }
   }, [authLoading, authUser, router]);
 
+  const speakText = (text: string) => {
+    if (!voiceEnabled || !('speechSynthesis' in window)) return;
+    
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'uz-UZ';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    // Try to find Uzbek voice, fallback to default
+    const voices = window.speechSynthesis.getVoices();
+    const uzVoice = voices.find(v => v.lang.includes('uz'));
+    if (uzVoice) utterance.voice = uzVoice;
+    
+    window.speechSynthesis.speak(utterance);
+  };
+
   useEffect(() => {
+    if (messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg.role === 'assistant' && !isProcessing) {
+        speakText(lastMsg.content);
+      }
+    }
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isProcessing]);
 
   const handleSend = async (e?: React.FormEvent | string, filesOverride?: File[]) => {
     if (e && typeof e !== 'string') e.preventDefault();
@@ -82,12 +109,21 @@ export default function AIAssistantPage() {
               </p>
             </div>
           </div>
-          <button 
-            onClick={clearMessages}
-            className="text-sm text-gray-500 hover:text-red-600 transition-colors"
-          >
-            Suhbatni tozalash
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setVoiceEnabled(!voiceEnabled)}
+              className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+              title={voiceEnabled ? "Ovozni o'chirish" : "Ovozni yoqish"}
+            >
+              {voiceEnabled ? '🔊' : '🔇'}
+            </button>
+            <button 
+              onClick={clearMessages}
+              className="text-sm text-gray-500 hover:text-red-600 transition-colors"
+            >
+              Suhbatni tozalash
+            </button>
+          </div>
         </div>
 
         {/* Chat Messages */}
