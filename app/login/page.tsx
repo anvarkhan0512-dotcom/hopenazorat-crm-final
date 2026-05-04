@@ -54,132 +54,123 @@ function LoginForm() {
   };
 
   return (
-    <div className="hope-login-page">
-      <div className="hope-login-stars" aria-hidden />
-      <div className="hope-login-glow" aria-hidden />
+    <div className="hope-login-page relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-950 animate-gradient-slow">
+        <div className="absolute inset-0 opacity-20 hope-particles-bg" />
+      </div>
 
-      <div className="hope-login-card">
-        <div className="hope-login-card-inner">
-          <BrandLogo variant="hero" tagline={t('loginBrandTagline')} />
+      <div className="relative z-10 w-full min-h-screen flex items-center justify-center p-4">
+        <div className="hope-login-card bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl overflow-hidden max-w-md w-full">
+          <div className="hope-login-card-inner p-8">
+            <BrandLogo variant="hero" tagline={t('loginBrandTagline')} />
 
-          <div className="hope-login-role-grid" role="group" aria-label={t('loginAriaRoleGroup')}>
-            {roleButtons.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                className={`hope-role-btn ${loginRole === r.id ? 'hope-role-btn--active' : ''}`}
-                onClick={() => setLoginRole(r.id)}
-              >
-                {t(r.labelKey)}
-              </button>
-            ))}
-          </div>
-
-          <h1 className="hope-login-title">{t('loginTitle')}</h1>
-
-          <div className="hope-login-lang">
-            {(['uz', 'ru', 'en', 'kr'] as const).map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setLang(l)}
-                className={`hope-lang-btn ${lang === l ? 'hope-lang-btn--active' : ''}`}
-              >
-                {l === 'kr' ? 'CYR' : l.toUpperCase()}
-              </button>
-            ))}
-          </div>
-
-          {error && <div className="hope-login-alert">{error}</div>}
-
-          <form onSubmit={handleSubmit} className="hope-login-form">
-            <div className="form-group">
-              <label className="hope-form-label">{t('username')}</label>
-              <input
-                type="text"
-                className="hope-input"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-                required
-              />
+            <div className="hope-login-role-grid grid grid-cols-2 gap-2 mb-6 mt-4" role="group" aria-label={t('loginAriaRoleGroup')}>
+              {roleButtons.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  className={`py-2 px-4 rounded-xl text-sm font-bold transition-all ${
+                    loginRole === r.id 
+                      ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/20' 
+                      : 'bg-white/5 text-white/70 hover:bg-white/10'
+                  }`}
+                  onClick={() => setLoginRole(r.id)}
+                >
+                  {t(r.labelKey)}
+                </button>
+              ))}
             </div>
-            <div className="form-group">
-              <label className="hope-form-label">{t('password')}</label>
-              <input
-                type="password"
-                className="hope-input"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-              />
+
+            <h1 className="text-2xl font-black text-white text-center mb-6">{t('loginTitle')}</h1>
+
+            <div className="hope-login-lang flex justify-center gap-2 mb-8">
+              {(['uz', 'ru', 'en', 'kr'] as const).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setLang(l)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    lang === l ? 'bg-white text-purple-900' : 'text-white/50 hover:text-white'
+                  }`}
+                >
+                  {l === 'kr' ? 'CYR' : l.toUpperCase()}
+                </button>
+              ))}
             </div>
-            <button type="submit" className="btn btn-primary hope-login-submit w-full" disabled={loading}>
-              {loading ? t('loading') : t('login')}
-            </button>
-          </form>
 
-          <div className="mt-4 text-center">
-            {canInstall && (
-              <button
-                onClick={showInstallPrompt}
-                className="w-full py-3 px-4 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"
+            {error && <div className="p-3 mb-6 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm text-center">{error}</div>}
+
+            <form onSubmit={handleSubmit} className="hope-login-form space-y-4">
+              <div className="form-group">
+                <label className="block text-white/60 text-xs font-bold uppercase mb-2 ml-1">{t('username')}</label>
+                <input
+                  type="text"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-yellow-500/50 transition-all"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="block text-white/60 text-xs font-bold uppercase mb-2 ml-1">{t('password')}</label>
+                <input
+                  type="password"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-yellow-500/50 transition-all"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
+              <button 
+                type="submit" 
+                className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black rounded-xl shadow-xl shadow-purple-900/20 transition-all active:scale-95 disabled:opacity-50" 
+                disabled={loading}
               >
-                📲 Ilovani telefonga o&apos;rnatish
+                {loading ? t('loading') : t('login')}
               </button>
-            )}
-            
-            {isIOS && (
-              <div className="mt-3 p-3 bg-white/10 rounded-xl text-white text-sm backdrop-blur-sm border border-white/10">
-                <p className="font-bold mb-1">📱 iPhone ga o&apos;rnatish:</p>
-                <p>1. Pastdagi <strong>↑ Share</strong> tugmasini bosing</p>
-                <p>2. <strong>&quot;Add to Home Screen&quot;</strong> tanlang</p>
-                <p>3. <strong>&quot;Add&quot;</strong> bosing ✅</p>
-              </div>
-            )}
+            </form>
 
-            {isInAppBrowser && (
-              <div className="mt-3 p-3 bg-yellow-500/20 rounded-xl text-white text-sm border border-yellow-500/30">
-                ⚠️ Yuklab olish uchun Chrome yoki Safari da oching
-              </div>
-            )}
-            
-            {!canInstall && !isIOS && !isInAppBrowser && (
-              <p className="text-white/50 text-xs mt-2">
-                💡 Chrome brauzerida oching va o&apos;rnating
-              </p>
-            )}
-          </div>
-
-          {/* Download Section */}
-          <div className="mt-6 border-t border-white/20 pt-4">
-            <p className="text-white/60 text-xs text-center mb-3">
-              Ilovani to&apos;g&quot;ridan-to&apos;g&quot;ri yuklab oling
-            </p>
-            
-            {/* Android APK */}
-            <a 
-              href="/hope-study.apk" 
-              download="HopeStudy.apk" 
-              className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg"
-            >
-              <span className="text-2xl">🤖</span>
-              <div className="text-left">
-                <p className="font-bold">Android APK yuklab olish</p>
-                <p className="text-xs opacity-80">To&apos;g&quot;ridan-to&apos;g&quot;ri o&apos;rnatish</p>
-              </div>
-            </a>
-
-            {/* Safety notice */}
-            <div className="mt-3 p-3 bg-white/5 rounded-xl backdrop-blur-sm">
-              <p className="text-white/50 text-xs text-center">
-                🔒 Rasmiy Hope Study ilovasi • Xavfsiz
-              </p>
+            <div className="mt-8 flex flex-col items-center gap-4">
+              {canInstall && (
+                <button
+                  onClick={showInstallPrompt}
+                  className="text-white/40 hover:text-white/70 text-xs transition-all flex items-center gap-2"
+                >
+                  📲 Ilovani o&apos;rnatish
+                </button>
+              )}
+              
+              <a href="/hope-study.apk" download className="text-white/20 hover:text-white/40 text-[10px] underline transition-all">
+                📥 Android APK
+              </a>
             </div>
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .animate-gradient-slow {
+          background-size: 400% 400%;
+          animation: gradient 15s ease infinite;
+        }
+        @keyframes gradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .hope-particles-bg {
+          background-image: radial-gradient(circle, white 1px, transparent 1px);
+          background-size: 50px 50px;
+          animation: particles 20s linear infinite;
+        }
+        @keyframes particles {
+          from { background-position: 0 0; }
+          to { background-position: 500px 1000px; }
+        }
+      `}</style>
     </div>
   );
 }

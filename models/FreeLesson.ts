@@ -1,27 +1,47 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IFreeLesson extends Document {
-  studentId: mongoose.Types.ObjectId;
-  /** Ma'lumotlar / qo'shimcha */
+  studentName: string;
+  totalFreeLessons: number;
+  attendedCount: number;
+  missedCount: number;
+  teacherId?: mongoose.Types.ObjectId;
+  otherTeacher?: string;
+  arrivalDate: Date;
+  lessonDays: string[]; // ['Du', 'Se', ...]
+  lessonTime: string; // 'HH:mm'
+  status: 'Qoldi' | 'Ketdi' | '-';
+  leaveReason?: 'Dars' | 'Ustoz' | 'Vaqt' | 'Boshqa';
   notes: string;
-  outcome: 'stayed' | 'left' | '';
-  reason: string;
-  notifyTeacherUserId?: mongoose.Types.ObjectId;
+  notifyTeacherId?: mongoose.Types.ObjectId;
+  otherNotifyTeacher?: string;
+  lastLessonDate?: Date;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const FreeLessonSchema = new Schema<IFreeLesson>(
   {
-    studentId: { type: Schema.Types.ObjectId, ref: 'Student', required: true, index: true },
+    studentName: { type: String, required: true, index: true },
+    totalFreeLessons: { type: Number, default: 0 },
+    attendedCount: { type: Number, default: 0 },
+    missedCount: { type: Number, default: 0 },
+    teacherId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    otherTeacher: { type: String, default: '' },
+    arrivalDate: { type: Date, required: true },
+    lessonDays: { type: [String], default: [] },
+    lessonTime: { type: String, default: '' },
+    status: { type: String, enum: ['Qoldi', 'Ketdi', '-'], default: '-' },
+    leaveReason: { type: String, enum: ['Dars', 'Ustoz', 'Vaqt', 'Boshqa', ''], default: '' },
     notes: { type: String, default: '' },
-    outcome: { type: String, enum: ['stayed', 'left', ''], default: '' },
-    reason: { type: String, default: '' },
-    notifyTeacherUserId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    notifyTeacherId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    otherNotifyTeacher: { type: String, default: '' },
+    lastLessonDate: { type: Date },
   },
   { timestamps: true }
 );
 
-FreeLessonSchema.index({ studentId: 1, createdAt: -1 });
+FreeLessonSchema.index({ studentName: 1, status: 1 });
 
 export const FreeLesson: Model<IFreeLesson> =
   mongoose.models.FreeLesson || mongoose.model<IFreeLesson>('FreeLesson', FreeLessonSchema);

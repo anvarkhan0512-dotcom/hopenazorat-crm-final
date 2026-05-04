@@ -122,6 +122,9 @@ export async function POST(request: NextRequest) {
       nextPaymentDate,
       parentAccessCode,
       parentTelegramChatId: data.parentTelegramChatId || '',
+      telegramId: data.telegramId || '',
+      extraFans: data.extraFans || [],
+      extraDiscount: data.extraDiscount || 0,
       debtReminderUntil: data.debtReminderUntil ? new Date(data.debtReminderUntil) : undefined,
     });
 

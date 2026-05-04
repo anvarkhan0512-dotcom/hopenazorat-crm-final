@@ -63,6 +63,14 @@ export interface IStudent extends Document {
   /** Qarz uchun Telegram eslatmalari shu sanagacha (kunlik) */
   debtReminderUntil?: Date;
   lastDebtorTelegramAt?: Date;
+  telegramId?: string;
+  extraFans?: {
+    groupId: mongoose.Types.ObjectId;
+    price: number;
+    discountAmount: number;
+    discountEndDate?: Date;
+  }[];
+  extraDiscount?: number;
   notificationEnabled: boolean;
   avatarUrl?: string;
   faceDescriptor?: number[];
@@ -113,6 +121,16 @@ const StudentSchema = new Schema<IStudent>(
     lastParentPaymentReminderAt: { type: Date },
     debtReminderUntil: { type: Date, index: true },
     lastDebtorTelegramAt: { type: Date },
+    telegramId: { type: String, default: '' },
+    extraFans: [
+      {
+        groupId: { type: Schema.Types.ObjectId, ref: 'Group' },
+        price: { type: Number, default: 0 },
+        discountAmount: { type: Number, default: 0 },
+        discountEndDate: { type: Date },
+      },
+    ],
+    extraDiscount: { type: Number, default: 0 },
     notificationEnabled: { type: Boolean, default: true },
     avatarUrl: { type: String, default: '' },
     faceDescriptor: { type: [Number], default: undefined },

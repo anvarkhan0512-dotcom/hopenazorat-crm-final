@@ -13,8 +13,8 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+    <div className="modal-overlay">
+      <div className="modal" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="modal-title">{title}</h3>
           <button

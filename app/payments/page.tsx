@@ -275,11 +275,40 @@ export default function PaymentsPage() {
                 <td colSpan={5} className="text-center py-8">{t('noData')}</td>
               </tr>
             ) : (
-              filteredPayments.map((payment) => (
+              filteredPayments.map((payment) => {
+                const sId = payment.studentId as any;
+                return (
                 <tr key={payment._id}>
-                  <td>{payment.studentId?.name || '-'}</td>
-                  <td>{payment.studentId?.phone || '-'}</td>
-                  <td>{formatMoney(payment.amount, locale)}</td>
+                  <td>{sId?.name || '-'}</td>
+                  <td>{sId?.phone || '-'}</td>
+                  <td>
+                    {(() => {
+                      const student = students.find(s => s._id === sId?._id);
+                      const basePrice = student?.monthlyPrice || 0;
+                      const finalPrice = payment.amount;
+                      const hasDiscount = basePrice > finalPrice;
+                      
+                      return (
+                        <div className="flex flex-col">
+                          {hasDiscount && (
+                            <span className="text-xs text-gray-400 line-through">
+                              {formatMoney(basePrice, locale)}
+                            </span>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <span className={`font-bold ${hasDiscount ? 'text-green-600' : ''}`}>
+                              {formatMoney(finalPrice, locale)}
+                            </span>
+                            {hasDiscount && (
+                              <span className="text-[10px] bg-red-50 text-red-500 px-1 rounded border border-red-100">
+                                -{formatMoney(basePrice - finalPrice, locale)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </td>
                   <td>
                     {payment.periodStart && payment.periodEnd ? (
                       <span className="text-sm">
@@ -319,7 +348,8 @@ export default function PaymentsPage() {
                     </button>
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>

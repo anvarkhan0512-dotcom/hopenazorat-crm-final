@@ -80,6 +80,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (data.parentName !== undefined) student.parentName = data.parentName;
     if (data.notificationEnabled !== undefined) student.notificationEnabled = data.notificationEnabled;
     if (data.parentTelegramChatId !== undefined) student.parentTelegramChatId = String(data.parentTelegramChatId);
+    if (data.telegramId !== undefined) student.telegramId = String(data.telegramId);
+    if (data.extraFans !== undefined) student.extraFans = data.extraFans;
+    if (data.extraDiscount !== undefined) student.extraDiscount = Number(data.extraDiscount);
     if (data.faceDescriptor !== undefined) student.faceDescriptor = data.faceDescriptor;
     if (data.avatarUrl !== undefined) student.avatarUrl = data.avatarUrl;
 

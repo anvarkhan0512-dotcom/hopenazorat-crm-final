@@ -165,6 +165,13 @@ export default function FloatingMic() {
     setIsDragging(true);
   };
 
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+
+  // Hide conditions
+  if (pathname === '/ai-assistant') return null;
+  if (pathname === '/login') return null;
+  if (pathname === '/') return null;
+
   return (
     <button
       ref={buttonRef}

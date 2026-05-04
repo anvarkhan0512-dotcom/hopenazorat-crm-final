@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, memo } from 'react';
+import { useEffect, useMemo, memo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useAuth } from '@/components/AuthProvider';
@@ -24,6 +25,15 @@ interface DashboardData {
   debtorsCount: number;
   last7DaysIncome: { day: string; income: number }[];
   last6MonthsIncome: { month: string; income: number }[];
+  financeSummary?: {
+    totalExpected: number;
+    totalDiscounts: number;
+    teacherPayouts: number;
+    netProfit: number;
+    totalInflow: number;
+  };
+  paidCount?: number;
+  unpaidCount?: number;
 }
 
 const empty: DashboardData = {
@@ -76,18 +86,41 @@ export default function DashboardClient() {
   const { user, loading: authLoading } = useAuth();
   const isOffice = user?.role === 'admin' || user?.role === 'manager';
 
+  const [activeModal, setActiveModal] = useState<'students' | 'groups' | 'income' | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<any>(null);
+
   useEffect(() => {
     if (authLoading || !user) return;
     if (user.role === 'teacher') router.replace('/teacher');
     if (user.role === 'parent') router.replace('/parent');
     if (user.role === 'student') router.replace('/student');
   }, [authLoading, user, router]);
+
   const { data, isLoading } = useSWR<DashboardData>('/api/dashboard', fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 60_000,
   });
 
+  const { data: students } = useSWR<any[]>(activeModal === 'students' ? '/api/students' : null, fetcher);
+  const { data: groups } = useSWR<any[]>(activeModal === 'groups' ? '/api/groups' : null, fetcher);
+  const { data: groupStudents } = useSWR<any[]>(selectedGroup ? `/api/students?groupId=${selectedGroup._id}` : null, fetcher);
+
   const dashboard = data ?? empty;
+
+  const exportToExcel = () => {
+    if (!students) return;
+    const ws = XLSX.utils.json_to_sheet(students.map((s, i) => ({
+      '№': i + 1,
+      'Ism': s.name,
+      'Telefon': s.phone,
+      'Guruh': s.groupId?.name || '-',
+      'Oylik': s.monthlyPrice,
+      'Holat': s.status === 'active' ? 'Faol' : 'Nofaol'
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Talabalar');
+    XLSX.writeFile(wb, 'Talabalar_royxati.xlsx');
+  };
 
   if (isLoading && data === undefined) {
     return (
@@ -105,7 +138,7 @@ export default function DashboardClient() {
   return (
     <DashboardLayout title={t('dashboard')}>
       <div className="stats-grid">
-        <div className="stat-card">
+        <div className="stat-card cursor-pointer hover:shadow-lg transition-all" onClick={() => setActiveModal('students')}>
           <div className="stat-card-icon primary">👥</div>
           <div className="stat-label">{t('totalStudents')}</div>
           <div className="stat-value">{dashboard.totalStudents}</div>
@@ -113,7 +146,7 @@ export default function DashboardClient() {
             {dashboard.activeStudents} {t('active')}
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card cursor-pointer hover:shadow-lg transition-all" onClick={() => setActiveModal('groups')}>
           <div className="stat-card-icon success">📚</div>
           <div className="stat-label">{t('activeGroups')}</div>
           <div className="stat-value">{dashboard.activeGroups}</div>
@@ -121,7 +154,7 @@ export default function DashboardClient() {
             {t('groups')}: {dashboard.totalGroups}
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card cursor-pointer hover:shadow-lg transition-all" onClick={() => setActiveModal('income')}>
           <div className="stat-card-icon warning">💰</div>
           <div className="stat-label">{t('income')}</div>
           <div className="stat-value" style={{ fontSize: '26px' }}>
@@ -142,6 +175,158 @@ export default function DashboardClient() {
           </Link>
         </div>
       </div>
+
+      {/* Modals */}
+      {activeModal === 'students' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-lg text-gray-800">Barcha talabalar</h3>
+              <div className="flex gap-2">
+                <button onClick={exportToExcel} className="btn btn-sm btn-secondary bg-green-600 text-white hover:bg-green-700">Excel yuklab olish</button>
+                <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto p-4">
+              <table className="w-full text-sm text-left border-collapse">
+                <thead className="bg-gray-100 text-gray-600 uppercase text-xs sticky top-0">
+                  <tr>
+                    <th className="p-3 border">№</th>
+                    <th className="p-3 border">Ism</th>
+                    <th className="p-3 border">Telefon</th>
+                    <th className="p-3 border">Guruh</th>
+                    <th className="p-3 border">Oylik</th>
+                    <th className="p-3 border">Holat</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students?.map((s, i) => (
+                    <tr key={s._id} className="hover:bg-gray-50">
+                      <td className="p-3 border text-center">{i + 1}</td>
+                      <td className="p-3 border font-medium">{s.name}</td>
+                      <td className="p-3 border">{s.phone}</td>
+                      <td className="p-3 border">{s.groupId?.name || '-'}</td>
+                      <td className="p-3 border text-right">{formatMoney(s.monthlyPrice, locale)}</td>
+                      <td className="p-3 border text-center">
+                        <span className={`px-2 py-1 rounded-full text-[10px] ${s.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {s.status === 'active' ? 'Faol' : 'Nofaol'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeModal === 'groups' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-lg text-gray-800">
+                {selectedGroup ? `Guruh: ${selectedGroup.name}` : 'Faol guruhlar'}
+              </h3>
+              <div className="flex gap-2">
+                {selectedGroup && (
+                  <button onClick={() => setSelectedGroup(null)} className="btn btn-sm btn-secondary">Orqaga</button>
+                )}
+                <button onClick={() => { setActiveModal(null); setSelectedGroup(null); }} className="text-gray-400 hover:text-gray-600">✕</button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto p-4">
+              {!selectedGroup ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {groups?.map((g) => (
+                    <div 
+                      key={g._id} 
+                      onClick={() => setSelectedGroup(g)}
+                      className="p-4 border rounded-xl hover:border-purple-400 cursor-pointer bg-gray-50 transition-all"
+                    >
+                      <h4 className="font-bold text-purple-700">{g.name}</h4>
+                      <p className="text-xs text-gray-500 mt-1">O'qituvchi: {g.teacherName}</p>
+                      <p className="text-xs text-gray-500">Talabalar: {g.studentIds?.length || 0} ta</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <table className="w-full text-sm text-left border-collapse">
+                  <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
+                    <tr>
+                      <th className="p-3 border w-12">№</th>
+                      <th className="p-3 border">Ism</th>
+                      <th className="p-3 border">Telefon</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupStudents?.map((s, i) => (
+                      <tr key={s._id} className="hover:bg-gray-50">
+                        <td className="p-3 border text-center">{i + 1}</td>
+                        <td className="p-3 border font-medium">{s.name}</td>
+                        <td className="p-3 border">{s.phone}</td>
+                      </tr>
+                    ))}
+                    {groupStudents?.length === 0 && (
+                      <tr><td colSpan={3} className="p-8 text-center text-gray-400">Bu guruhda talabalar yo'q</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeModal === 'income' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-lg text-gray-800">Moliya va Daromad</h3>
+              <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <p className="text-[10px] text-blue-600 uppercase font-bold">Jami talabalar</p>
+                  <p className="text-xl font-bold text-blue-800">{dashboard.totalStudents} ta</p>
+                </div>
+                <div className="p-3 bg-green-50 rounded-lg">
+                  <p className="text-[10px] text-green-600 uppercase font-bold">To'lov qilganlar</p>
+                  <p className="text-xl font-bold text-green-800">{dashboard.paidCount || 0} ta</p>
+                </div>
+                <div className="p-3 bg-red-50 rounded-lg">
+                  <p className="text-[10px] text-red-600 uppercase font-bold">To'lov qilmaganlar</p>
+                  <p className="text-xl font-bold text-red-800">{dashboard.unpaidCount || 0} ta</p>
+                </div>
+                <div className="p-3 bg-purple-50 rounded-lg">
+                  <p className="text-[10px] text-purple-600 uppercase font-bold">Muddati o'tganlar</p>
+                  <p className="text-xl font-bold text-purple-800">{dashboard.debtorsCount} ta</p>
+                </div>
+              </div>
+              
+              <div className="space-y-3 pt-4 border-t">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Kutilayotgan daromad:</span>
+                  <span className="font-bold">{formatMoney(dashboard.financeSummary?.totalExpected || 0, locale)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Chegirmalar jami:</span>
+                  <span className="font-bold text-red-500">-{formatMoney(dashboard.financeSummary?.totalDiscounts || 0, locale)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">O'qituvchi xarajatlari:</span>
+                  <span className="font-bold text-orange-500">-{formatMoney(dashboard.financeSummary?.teacherPayouts || 0, locale)}</span>
+                </div>
+                <div className="flex justify-between text-sm pt-2 border-t text-lg">
+                  <span className="font-bold text-gray-800">Sof foyda (kutilayotgan):</span>
+                  <span className="font-bold text-green-600">{formatMoney(dashboard.financeSummary?.netProfit || 0, locale)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="toolbar flex-wrap">
         <Link href="/dashboard/attendance" className="btn btn-primary">
@@ -165,7 +350,7 @@ export default function DashboardClient() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
-          <div className="card-header">
+          <div className="card-header cursor-pointer hover:bg-gray-50 transition-all" onClick={() => router.push('/reports?type=daily')}>
             <h3 className="card-title">
               {t('dailyReport')} — {t('income')}
             </h3>
@@ -182,7 +367,7 @@ export default function DashboardClient() {
         </div>
 
         <div className="card">
-          <div className="card-header">
+          <div className="card-header cursor-pointer hover:bg-gray-50 transition-all" onClick={() => router.push('/reports?type=monthly')}>
             <h3 className="card-title">
               {t('monthlyReport')} — {t('income')}
             </h3>

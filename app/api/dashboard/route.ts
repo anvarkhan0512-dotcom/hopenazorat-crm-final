@@ -7,8 +7,7 @@ import { Group } from '@/models/Group';
 import { Payment } from '@/models/Payment';
 import { Invoice } from '@/models/Invoice';
 import { getCached, setCache, CacheKeys } from '@/lib/cache';
-
-/** Stats use aggregation / countDocuments only (plain JS results, no Mongoose hydration). */
+import { getAdminFinanceOverview } from '@/lib/teacherFinance';
 
 function padDay(d: Date): string {
   const y = d.getFullYear();
@@ -43,6 +42,8 @@ export async function GET() {
       debtorsCount,
       last7Agg,
       last6Agg,
+      financeData,
+      allStudents,
     ] = await Promise.all([
       Student.countDocuments({}),
       Student.countDocuments({ status: 'active' }),
@@ -88,6 +89,8 @@ export async function GET() {
           },
         },
       ]),
+      getAdminFinanceOverview(currentMonth, currentYear),
+      Student.find({ status: 'active' }).select('basePrice discountAmount').lean(),
     ]);
 
     const paymentsThisMonth = paymentsAgg[0]?.total || 0;
@@ -117,6 +120,9 @@ export async function GET() {
       });
     }
 
+    const totalExpectedInflow = allStudents.reduce((acc, s) => acc + (Number(s.basePrice) || 0), 0);
+    const totalDiscounts = allStudents.reduce((acc, s) => acc + (Number(s.discountAmount) || 0), 0);
+
     const payload = {
       totalStudents,
       activeStudents,
@@ -126,6 +132,15 @@ export async function GET() {
       debtorsCount,
       last7DaysIncome,
       last6MonthsIncome,
+      financeSummary: {
+        totalExpected: totalExpectedInflow - totalDiscounts,
+        totalDiscounts,
+        teacherPayouts: financeData.summary.totalTeacherPayouts,
+        netProfit: financeData.summary.totalCenter,
+        totalInflow: financeData.summary.totalInflow,
+      },
+      paidCount: await Invoice.countDocuments({ month: currentMonth, year: currentYear, status: 'paid' }),
+      unpaidCount: await Invoice.countDocuments({ month: currentMonth, year: currentYear, status: 'unpaid' }),
     };
 
     setCache(CacheKeys.DASHBOARD, payload, 60 * 1000);
