@@ -23,6 +23,30 @@ const AIContext = createContext<AIContextType | undefined>(undefined);
 
 export function AIProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([]);
+
+  // Load messages from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('ai_chat_history');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setMessages(parsed.map((m: any) => ({
+          ...m,
+          timestamp: new Date(m.timestamp)
+        })));
+      } catch (e) {
+        console.error('Failed to parse chat history:', e);
+      }
+    }
+  }, []);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('ai_chat_history', JSON.stringify(messages));
+    }
+  }, [messages]);
+
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -96,6 +120,11 @@ export function AIProvider({ children }: { children: ReactNode }) {
         content: m.content
       }))));
       
+      const pendingAction = localStorage.getItem('pending_ai_action');
+      if (pendingAction) {
+        formData.append('pendingAction', pendingAction);
+      }
+      
       if (files) {
         files.forEach(file => formData.append('files', file));
       }
@@ -108,9 +137,15 @@ export function AIProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       
       if (res.ok) {
+        if (data.action) {
+          localStorage.setItem('pending_ai_action', data.action);
+        } else {
+          localStorage.removeItem('pending_ai_action');
+        }
+        
         const assistantMsg: Message = { 
           role: 'assistant', 
-          content: data.reply || "AI javob qaytarmadi.", 
+          content: data.reply || data.message || "AI javob qaytarmadi.", 
           timestamp: new Date() 
         };
         setMessages((prev) => [...prev, assistantMsg]);
@@ -196,7 +231,10 @@ export function AIProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const clearMessages = () => setMessages([]);
+  const clearMessages = () => {
+    setMessages([]);
+    localStorage.removeItem('ai_chat_history');
+  };
 
   return (
     <AIContext.Provider value={{ 

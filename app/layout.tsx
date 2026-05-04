@@ -7,6 +7,7 @@ import { AIProvider } from '@/components/AIProvider';
 import { PWAProvider } from '@/lib/pwa-context';
 import PWAInstallModal from '@/components/PWAInstallModal';
 import PWAInitializer from '@/components/PWAInitializer';
+import FloatingChat from '@/components/FloatingChat';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -52,6 +53,7 @@ export default function RootLayout({
               <AIProvider>
                 <PWAInitializer />
                 {children}
+                <FloatingChat />
                 <PWAInstallModal />
               </AIProvider>
             </PWAProvider>

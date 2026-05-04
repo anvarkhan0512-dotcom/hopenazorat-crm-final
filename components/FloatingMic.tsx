@@ -3,10 +3,20 @@
 import { useState, useRef, useEffect } from 'react';
 
 export default function FloatingMic() {
-  const [position, setPosition] = useState({ x: 16, y: 200 });
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [dragMoved, setDragMoved] = useState(false);
+
+  // Set initial position on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPosition({
+        x: window.innerWidth - 80, // roughly right: 24px
+        y: window.innerHeight - 156 // roughly bottom: 100px
+      });
+    }
+  }, []);
   
   const dragStart = useRef({ x: 0, y: 0 });
   const posStart = useRef({ x: 0, y: 0 });

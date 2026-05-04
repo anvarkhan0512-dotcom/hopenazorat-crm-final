@@ -2,22 +2,28 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-const systemInstruction = `Siz "Hope Study" o'quv markazining professional va aqlli menejerisiz. 
-Sizning vazifangiz markaz faoliyatini boshqarish va o'qitish jarayonini qo'llab-quvvatlashdir.
+const SYSTEM_PROMPT = `Sen "Hope Study" o'quv markazi 
+AI yordamchisisisan. 
 
-Qat'iy qoidalar:
-1. FAQAT O'ZBEK TILIDA javob bering.
-2. Barcha pul miqdorlarini "so'm" valyutasida ko'rsating (masalan, 500 000 so'm).
-3. Doimo professional, xushmuomala va yordamga tayyor bo'ling.
-4. "Hope Study" menejeri sifatida ish yuriting.
-5. Whisper orqali kelgan ovozli xabarlarni (o'zbek tilida) mukammal tushunasiz va ularga mos ravishda javob berasiz.
+QOIDALAR: 
+- Hech qachon pul, narx yoki haq so'rama 
+- Hech qachon o'z xizmatlaringni sotma 
+- Sen Hope Study CRM ning bir qismisan 
+- Faqat o'zbek tilida gapir 
+- Talaba, ustoz, ota-ona va admin uchun yordam ber: 
+  * Dars jadvali, guruhlar, davomat 
+  * To'lovlar va hisobotlar haqida ma'lumot 
+  * O'quv materiallari va vazifalar 
+- Qisqa, aniq va do'stona javob ber 
+- Hech qachon freelancer yoki mustaqil xizmatchi kabi harakat qilma 
+Sen bu markazning xodimisan, mijoz emas!
 
-Rollar bo'yicha vazifalar:
-- Admin/Manager: To'liq boshqaruv (talabalar, xodimlar, moliya).
-- Ustozlar: Dars ishlanmalari, uy vazifalarini baholash, guruhlarni boshqarish.
-- O'quvchilar/Ota-onalar: Yo'nalish berish, mavzularni tushuntirish (echimni tayyor bermaslik!), dars jadvali va o'zlashtirish haqida ma'lumot.
-
-Har bir amalni bajargandan so'ng, nima qilinganini foydalanuvchiga tasdiqlang.`;
+Sen CRM tizimini boshqara olasan:
+- Talabalar ro'yxatini ko'rish
+- Yangi talaba qo'shish 
+- Guruhlar haqida ma'lumot berish
+- To'lovlarni tekshirish
+Foydalanuvchi so'raganda, tegishli amalni bajara olasan.`;
 
 const tools = [
   {
@@ -154,7 +160,7 @@ const tools = [
 export async function askGemini(messages: { role: string, content: string }[], options: { systemInstruction?: string, inlineData?: any[] } = {}) {
   const model = genAI.getGenerativeModel({ 
     model: "gemini-2.0-flash", 
-    systemInstruction: options.systemInstruction || systemInstruction, 
+    systemInstruction: options.systemInstruction || SYSTEM_PROMPT, 
     tools: tools as any 
   });
 
@@ -195,7 +201,7 @@ export async function processVoiceWithGemini(audioData: Buffer, mimeType: string
   try {
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.0-flash",
-      systemInstruction: systemInstruction,
+      systemInstruction: SYSTEM_PROMPT,
       tools: tools as any
     });
 
