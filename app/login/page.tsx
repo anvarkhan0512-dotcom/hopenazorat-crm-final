@@ -151,6 +151,33 @@ function LoginForm() {
               </p>
             )}
           </div>
+
+          {/* Download Section */}
+          <div className="mt-6 border-t border-white/20 pt-4">
+            <p className="text-white/60 text-xs text-center mb-3">
+              Ilovani to&apos;g&quot;ridan-to&apos;g&quot;ri yuklab oling
+            </p>
+            
+            {/* Android APK */}
+            <a 
+              href="/hope-study.apk" 
+              download="HopeStudy.apk" 
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl transition-all active:scale-95 shadow-lg"
+            >
+              <span className="text-2xl">🤖</span>
+              <div className="text-left">
+                <p className="font-bold">Android APK yuklab olish</p>
+                <p className="text-xs opacity-80">To&apos;g&quot;ridan-to&apos;g&quot;ri o&apos;rnatish</p>
+              </div>
+            </a>
+
+            {/* Safety notice */}
+            <div className="mt-3 p-3 bg-white/5 rounded-xl backdrop-blur-sm">
+              <p className="text-white/50 text-xs text-center">
+                🔒 Rasmiy Hope Study ilovasi • Xavfsiz
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

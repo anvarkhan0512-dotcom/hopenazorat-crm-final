@@ -29,15 +29,29 @@ export default function AIAssistantPage() {
     }
   }, [messages]);
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if ((!input.trim() && selectedFiles.length === 0) || isProcessing) return;
-    const text = input;
-    const files = [...selectedFiles];
+  const handleSend = async (e?: React.FormEvent | string, filesOverride?: File[]) => {
+    if (e && typeof e !== 'string') e.preventDefault();
+    
+    const messageText = typeof e === 'string' ? e : input;
+    const files = filesOverride || [...selectedFiles];
+    
+    if ((!messageText.trim() && files.length === 0) || isProcessing) return;
+    
     setInput('');
     setSelectedFiles([]);
-    await sendMessage(text, files);
+    await sendMessage(messageText, files);
   };
+
+  useEffect(() => {
+    const handleVoiceInput = (e: any) => {
+      const text = e.detail.text;
+      setInput(text);
+      // Auto send after voice input
+      setTimeout(() => handleSend(text), 500);
+    };
+    window.addEventListener('voiceInput', handleVoiceInput as EventListener);
+    return () => window.removeEventListener('voiceInput', handleVoiceInput as EventListener);
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);

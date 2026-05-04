@@ -1,180 +1,185 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useAI } from './AIProvider';
-import { useAuth } from './AuthProvider';
+import { useState, useRef, useEffect } from 'react';
 
 export default function FloatingMic() {
-  const { isListening, toggleListening, transcript } = useAI();
-  const { user } = useAuth();
-  const [position, setPosition] = useState({ x: 20, y: 100 });
+  const [position, setPosition] = useState({ x: 16, y: 200 });
   const [isDragging, setIsDragging] = useState(false);
-  const [hasMoved, setHasMoved] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
-  const dragStartPos = useRef({ x: 0, y: 0 });
-  const initialClickPos = useRef({ x: 0, y: 0 });
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-  const dragThreshold = 5;
+  const [isRecording, setIsRecording] = useState(false);
+  const [dragMoved, setDragMoved] = useState(false);
+  
+  const dragStart = useRef({ x: 0, y: 0 });
+  const posStart = useRef({ x: 0, y: 0 });
+  const recognitionRef = useRef<any>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const canUseAI = user && (user.role === 'admin' || user.role === 'manager' || user.role === 'teacher' || user.role === 'student' || user.role === 'parent');
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return; // Only left click
+  // Setup Speech Recognition
+  useEffect(() => {
+    const SpeechRecognition = 
+      (window as any).SpeechRecognition || 
+      (window as any).webkitSpeechRecognition;
     
-    longPressTimer.current = setTimeout(() => {
-      setShowMenu(true);
-    }, 800);
+    if (!SpeechRecognition) {
+      console.log('Speech recognition not supported');
+      return;
+    }
 
-    setIsDragging(true);
-    setHasMoved(false);
-    dragStartPos.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'uz-UZ';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      console.log('Voice input:', transcript);
+      // Send to AI chat
+      window.dispatchEvent(new CustomEvent('voiceInput', { 
+        detail: { text: transcript } 
+      }));
+      setIsRecording(false);
     };
-    initialClickPos.current = { x: e.clientX, y: e.clientY };
-  };
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    longPressTimer.current = setTimeout(() => {
-      setShowMenu(true);
-    }, 800);
-
-    setIsDragging(true);
-    setHasMoved(false);
-    const touch = e.touches[0];
-    dragStartPos.current = {
-      x: touch.clientX - position.x,
-      y: touch.clientY - position.y
+    recognition.onerror = (event: any) => {
+      console.error('Recognition error:', event.error);
+      setIsRecording(false);
     };
-    initialClickPos.current = { x: touch.clientX, y: touch.clientY };
-  };
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging) return;
-    
-    const dx = Math.abs(e.clientX - initialClickPos.current.x);
-    const dy = Math.abs(e.clientY - initialClickPos.current.y);
-    
-    if (dx > dragThreshold || dy > dragThreshold) {
-      setHasMoved(true);
-      // If moving, cancel long press
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current);
-        longPressTimer.current = null;
-      }
-    }
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
 
-    setPosition({
-      x: e.clientX - dragStartPos.current.x,
-      y: e.clientY - dragStartPos.current.y
-    });
-  }, [isDragging]);
-
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (!isDragging) return;
-    
-    const touch = e.touches[0];
-    const dx = Math.abs(touch.clientX - initialClickPos.current.x);
-    const dy = Math.abs(touch.clientY - initialClickPos.current.y);
-    
-    if (dx > dragThreshold || dy > dragThreshold) {
-      setHasMoved(true);
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current);
-        longPressTimer.current = null;
-      }
-    }
-
-    setPosition({
-      x: touch.clientX - dragStartPos.current.x,
-      y: touch.clientY - dragStartPos.current.y
-    });
-  }, [isDragging]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
+    recognitionRef.current = recognition;
   }, []);
 
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      window.addEventListener('touchmove', handleTouchMove, { passive: false });
-      window.addEventListener('touchend', handleMouseUp);
+  const startRecording = () => {
+    if (recognitionRef.current && !isRecording) {
+      setIsRecording(true);
+      try {
+        recognitionRef.current.start();
+      } catch (e) {
+        console.error('Speech start error:', e);
+        setIsRecording(false);
+      }
     }
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleMouseUp);
-    };
-  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove]);
+  };
 
-  if (!isVisible || !canUseAI) return null;
+  const stopRecording = () => {
+    if (recognitionRef.current && isRecording) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  // Mouse events
+  const onMouseDown = (e: React.MouseEvent) => {
+    setDragMoved(false);
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    posStart.current = { ...position };
+    setIsDragging(true);
+    e.preventDefault();
+  };
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      const dx = e.clientX - dragStart.current.x;
+      const dy = e.clientY - dragStart.current.y;
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        setDragMoved(true);
+      }
+      setPosition({
+        x: Math.max(0, Math.min(window.innerWidth - 64, posStart.current.x + dx)),
+        y: Math.max(0, Math.min(window.innerHeight - 64, posStart.current.y + dy))
+      });
+    };
+
+    const onMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isDragging) return;
+      const touch = e.touches[0];
+      const dx = touch.clientX - dragStart.current.x;
+      const dy = touch.clientY - dragStart.current.y;
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        setDragMoved(true);
+      }
+      setPosition({
+        x: Math.max(0, Math.min(window.innerWidth - 64, posStart.current.x + dx)),
+        y: Math.max(0, Math.min(window.innerHeight - 64, posStart.current.y + dy))
+      });
+      // Don't prevent default to allow normal touch behavior if not dragging? 
+      // User requested e.preventDefault() so keeping it.
+      e.preventDefault();
+    };
+
+    const onTouchEnd = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [isDragging]);
+
+  const handleClick = () => {
+    if (dragMoved) return; // Don't trigger if dragged
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  // Touch start
+  const onTouchStart = (e: React.TouchEvent) => {
+    setDragMoved(false);
+    const touch = e.touches[0];
+    dragStart.current = { x: touch.clientX, y: touch.clientY };
+    posStart.current = { ...position };
+    setIsDragging(true);
+  };
 
   return (
-    <div 
-      className="fixed z-[9999] select-none touch-none"
-      style={{ 
-        left: `${position.x}px`, 
-        top: `${position.y}px`,
-        cursor: isDragging ? 'grabbing' : 'grab'
+    <button
+      ref={buttonRef}
+      onMouseDown={onMouseDown}
+      onTouchStart={onTouchStart}
+      onClick={handleClick}
+      style={{
+        position: 'fixed',
+        left: position.x,
+        top: position.y,
+        zIndex: 9999,
+        touchAction: 'none',
+        cursor: isDragging ? 'grabbing' : 'grab',
       }}
+      className={`w-14 h-14 rounded-full flex items-center justify-center 
+        shadow-lg transition-colors select-none 
+        ${isRecording 
+          ? 'bg-red-500 animate-pulse' 
+          : 'bg-red-500 hover:bg-red-600'
+        }`}
     >
-      <div 
-        className={`relative w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
-          isListening ? 'bg-green-500 scale-110 pulse' : 'bg-red-500'
-        } hover:scale-105`}
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
-        onClick={() => !hasMoved && toggleListening()}
-      >
-        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-        </svg>
-
-        {isListening && transcript && (
-          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-black/70 text-white text-xs px-2 py-1 rounded whitespace-nowrap max-w-[200px] overflow-hidden text-ellipsis">
-            {transcript}
-          </div>
-        )}
-      </div>
-
-      {showMenu && (
-        <div className="absolute top-0 left-full ml-2 bg-white shadow-xl border rounded-lg overflow-hidden py-1 w-32">
-          <button 
-            className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left"
-            onClick={() => {
-              setIsVisible(false);
-              setShowMenu(false);
-            }}
-          >
-            O&apos;chirish
-          </button>
-          <button 
-            className="w-full px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 text-left"
-            onClick={() => setShowMenu(false)}
-          >
-            Yopish
-          </button>
-        </div>
+      <svg xmlns="http://www.w3.org/2000/svg" 
+        className="w-7 h-7 text-white" 
+        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+          d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-7V4a3 3 0 016 0v7" />
+      </svg>
+      {isRecording && (
+        <span className="absolute -top-1 -right-1 w-3 h-3 
+          bg-red-300 rounded-full animate-ping"/>
       )}
-
-      <style jsx>{`
-        .pulse {
-          animation: pulse-animation 2s infinite;
-        }
-        @keyframes pulse-animation {
-          0% { box-shadow: 0 0 0 0px rgba(34, 197, 94, 0.7); }
-          70% { box-shadow: 0 0 0 15px rgba(34, 197, 94, 0); }
-          100% { box-shadow: 0 0 0 0px rgba(34, 197, 94, 0); }
-        }
-      `}</style>
-    </div>
+    </button>
   );
 }
