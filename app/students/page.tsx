@@ -492,7 +492,7 @@ export default function StudentsPage() {
               />
               {editingStudent && (
                 <a 
-                  href={`https://t.me/hopestudy_bot?start=${editingStudent._id}`}
+                  href={`https://t.me/hopenazorat_bot?start=${editingStudent._id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-secondary bg-blue-50 text-blue-600 border-blue-200 text-xs flex items-center gap-1"

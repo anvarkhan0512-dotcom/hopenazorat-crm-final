@@ -120,7 +120,7 @@ export default function TelegramConnect() {
             </p> 
              
             <a  
-              href={`https://t.me/hopestudy_bot?start=${code}`} 
+              href={`https://t.me/hopenazorat_bot?start=${code}`} 
               target="_blank" 
               className="block w-full bg-blue-600  
                 text-white py-4 rounded-xl  
@@ -131,7 +131,7 @@ export default function TelegramConnect() {
             <div className="p-3 bg-white/50 rounded-xl border border-blue-100">
               <p className="text-xs text-gray-500 mb-1">Qo'lda yuborish uchun:</p>
               <code className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded">/start {code}</code>
-              <p className="text-[10px] text-gray-400 mt-1">Bot: @hopestudy_bot</p>
+              <p className="text-[10px] text-gray-400 mt-1">Bot: @hopenazorat_bot</p>
             </div>
           </div> 
         )} 
