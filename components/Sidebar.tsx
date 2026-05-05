@@ -27,6 +27,8 @@ const adminMenu: Item[] = [
   { key: 'faceId', href: '/admin/attendance/face-id', icon: '🤳' },
   { key: 'financeAdmin', href: '/admin/finances', icon: '🏦' },
   { key: 'credentials', href: '/credentials', icon: '🔐' },
+  { key: 'telegram', href: '/telegram', icon: '📱' },
+  { key: 'telegramAdmin', href: '/admin/telegram-users', icon: '🤖' },
   { key: 'aiAssistant', href: '/ai-assistant', icon: '🤖' },
 ];
 
@@ -35,17 +37,20 @@ const teacherMenu: Item[] = [
   { key: 'homeworkMenu', href: '/teacher/homework', icon: '📝' },
   { key: 'freeLessons', href: '/free-lessons', icon: '🎁' },
   { key: 'attendance', href: '/dashboard/attendance', icon: '✅' },
+  { key: 'telegram', href: '/telegram', icon: '📱' },
   { key: 'aiAssistant', href: '/ai-assistant', icon: '🤖' },
 ];
 
 const parentMenu: Item[] = [
   { key: 'parentHome', href: '/parent', icon: '👪' },
   { key: 'homeworkParent', href: '/parent/homework', icon: '📝' },
+  { key: 'telegram', href: '/telegram', icon: '📱' },
   { key: 'aiAssistant', href: '/ai-assistant', icon: '🤖' },
 ];
 
 const studentMenu: Item[] = [
   { key: 'studentHome', href: '/student', icon: '🎓' },
+  { key: 'telegram', href: '/telegram', icon: '📱' },
   { key: 'aiAssistant', href: '/ai-assistant', icon: '🤖' },
 ];
 

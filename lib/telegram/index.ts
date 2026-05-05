@@ -77,8 +77,67 @@ export async function notifyStudentAdded(data: { studentName: string; username: 
   await sendTelegramMessage(message);
 }
 
-export async function handleBotCommand(chatId: string, text: string) {
+export async function handleBotCommand(chatId: string, text: string, message: any) {
   if (!bot) return;
+
+  if (text.startsWith('/start')) {
+    const parts = text.split(' ');
+    const code = parts[1];
+    
+    if (code && code.length === 6) {
+      await connectDB();
+      const user = await User.findOne({ 
+        telegramCode: code, 
+        telegramCodeExpiry: { $gt: new Date() } 
+      });
+      
+      if (user) {
+        await User.findByIdAndUpdate(user._id, {
+          telegramChatId: chatId.toString(),
+          telegramUsername: message.from?.username || '',
+          telegramCode: null,
+          telegramCodeExpiry: null
+        });
+        
+        // Send welcome message based on role
+        const roleEmoji: Record<string, string> = { 
+          admin: '👑', teacher: '👨‍🏫', 
+          student: '👨‍🎓', parent: '👪' 
+        };
+        const emoji = roleEmoji[user.role] || '👤';
+        
+        await bot.sendMessage(chatId, 
+          `✅ Muvaffaqiyatli ulandi!\n\n` + 
+          `${emoji} Salom, ${user.displayName}!\n` + 
+          `Hope Study botiga xush kelibsiz!\n\n` + 
+          `📋 Buyruqlar:\n` + 
+          `/menu - Asosiy menyu\n` + 
+          `/tolov - To'lov holati\n` + 
+          `/davomat - Davomat\n` + 
+          `/ai - AI yordamchi\n` + 
+          `/help - Yordam` 
+        );
+      } else {
+        await bot.sendMessage(chatId, 
+          '❌ Kod noto\'g\'ri yoki muddati o\'tgan.\n' + 
+          'Yangi kod oling va qayta urinib ko\'ring.' 
+        );
+      }
+      return;
+    }
+    
+    // /start without code
+    await bot.sendMessage(chatId, 
+      `👋 Salom! Men Hope Study botiman.\n\n` + 
+      `Ulanish uchun:\n` + 
+      `1. hopestudy.uz ga kiring\n` + 
+      `2. Telegram bo'limiga o'ting\n` + 
+      `3. 6 xonali kodni oling\n` + 
+      `4. /start KOD yuboring\n\n` + 
+      `Misol: /start 123456` 
+    );
+    return;
+  }
 
   // Xavfsizlik: Faqat ADMIN_CHAT_ID dan kelgan xabarlarga javob berish
   if (String(chatId) !== String(adminChatId)) {

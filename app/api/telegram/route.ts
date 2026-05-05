@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       const chatId = body.message.chat.id;
 
       if (body.message.text) {
-        await handleBotCommand(chatId, body.message.text);
+        await handleBotCommand(chatId, body.message.text, body.message);
       } else if (body.message.voice) {
         await handleVoiceMessage(chatId, body.message.voice);
       }

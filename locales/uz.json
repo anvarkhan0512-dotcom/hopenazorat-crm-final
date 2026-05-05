@@ -210,5 +210,8 @@
   "edit": "Tahrirlash",
   "cancel": "Bekor qilish",
   "save": "Saqlash",
-  "noData": "Ma'lumot topilmadi"
+  "noData": "Ma'lumot topilmadi",
+  "telegram": "Telegram",
+  "telegramAdmin": "Telegram Ma'lumotlar",
+  "aiAssistant": "AI Yordamchi"
 }

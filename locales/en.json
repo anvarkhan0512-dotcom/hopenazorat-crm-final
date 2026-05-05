@@ -207,5 +207,7 @@
   "cancel": "Cancel",
   "enter": "Enter",
   "aiAssistant": "AI Assistant",
-  "optional": "optional"
+  "optional": "optional",
+  "telegram": "Telegram",
+  "telegramAdmin": "Telegram Data"
 }

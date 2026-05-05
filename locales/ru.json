@@ -207,5 +207,7 @@
   "cancel": "Отмена",
   "enter": "Войти",
   "aiAssistant": "AI Ассистент",
-  "optional": "опционально"
+  "optional": "опционально",
+  "telegram": "Telegram",
+  "telegramAdmin": "Данные Telegram"
 }

@@ -207,5 +207,7 @@
   "cancel": "Бекор қилиsh",
   "enter": "Кириш",
   "aiAssistant": "AI Assistant",
-  "optional": "ихтиёрий"
+  "optional": "ихтиёрий",
+  "telegram": "Телеграм",
+  "telegramAdmin": "Телеграм Маълумотлар"
 }
