@@ -61,6 +61,46 @@ function LoginForm() {
         <div className="absolute inset-0 opacity-20 hope-particles-bg" />
       </div>
 
+      {/* Left Image */}
+      <div
+        className="hidden lg:block fixed"
+        style={{
+          left: '1%',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 1,
+          width: '22%',
+          maxWidth: '320px',
+        }}
+      >
+        <img
+          src="/images/login-left.jpg"
+          alt="Hope Study talabalar"
+          className="rounded-2xl shadow-2xl border-2 border-yellow-400/30 opacity-90 hover:opacity-100 transition-opacity"
+          style={{ width: '100%', height: 'auto' }}
+        />
+      </div>
+
+      {/* Right Image */}
+      <div
+        className="hidden lg:block fixed"
+        style={{
+          right: '1%',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 1,
+          width: '22%',
+          maxWidth: '320px',
+        }}
+      >
+        <img
+          src="/images/login-right.jpg"
+          alt="Hope Study ustoz"
+          className="rounded-2xl shadow-2xl border-2 border-yellow-400/30 opacity-90 hover:opacity-100 transition-opacity"
+          style={{ width: '100%', height: 'auto' }}
+        />
+      </div>
+
       <div className="relative z-10 w-full min-h-screen flex items-center justify-center p-4">
         <div className="hope-login-card bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl overflow-hidden max-w-md w-full">
           <div className="hope-login-card-inner p-8">
