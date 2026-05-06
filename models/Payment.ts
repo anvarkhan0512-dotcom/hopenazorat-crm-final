@@ -14,6 +14,8 @@ export interface IPayment extends Document {
   /** To‘lov sanasi − kutilgan sana (kun, manfiy = kechikkan) */
   daysVariance?: number;
   description: string;
+  type: 'cash' | 'card' | 'transfer';
+  branchId?: mongoose.Types.ObjectId;
   createdAt: Date;
 }
 
@@ -29,6 +31,8 @@ const PaymentSchema = new Schema<IPayment>(
     expectedDueDate: { type: Date },
     daysVariance: { type: Number },
     description: { type: String, default: '' },
+    type: { type: String, enum: ['cash', 'card', 'transfer'], default: 'cash' },
+    branchId: { type: Schema.Types.ObjectId, ref: 'Branch', index: true },
   },
   { timestamps: true }
 );

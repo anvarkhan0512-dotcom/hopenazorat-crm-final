@@ -209,5 +209,6 @@
   "aiAssistant": "AI Assistant",
   "optional": "optional",
   "telegram": "Telegram",
-  "telegramAdmin": "Telegram Data"
+  "telegramAdmin": "Telegram Data",
+  "notifications": "Notifications"
 }

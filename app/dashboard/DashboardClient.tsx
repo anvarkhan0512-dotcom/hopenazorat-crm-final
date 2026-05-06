@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
+import { Building } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useAuth } from '@/components/AuthProvider';
@@ -135,8 +136,35 @@ export default function DashboardClient() {
   const maxDaily = Math.max(1, ...dashboard.last7DaysIncome.map((d) => d.income));
   const maxMonthly = Math.max(1, ...dashboard.last6MonthsIncome.map((d) => d.income));
 
+  const utilizationPercent = Math.min(100, Math.round((dashboard.activeStudents / 150) * 100)); // 150 - sig'im
+
   return (
     <DashboardLayout title={t('dashboard')}>
+      {/* Utilization Widget */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 flex items-center justify-between">
+        <div className="flex-1">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-bold text-gray-800 text-sm">Markaz foydalilik koeffitsiyenti</h3>
+            <span className="text-purple-700 font-black">{utilizationPercent}%</span>
+          </div>
+          <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+            <div 
+              className={`h-full transition-all duration-1000 ${
+                utilizationPercent > 80 ? 'bg-green-500' : utilizationPercent > 50 ? 'bg-purple-500' : 'bg-orange-500'
+              }`}
+              style={{ width: `${utilizationPercent}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-gray-400 mt-2 italic">
+            * 150 talaba sig'imi va joriy {dashboard.activeStudents} ta faol talaba asosida hisoblandi
+          </p>
+        </div>
+        <div className="hidden md:flex ml-12 items-center gap-2 text-purple-700 font-bold bg-purple-50 px-4 py-2 rounded-xl border border-purple-100">
+          <Building size={20} />
+          <span>Hope Study Center</span>
+        </div>
+      </div>
+
       <div className="stats-grid">
         <div className="stat-card cursor-pointer hover:shadow-lg transition-all" onClick={() => setActiveModal('students')}>
           <div className="stat-card-icon primary">👥</div>

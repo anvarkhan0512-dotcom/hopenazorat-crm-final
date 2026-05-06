@@ -37,6 +37,7 @@ const UserSchema = new Schema<IUser>(
     telegramCodeExpiry: { type: Date, default: null },
     telegramUsername: { type: String, default: '' },
     revealablePassword: { type: String, default: '' },
+    branchId: { type: Schema.Types.ObjectId, ref: 'Branch', index: true },
     linkedStudentIds: [{ type: Schema.Types.ObjectId, ref: 'Student', index: true }],
   },
   { timestamps: true }

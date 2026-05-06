@@ -132,6 +132,8 @@ const StudentSchema = new Schema<IStudent>(
     ],
     extraDiscount: { type: Number, default: 0 },
     notificationEnabled: { type: Boolean, default: true },
+    branchId: { type: Schema.Types.ObjectId, ref: 'Branch', index: true },
+  },
     avatarUrl: { type: String, default: '' },
     faceDescriptor: { type: [Number], default: undefined },
   },

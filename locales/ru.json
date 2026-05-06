@@ -209,5 +209,6 @@
   "aiAssistant": "AI Ассистент",
   "optional": "опционально",
   "telegram": "Telegram",
-  "telegramAdmin": "Данные Telegram"
+  "telegramAdmin": "Данные Telegram",
+  "notifications": "Уведомления"
 }
