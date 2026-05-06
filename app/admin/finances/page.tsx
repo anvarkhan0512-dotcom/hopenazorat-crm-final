@@ -88,6 +88,8 @@ export default function AdminFinancesPage() {
       console.error('Error overriding salary:', error);
     }
   };
+
+  if (loading || !user || (user.role !== 'admin' && user.role !== 'manager')) {
     return (
       <DashboardLayout title="Moliya">
         <div className="loading">

@@ -122,16 +122,20 @@ export default function Header({ title, onMenuClick, onToggleCollapse, isCollaps
               setShowLangMenu(false);
             }}
           >
-            {user?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.avatarUrl}
-                alt=""
-                className="w-8 h-8 rounded-full object-cover border border-white/20"
-              />
-            ) : (
-              <div className="avatar avatar-sm">{initial}</div>
-            )}
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-300 cursor-pointer">
+              {user?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.avatarUrl}
+                  alt={user?.displayName || 'User'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                  {initial}
+                </div>
+              )}
+            </div>
             <span className="max-w-[120px] truncate">{user?.displayName || user?.username || t('admin')}</span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

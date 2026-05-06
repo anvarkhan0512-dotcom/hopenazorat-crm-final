@@ -184,7 +184,6 @@ const StudentSchema = new Schema<IStudent>(
     pauseEndDate: { type: Date },
     pauseType: { type: String, enum: ['kanikul', 'uzoq', 'yakunlash'] },
     stopDate: { type: Date },
-  },
     avatarUrl: { type: String, default: '' },
     faceDescriptor: { type: [Number], default: undefined },
   },
