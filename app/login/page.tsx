@@ -67,18 +67,31 @@ function LoginForm() {
         style={{
           left: 0,
           top: 0,
-          bottom: 0,
+          height: '100vh',
+          width: 'calc((100vw - 500px) / 2)',
           zIndex: 1,
-          width: 'calc(50% - 480px)',
-          minWidth: '200px',
+          overflow: 'hidden',
         }}
       >
         <img
           src="/images/login-left.jpg"
           alt="Hope Study talabalar"
-          className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity"
           style={{
-            borderRight: '2px solid rgba(234,179,8,0.3)',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center',
+          }}
+        />
+        {/* Dark gradient overlay on right edge */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '80px',
+            height: '100%',
+            background: 'linear-gradient(to right, transparent, #3b0764)',
           }}
         />
       </div>
@@ -89,23 +102,39 @@ function LoginForm() {
         style={{
           right: 0,
           top: 0,
-          bottom: 0,
+          height: '100vh',
+          width: 'calc((100vw - 500px) / 2)',
           zIndex: 1,
-          width: 'calc(50% - 480px)',
-          minWidth: '200px',
+          overflow: 'hidden',
         }}
       >
         <img
           src="/images/login-right.jpg"
           alt="Hope Study ustoz"
-          className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity"
           style={{
-            borderLeft: '2px solid rgba(234,179,8,0.3)',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center',
+          }}
+        />
+        {/* Dark gradient overlay on left edge */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '80px',
+            height: '100%',
+            background: 'linear-gradient(to left, transparent, #3b0764)',
           }}
         />
       </div>
 
-      <div className="relative z-10 w-full min-h-screen flex items-center justify-center p-4">
+      <div
+        className="relative z-10 w-full min-h-screen flex items-center justify-center p-4"
+        style={{ position: 'relative', zIndex: 10 }}
+      >
         <div className="hope-login-card bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl overflow-hidden max-w-md w-full">
           <div className="hope-login-card-inner p-8">
             <BrandLogo variant="hero" tagline={t('loginBrandTagline')} />
