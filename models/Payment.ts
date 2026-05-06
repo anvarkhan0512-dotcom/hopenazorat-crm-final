@@ -13,6 +13,9 @@ export interface IPayment extends Document {
   expectedDueDate?: Date;
   /** To‘lov sanasi − kutilgan sana (kun, manfiy = kechikkan) */
   daysVariance?: number;
+  isPartial: boolean;
+  fullPaymentDeadline?: Date;
+  isMonthly: boolean;
   description: string;
   type: 'cash' | 'card' | 'transfer';
   branchId?: mongoose.Types.ObjectId;
@@ -30,6 +33,9 @@ const PaymentSchema = new Schema<IPayment>(
     lessonCount: { type: Number, default: 12 },
     expectedDueDate: { type: Date },
     daysVariance: { type: Number },
+    isPartial: { type: Boolean, default: false },
+    fullPaymentDeadline: { type: Date },
+    isMonthly: { type: Boolean, default: false },
     description: { type: String, default: '' },
     type: { type: String, enum: ['cash', 'card', 'transfer'], default: 'cash' },
     branchId: { type: Schema.Types.ObjectId, ref: 'Branch', index: true },

@@ -92,22 +92,28 @@ export default function DebtorsPage() {
                   <th>{t('name')}</th>
                   <th>{t('phone')}</th>
                   <th>{t('group')}</th>
-                  <th>{t('monthlyPrice')}</th>
-                  <th>{t('paid')}</th>
-                  <th>{t('totalDebt')}</th>
+                  <th>Formula / {t('totalDebt')}</th>
                   <th>{t('status')}</th>
                 </tr>
               </thead>
               <tbody>
                 {debtors.map((debtor) => (
                   <tr key={debtor._id}>
-                    <td className="font-bold">{debtor.studentName}</td>
+                    <td>
+                      <div className="font-bold">{debtor.studentName}</div>
+                      <div className="text-[10px] text-gray-400">{debtor.phone}</div>
+                    </td>
                     <td>{debtor.phone}</td>
                     <td>{debtor.groupName || '-'}</td>
-                    <td>{formatMoney(debtor.amount, locale)}</td>
-                    <td>{formatMoney(debtor.paidAmount, locale)}</td>
-                    <td style={{ color: '#ef4444', fontWeight: 700 }}>
-                      {formatMoney(debtor.debt, locale)}
+                    <td>
+                      <div className="flex flex-col">
+                        <div className="text-[10px] text-gray-500 font-mono">
+                          {formatMoney(debtor.amount, locale)} (oylik) - {formatMoney(debtor.paidAmount, locale)} (to'langan)
+                        </div>
+                        <div className="text-red-500 font-black text-lg">
+                          = {formatMoney(debtor.debt, locale)}
+                        </div>
+                      </div>
                     </td>
                     <td>
                       <span className={`badge ${debtor.status === 'pending' ? 'badge-danger' : 'badge-warning'}`}>

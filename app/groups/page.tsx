@@ -57,6 +57,9 @@ export default function GroupsPage() {
     teacherUserId: '',
     teacherUserId2: '',
     schedule: '',
+    lessonDays: [] as string[],
+    startTime: '09:00',
+    endTime: '10:30',
     price: 0,
     teacherSharePercent: 30,
     teacherPayoutFixed: 0,
@@ -99,9 +102,10 @@ export default function GroupsPage() {
           teacherName: formData.teacherName,
           teacherUserId: formData.teacherUserId || null,
           teacherUserId2: formData.teacherUserId2 || null,
-          schedule: formData.schedule,
+          lessonDays: formData.lessonDays,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
           price: formData.price,
-          weeklySchedule: formData.weeklySchedule,
           teacherSharePercent: formData.teacherSharePercent,
           teacherPayoutFixed:
             formData.teacherSharePercent === 0 ? formData.teacherPayoutFixed : 0,
@@ -158,6 +162,9 @@ export default function GroupsPage() {
         teacherUserId: group.teacherUserId || '',
         teacherUserId2: group.teacherUserId2 || '',
         schedule: group.schedule,
+        lessonDays: (group as any).lessonDays || [],
+        startTime: (group as any).startTime || '09:00',
+        endTime: (group as any).endTime || '10:30',
         price: group.price,
         teacherSharePercent: group.teacherSharePercent ?? 30,
         teacherPayoutFixed: group.teacherPayoutFixed ?? 0,
@@ -172,6 +179,9 @@ export default function GroupsPage() {
         teacherUserId: '',
         teacherUserId2: '',
         schedule: '',
+        lessonDays: [],
+        startTime: '09:00',
+        endTime: '10:30',
         price: 0,
         teacherSharePercent: 30,
         teacherPayoutFixed: 0,
@@ -263,7 +273,11 @@ export default function GroupsPage() {
                 <div className="flex justify-between text-xs text-gray-500">
                   <span>{t('teacherShare')}</span>
                   <span>
-                    {group.teacherPayoutFixed
+                    {group.teacherPayoutFixed === 0 && group.teacherSharePercent === 0 ? (
+                      <span className="flex items-center gap-1 text-purple-600 font-bold">
+                        🤖 Avtomatik
+                      </span>
+                    ) : group.teacherPayoutFixed
                       ? `${t('fixedPayment')}: ${formatMoney(group.teacherPayoutFixed, locale)}`
                       : `${group.teacherSharePercent ?? 30}%`}
                   </span>
@@ -330,54 +344,61 @@ export default function GroupsPage() {
               ))}
             </select>
           </div>
-          <div className="form-group">
-            <label className="form-label">{t('schedule')} ({t('text')})</label>
-            <input
-              type="text"
-              className="input"
-              value={formData.schedule}
-              onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
-              placeholder="Dushanba-Juma, 10:00-12:00"
-            />
-          </div>
 
-          <div className="form-group border border-white/10 rounded-lg p-3 mb-3">
-            <div className="flex justify-between items-center mb-2">
-              <label className="form-label mb-0">{t('weekly')} {t('schedule')} + {t('time')}</label>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={addWeeklySlot}>
-                + {t('line')}
-              </button>
+          <div className="form-group border border-white/10 rounded-xl p-4 mb-4 bg-white/5">
+            <label className="form-label font-bold mb-3 block text-purple-400">Haftalik jadval</label>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'].map((day) => (
+                <label key={day} className="flex flex-col items-center gap-1 cursor-pointer p-2 rounded-lg border hover:border-purple-500 transition-all min-w-[45px]">
+                  <span className="text-[10px] font-bold text-gray-400">{day}</span>
+                  <input
+                    type="checkbox"
+                    checked={formData.lessonDays.includes(day)}
+                    onChange={(e) => {
+                      const next = e.target.checked
+                        ? [...formData.lessonDays, day]
+                        : formData.lessonDays.filter((d) => d !== day);
+                      setFormData({ ...formData, lessonDays: next });
+                    }}
+                    className="w-4 h-4 accent-purple-600"
+                  />
+                </label>
+              ))}
             </div>
-            {formData.weeklySchedule.map((slot, i) => (
-              <div key={i} className="flex flex-wrap gap-3 items-end mb-4 border-b border-white/5 pb-3">
-                <div className="form-group mb-0">
-                  <label className="form-label text-xs">{t('date')}</label>
-                  <select
-                    className="select"
-                    value={slot.day}
-                    onChange={(e) => updateSlot(i, { day: parseInt(e.target.value, 10) })}
-                  >
-                    {DAY_OPTS.map((d) => (
-                      <option key={d.v} value={d.v}>
-                        {d.l}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <RadialTimePicker
-                  label={t('time')}
-                  value={slot.time || '09:00'}
-                  onChange={(time) => updateSlot(i, { time })}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="form-group mb-0">
+                <label className="text-xs text-gray-400 mb-1 block">Boshlanish</label>
+                <input
+                  type="time"
+                  className="input text-sm"
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                 />
-                <button type="button" className="btn btn-danger btn-sm mb-1" onClick={() => removeSlot(i)}>
-                  ✕
-                </button>
               </div>
-            ))}
+              <div className="form-group mb-0">
+                <label className="text-xs text-gray-400 mb-1 block">Tugash</label>
+                <input
+                  type="time"
+                  className="input text-sm"
+                  value={formData.endTime}
+                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {formData.lessonDays.length > 0 && (
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">
+                  {formData.lessonDays.every(d => ['Du', 'Ch', 'Ju'].includes(d)) ? 'Toq kunlar' : 
+                   formData.lessonDays.every(d => ['Se', 'Pa', 'Sh'].includes(d)) ? 'Juft kunlar' : 'Aralash'}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="form-group">
-            <label className="form-label">{t('monthlyPrice')} ({t('admin')} {t('viewStudents')})</label>
+            <label className="form-label">{t('monthlyPrice')}</label>
             <input
               type="number"
               className="input"

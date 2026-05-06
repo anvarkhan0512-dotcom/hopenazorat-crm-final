@@ -74,6 +74,29 @@ export interface IStudent extends Document {
   notificationEnabled: boolean;
   avatarUrl?: string;
   faceDescriptor?: number[];
+  paymentDeadline?: Date;
+  isBlocked: boolean;
+  blockReason?: string;
+  blockedAt?: Date;
+  deadlineExtendCount: number;
+  lessonStartDate?: Date;
+  lessonDays: string[];
+  paymentSchedule?: {
+    startDate: Date;
+    lessonDays: string[];
+    weekOverrides: {
+      week1?: string[] | null;
+      week2?: string[] | null;
+      week3?: string[] | null;
+      week4?: string[] | null;
+    };
+    endDate: Date;
+  };
+  pauseStatus: 'active' | 'paused' | 'long-pause' | 'stopped';
+  pauseStartDate?: Date;
+  pauseEndDate?: Date;
+  pauseType?: 'kanikul' | 'uzoq' | 'yakunlash';
+  stopDate?: Date;
   createdAt: Date;
 }
 
@@ -133,6 +156,34 @@ const StudentSchema = new Schema<IStudent>(
     extraDiscount: { type: Number, default: 0 },
     notificationEnabled: { type: Boolean, default: true },
     branchId: { type: Schema.Types.ObjectId, ref: 'Branch', index: true },
+    paymentDeadline: { type: Date, index: true },
+    isBlocked: { type: Boolean, default: false, index: true },
+    blockReason: { type: String, default: '' },
+    blockedAt: { type: Date },
+    deadlineExtendCount: { type: Number, default: 0 },
+    lessonStartDate: { type: Date },
+    lessonDays: { type: [String], default: [] },
+    paymentSchedule: {
+      startDate: { type: Date },
+      lessonDays: { type: [String], default: [] },
+      weekOverrides: {
+        week1: { type: [String], default: null },
+        week2: { type: [String], default: null },
+        week3: { type: [String], default: null },
+        week4: { type: [String], default: null },
+      },
+      endDate: { type: Date },
+    },
+    pauseStatus: {
+      type: String,
+      enum: ['active', 'paused', 'long-pause', 'stopped'],
+      default: 'active',
+      index: true,
+    },
+    pauseStartDate: { type: Date },
+    pauseEndDate: { type: Date },
+    pauseType: { type: String, enum: ['kanikul', 'uzoq', 'yakunlash'] },
+    stopDate: { type: Date },
   },
     avatarUrl: { type: String, default: '' },
     faceDescriptor: { type: [Number], default: undefined },

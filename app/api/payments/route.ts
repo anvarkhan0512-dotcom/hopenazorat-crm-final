@@ -118,6 +118,9 @@ export async function POST(request: NextRequest) {
       lessonCount,
       expectedDueDate,
       daysVariance,
+      isPartial: !!data.isPartial,
+      fullPaymentDeadline: data.isPartial && data.fullPaymentDeadline ? new Date(data.fullPaymentDeadline) : undefined,
+      isMonthly: !!data.isMonthly,
       description: data.description || '',
     });
 
@@ -160,5 +163,26 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating payment:', error);
     return NextResponse.json({ error: 'Error creating payment' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await connectDB();
+    const data = await request.json();
+    const payment = await Payment.findByIdAndUpdate(params.id, data, { new: true });
+    return NextResponse.json(payment);
+  } catch (error) {
+    return NextResponse.json({ error: 'Error updating payment' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await connectDB();
+    await Payment.findByIdAndDelete(params.id);
+    return NextResponse.json({ message: 'Payment deleted' });
+  } catch (error) {
+    return NextResponse.json({ error: 'Error deleting payment' }, { status: 500 });
   }
 }

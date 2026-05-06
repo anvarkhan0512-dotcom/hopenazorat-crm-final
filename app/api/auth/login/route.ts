@@ -135,6 +135,27 @@ export async function POST(request: NextRequest) {
       { expiresIn: '7d' } // 7 kunlik muddat
     );
 
+    // 4.1 Check if student is blocked
+    if (user.role === 'student' || user.role === 'parent') {
+      let student = null;
+      if (user.role === 'student') {
+        student = await Student.findOne({ studentUserId: user._id });
+      } else if (user.role === 'parent') {
+        student = await Student.findOne({ parentUserId: user._id });
+      }
+
+      if (student?.isBlocked) {
+        return NextResponse.json(
+          {
+            error: "⚠️ Qarzdorligingiz bor. Administratsiyaga bog'laning.\nQarzdorlik muddati o'tib ketgan.",
+            code: 'STUDENT_BLOCKED',
+            reason: student.blockReason
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     // 5. Muvaffaqiyatli javob va Cookie sozlamalari
     const response = NextResponse.json({
       user: {

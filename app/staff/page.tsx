@@ -29,6 +29,8 @@ export default function StaffPage() {
     position: 'teacher' as Position,
     specialty: '',
     monthlySalary: 0,
+    salaryType: 'fixed' as 'fixed' | 'auto',
+    salaryPercent: 0,
     phone: '',
     username: '',
     password: '',
@@ -66,7 +68,17 @@ export default function StaffPage() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ fullName: '', position: 'teacher', specialty: '', monthlySalary: 0, phone: '', username: '', password: '' });
+    setForm({ 
+      fullName: '', 
+      position: 'teacher', 
+      specialty: '', 
+      monthlySalary: 0, 
+      salaryType: 'fixed',
+      salaryPercent: 0,
+      phone: '', 
+      username: '', 
+      password: '' 
+    });
     setGeneratedPassword('');
     setShowModal(true);
   };
@@ -78,6 +90,8 @@ export default function StaffPage() {
       position: s.position,
       specialty: s.specialty || '',
       monthlySalary: s.monthlySalary || 0,
+      salaryType: s.salaryType || 'fixed',
+      salaryPercent: s.salaryPercent || 0,
       phone: s.phone || '',
       username: '',
       password: '',
@@ -250,13 +264,56 @@ export default function StaffPage() {
             />
           </div>
           <div className="form-group">
-            <label className="form-label">{t('salarySum')}</label>
-            <input
-              type="number"
-              className="input w-full"
-              value={form.monthlySalary}
-              onChange={(e) => setForm({ ...form, monthlySalary: parseInt(e.target.value, 10) || 0 })}
-            />
+            <div className="flex justify-between items-center mb-1">
+              <label className="form-label">{t('salarySum')}</label>
+              <button
+                type="button"
+                className={`text-[10px] px-2 py-1 rounded-full border transition-all flex items-center gap-1 ${
+                  form.salaryType === 'auto' 
+                    ? 'bg-purple-100 border-purple-300 text-purple-700 font-bold' 
+                    : 'bg-gray-50 border-gray-200 text-gray-500'
+                }`}
+                onClick={() => setForm({ 
+                  ...form, 
+                  salaryType: form.salaryType === 'auto' ? 'fixed' : 'auto' 
+                })}
+              >
+                {form.salaryType === 'auto' ? '🤖 Tizim hisoblash' : '| Tizim hisoblash 🤖'}
+              </button>
+            </div>
+            
+            {form.salaryType === 'auto' ? (
+              <div className="flex flex-col gap-2 p-3 bg-purple-50 border border-purple-100 rounded-xl animate-in zoom-in-95 duration-200">
+                <div className="flex items-center gap-2 text-purple-700">
+                  <span className="text-xl">🤖</span>
+                  <span className="text-sm font-bold">Avtomatik hisoblanadi</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    className="input flex-1"
+                    placeholder="Foiz (%)"
+                    value={form.salaryPercent || ''}
+                    onChange={(e) => setForm({ ...form, salaryPercent: parseInt(e.target.value, 10) || 0 })}
+                  />
+                  <span className="text-purple-600 font-bold">%</span>
+                </div>
+                <p className="text-[10px] text-purple-500 italic">
+                  {form.position === 'teacher' 
+                    ? '* O\'quvchilar to\'lovidan ko\'rsatilgan foiz asosida' 
+                    : form.position === 'admin' 
+                      ? '* Belgilangan fiks miqdor (admin uchun)' 
+                      : '* Umumiy tushumdan ko\'rsatilgan foiz asosida'}
+                </p>
+              </div>
+            ) : (
+              <input
+                type="number"
+                className="input w-full"
+                value={form.monthlySalary}
+                onChange={(e) => setForm({ ...form, monthlySalary: parseInt(e.target.value, 10) || 0 })}
+              />
+            )}
           </div>
           <div className="form-group">
             <label className="form-label">{t('phone')}</label>

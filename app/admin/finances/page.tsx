@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAuth } from '@/components/AuthProvider';
+import Modal from '@/components/Modal';
+import { Pencil } from 'lucide-react';
 
 export default function AdminFinancesPage() {
   const { user, loading } = useAuth();
@@ -13,6 +15,19 @@ export default function AdminFinancesPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [data, setData] = useState<any>(null);
   const [staffCost, setStaffCost] = useState(0);
+  const [editingTeacher, setEditingTeacher] = useState<any>(null);
+  const [overrideForm, setOverrideOverrideForm] = useState({
+    salaryOverride: 0,
+    overrideVisible: true
+  });
+  const [showOverrideModal, setShowOverrideModal] = useState(false);
+
+  const fetchFinances = () => {
+    fetch(`/api/admin/finances?month=${month}&year=${year}`)
+      .then((r) => r.json())
+      .then(setData)
+      .catch(() => setData(null));
+  };
 
   useEffect(() => {
     if (!loading && user && user.role !== 'admin' && user.role !== 'manager') {
@@ -22,10 +37,7 @@ export default function AdminFinancesPage() {
 
   useEffect(() => {
     if (!user || (user.role !== 'admin' && user.role !== 'manager')) return;
-    fetch(`/api/admin/finances?month=${month}&year=${year}`)
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => setData(null));
+    fetchFinances();
     fetch('/api/staff')
       .then((r) => r.json())
       .then((rows: { monthlySalary?: number }[]) => {
@@ -35,7 +47,47 @@ export default function AdminFinancesPage() {
       .catch(() => setStaffCost(0));
   }, [user, month, year]);
 
-  if (loading || !user || (user.role !== 'admin' && user.role !== 'manager')) {
+  const openOverrideModal = (teacher: any) => {
+    setEditingTeacher(teacher);
+    setOverrideOverrideForm({
+      salaryOverride: teacher.salaryOverride || teacher.teacherShare,
+      overrideVisible: teacher.overrideVisible ?? true
+    });
+    setShowOverrideModal(true);
+  };
+
+  const handleOverrideSubmit = async () => {
+    if (!editingTeacher) return;
+    
+    // We need to find the staffId for this teacher
+    const staffRes = await fetch('/api/staff');
+    const staffList = await staffRes.json();
+    const staff = staffList.find((s: any) => s.userId === editingTeacher.teacherId);
+    
+    if (!staff) {
+      alert('Bu ustoz uchun xodim ma\'lumotlari topilmadi');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/staff/${staff._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...staff,
+          salaryOverride: overrideForm.salaryOverride,
+          overrideVisible: overrideForm.overrideVisible
+        }),
+      });
+
+      if (res.ok) {
+        fetchFinances();
+        setShowOverrideModal(false);
+      }
+    } catch (error) {
+      console.error('Error overriding salary:', error);
+    }
+  };
     return (
       <DashboardLayout title="Moliya">
         <div className="loading">
@@ -114,11 +166,24 @@ export default function AdminFinancesPage() {
 
       {(data?.teachers || []).map((row: any) => (
         <div key={row.teacherId} className="card mb-6">
-          <div className="card-header">
+          <div className="card-header flex justify-between items-center">
             <h3 className="card-title">
               {row.displayName || row.username} — oylik ulushi:{' '}
-              {row.teacherShare?.toLocaleString()} so&apos;m
+              <span className={row.salaryOverride ? 'text-purple-600' : ''}>
+                {(row.salaryOverride || row.teacherShare)?.toLocaleString()} so&apos;m
+              </span>
+              {row.salaryOverride && (
+                <span className="text-[10px] ml-2 text-gray-400 line-through">
+                  ({row.teacherShare?.toLocaleString()})
+                </span>
+              )}
             </h3>
+            <button 
+              onClick={() => openOverrideModal(row)}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-purple-600"
+            >
+              <Pencil size={16} />
+            </button>
           </div>
           <p className="text-sm text-gray-600 mb-2">
             Jami tushum: {row.totalPayments?.toLocaleString()} | Markaz:{' '}
@@ -146,6 +211,55 @@ export default function AdminFinancesPage() {
           </table>
         </div>
       ))}
+
+      <Modal 
+        isOpen={showOverrideModal} 
+        onClose={() => setShowOverrideModal(false)} 
+        title={`${editingTeacher?.displayName || 'Ustoz'} oyligini tahrirlash`}
+      >
+        <div className="space-y-4">
+          <div className="form-group">
+            <label className="form-label font-bold">Belgilangan oylik miqdori</label>
+            <input
+              type="number"
+              className="input"
+              value={overrideForm.salaryOverride}
+              onChange={(e) => setOverrideOverrideForm({ ...overrideForm, salaryOverride: parseInt(e.target.value) || 0 })}
+            />
+            <p className="text-[10px] text-gray-400 mt-1 italic">
+              * Tizim tomonidan hisoblangan: {editingTeacher?.teacherShare?.toLocaleString()} so'm
+            </p>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label font-bold block mb-2">Ko'rinish turi</label>
+            <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
+              <button
+                onClick={() => setOverrideOverrideForm({ ...overrideForm, overrideVisible: true })}
+                className={`flex-1 py-2 rounded-lg font-bold text-xs transition-all ${overrideForm.overrideVisible ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500'}`}
+              >
+                Bildirish
+              </button>
+              <button
+                onClick={() => setOverrideOverrideForm({ ...overrideForm, overrideVisible: false })}
+                className={`flex-1 py-2 rounded-lg font-bold text-xs transition-all ${!overrideForm.overrideVisible ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500'}`}
+              >
+                Bildirmaslik
+              </button>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-2">
+              {overrideForm.overrideVisible 
+                ? "* Ustoz tahrirlangan miqdorni va o'zgarishni ko'radi" 
+                : "* Ustoz faqat yakuniy sonni ko'radi, tahrirlanganini bilmaydi"}
+            </p>
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <button onClick={handleOverrideSubmit} className="btn btn-primary flex-1">Saqlash</button>
+            <button onClick={() => setShowOverrideModal(false)} className="btn btn-secondary">Bekor qilish</button>
+          </div>
+        </div>
+      </Modal>
     </DashboardLayout>
   );
 }

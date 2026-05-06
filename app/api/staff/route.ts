@@ -27,7 +27,17 @@ export async function POST(request: NextRequest) {
     if (denied) return NextResponse.json({ error: denied.error }, { status: denied.status });
 
     const body = await request.json();
-    const { fullName, position, monthlySalary, phone, userId } = body;
+    const { 
+      fullName, 
+      position, 
+      monthlySalary, 
+      salaryType, 
+      salaryPercent, 
+      salaryOverride,
+      overrideVisible,
+      phone, 
+      userId 
+    } = body;
     if (!fullName || !position) {
       return NextResponse.json({ error: 'fullName va position majburiy' }, { status: 400 });
     }
@@ -37,6 +47,11 @@ export async function POST(request: NextRequest) {
       fullName: String(fullName),
       position,
       monthlySalary: Number(monthlySalary) || 0,
+      salaryType: salaryType || 'fixed',
+      salaryAmount: Number(monthlySalary) || 0,
+      salaryPercent: Number(salaryPercent) || 0,
+      salaryOverride: salaryOverride !== undefined ? Number(salaryOverride) : undefined,
+      overrideVisible: overrideVisible !== undefined ? !!overrideVisible : true,
       phone: phone ? String(phone) : '',
       userId: userId || undefined,
     });

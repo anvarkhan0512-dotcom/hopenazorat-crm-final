@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
               groupId: student.groupId || undefined,
               rescheduleDate: status === 'rescheduled' && rescheduleDate ? new Date(rescheduleDate) : null,
               checkInTime: status === 'present' ? checkInTime || null : null,
+              checkOutTime: item.checkOutTime || null,
               transferAt: transferDate,
               redirectTeacherUserId: redirectTid,
             },
@@ -176,7 +177,13 @@ export async function GET(request: NextRequest) {
 
     if (searchParams.get('studentId')) query.studentId = searchParams.get('studentId');
     if (searchParams.get('groupId')) query.groupId = searchParams.get('groupId');
-    if (searchParams.get('date')) {
+    if (searchParams.get('startDate') || searchParams.get('endDate')) {
+      const start = searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : new Date(0);
+      const end = searchParams.get('endDate') ? new Date(searchParams.get('endDate')!) : new Date();
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      query.date = { $gte: start, $lte: end };
+    } else if (searchParams.get('date')) {
       const d = new Date(searchParams.get('date')!);
       d.setHours(12, 0, 0, 0);
       query.date = d;
@@ -199,6 +206,7 @@ export async function GET(request: NextRequest) {
       lessonNumber: a.lessonNumber,
       status: a.status,
       checkInTime: a.checkInTime,
+      checkOutTime: a.checkOutTime,
       rescheduleDate: a.rescheduleDate,
       transferAt: a.transferAt,
       redirectTeacherUserId: a.redirectTeacherUserId,

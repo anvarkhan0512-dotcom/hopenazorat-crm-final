@@ -214,5 +214,7 @@
   "telegram": "Telegram",
   "telegramAdmin": "Telegram Ma'lumotlar",
   "aiAssistant": "AI Yordamchi",
-  "notifications": "Xabarnomalar"
+  "notifications": "Xabarnomalar",
+  "paymentDeadlines": "To'lov Muddatlari",
+  "studentBlocked": "⚠️ Qarzdorligingiz bor. Administratsiyaga bog'laning.\nQarzdorlik muddati o'tib ketgan."
 }

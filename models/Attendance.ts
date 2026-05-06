@@ -8,6 +8,7 @@ export interface IAttendance extends Document {
   status: 'present' | 'absent' | 'rescheduled' | 'transferred';
   rescheduleDate?: Date | null;
   checkInTime?: string | null;
+  checkOutTime?: string | null;
   /** Ko‘chirildi / transferred */
   transferAt?: Date | null;
   redirectTeacherUserId?: mongoose.Types.ObjectId | null;
@@ -27,6 +28,7 @@ const AttendanceSchema = new Schema<IAttendance>(
     },
     rescheduleDate: { type: Date, default: null },
     checkInTime: { type: String, default: null },
+    checkOutTime: { type: String, default: null },
     transferAt: { type: Date, default: null },
     redirectTeacherUserId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   },

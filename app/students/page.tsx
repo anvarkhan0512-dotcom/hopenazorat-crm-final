@@ -49,11 +49,40 @@ export default function StudentsPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [pauseTab, setPauseTab] = useState<'kanikul' | 'uzoq' | 'yakunlash'>('kanikul');
+  const [listTab, setListTab] = useState<'active' | 'paused' | 'left'>('active');
+  const [selectedStudentForSchedule, setSelectedStudentForSchedule] = useState<Student | null>(null);
+  const [selectedStudentForPause, setSelectedStudentForPause] = useState<Student | null>(null);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
   const { t, locale } = useLanguage();
+
+  const [scheduleFormData, setScheduleFormData] = useState({
+    startDate: new Date().toISOString().split('T')[0],
+    lessonDays: [] as string[],
+    weekOverrides: {
+      week1: null as string[] | null,
+      week2: null as string[] | null,
+      week3: null as string[] | null,
+      week4: null as string[] | null,
+    },
+    endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+  });
+
+  const [pauseFormData, setPauseFormData] = useState({
+    pauseType: 'kanikul' as 'kanikul' | 'uzoq' | 'yakunlash',
+    pauseStartDate: new Date().toISOString().split('T')[0],
+    pauseEndDate: '',
+    months: 0,
+    days: 0,
+    stopDate: new Date().toISOString().split('T')[0],
+  });
+
+  const [overrideWeek, setOverrideWeek] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -115,7 +144,14 @@ export default function StudentsPage() {
       student.name.toLowerCase().includes(search.toLowerCase()) || phoneHay.includes(search);
     const matchesStatus = !statusFilter || student.status === statusFilter;
     const matchesGroup = !groupFilter || student.groupId?._id === groupFilter;
-    return matchesSearch && matchesStatus && matchesGroup;
+    
+    // Filter by listTab
+    const matchesListTab = 
+      listTab === 'active' ? (student.status === 'active' && (student as any).pauseStatus !== 'paused' && (student as any).pauseStatus !== 'long-pause') :
+      listTab === 'paused' ? ((student as any).pauseStatus === 'paused' || (student as any).pauseStatus === 'long-pause') :
+      listTab === 'left' ? (student.status === 'left' || (student as any).pauseStatus === 'stopped') : true;
+
+    return matchesSearch && matchesStatus && matchesGroup && matchesListTab;
   });
 
   const exportToExcel = () => {
@@ -276,6 +312,109 @@ export default function StudentsPage() {
     setShowModal(true);
   };
 
+  const openScheduleModal = (student: Student) => {
+    setSelectedStudentForSchedule(student);
+    const s = (student as any).paymentSchedule;
+    if (s) {
+      setScheduleFormData({
+        startDate: s.startDate ? String(s.startDate).split('T')[0] : new Date().toISOString().split('T')[0],
+        lessonDays: s.lessonDays || [],
+        weekOverrides: s.weekOverrides || { week1: null, week2: null, week3: null, week4: null },
+        endDate: s.endDate ? String(s.endDate).split('T')[0] : new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+      });
+    } else {
+      setScheduleFormData({
+        startDate: new Date().toISOString().split('T')[0],
+        lessonDays: [],
+        weekOverrides: { week1: null, week2: null, week3: null, week4: null },
+        endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+      });
+    }
+    setShowScheduleModal(true);
+  };
+
+  const handleScheduleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStudentForSchedule) return;
+
+    try {
+      const res = await fetch(`/api/students/${selectedStudentForSchedule._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentSchedule: scheduleFormData,
+        }),
+      });
+
+      if (res.ok) {
+        fetchData();
+        setShowScheduleModal(false);
+      }
+    } catch (error) {
+      console.error('Error saving schedule:', error);
+    }
+  };
+
+  const openPauseModal = (student: Student) => {
+    setSelectedStudentForPause(student);
+    setPauseTab('kanikul');
+    setPauseFormData({
+      pauseType: 'kanikul',
+      pauseStartDate: new Date().toISOString().split('T')[0],
+      pauseEndDate: '',
+      months: 0,
+      days: 0,
+      stopDate: new Date().toISOString().split('T')[0],
+    });
+    setShowPauseModal(true);
+  };
+
+  const handlePauseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStudentForPause) return;
+
+    let finalEndDate = pauseFormData.pauseEndDate;
+    let pauseStatus: 'paused' | 'long-pause' | 'stopped' = 'paused';
+
+    if (pauseTab === 'kanikul') {
+      pauseStatus = 'paused';
+      if (pauseFormData.months > 0 || pauseFormData.days > 0) {
+        const d = new Date(pauseFormData.pauseStartDate);
+        if (pauseFormData.months > 0) d.setMonth(d.getMonth() + pauseFormData.months);
+        if (pauseFormData.days > 0) d.setDate(d.getDate() + pauseFormData.days);
+        finalEndDate = d.toISOString().split('T')[0];
+      }
+    } else if (pauseTab === 'uzoq') {
+      pauseStatus = 'long-pause';
+    } else if (pauseTab === 'yakunlash') {
+      pauseStatus = 'stopped';
+    }
+
+    try {
+      const body: any = {
+        pauseStatus,
+        pauseType: pauseTab,
+        pauseStartDate: pauseTab === 'yakunlash' ? undefined : pauseFormData.pauseStartDate,
+        pauseEndDate: pauseTab === 'kanikul' ? finalEndDate : undefined,
+        stopDate: pauseTab === 'yakunlash' ? pauseFormData.stopDate : undefined,
+        status: pauseTab === 'yakunlash' ? 'left' : undefined,
+      };
+
+      const res = await fetch(`/api/students/${selectedStudentForPause._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update-pause', ...body }),
+      });
+
+      if (res.ok) {
+        fetchData();
+        setShowPauseModal(false);
+      }
+    } catch (error) {
+      console.error('Error pausing student:', error);
+    }
+  };
+
   const closeModal = () => {
     setShowModal(false);
     setEditingStudent(null);
@@ -312,6 +451,33 @@ export default function StudentsPage() {
 
   return (
     <DashboardLayout title={t('students')}>
+      <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-2xl w-fit">
+        <button
+          onClick={() => setListTab('active')}
+          className={`px-6 py-2.5 rounded-xl font-bold transition-all text-sm ${
+            listTab === 'active' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'
+          }`}
+        >
+          ✅ Faollar
+        </button>
+        <button
+          onClick={() => setListTab('paused')}
+          className={`px-6 py-2.5 rounded-xl font-bold transition-all text-sm ${
+            listTab === 'paused' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:bg-gray-200'
+          }`}
+        >
+          ⏸️ To'xtatilganlar
+        </button>
+        <button
+          onClick={() => setListTab('left')}
+          className={`px-6 py-2.5 rounded-xl font-bold transition-all text-sm ${
+            listTab === 'left' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500 hover:bg-gray-200'
+          }`}
+        >
+          🔴 Ketganlar
+        </button>
+      </div>
+
       <div className="toolbar">
         <input
           type="text"
@@ -380,12 +546,24 @@ export default function StudentsPage() {
                   <td>{student.groupId?.name || '-'}</td>
                   <td className="font-mono text-xs">{student.parentAccessCode || '—'}</td>
                   <td>
-                    {formatMoney(student.monthlyPrice, locale)}
-                    {(student.discountAmount ?? 0) > 0 && (
-                      <span className="text-xs text-amber-700 block">
-                        −{formatMoney(student.discountAmount ?? 0, locale)}
-                      </span>
-                    )}
+                    <div className="flex flex-col">
+                      <span className="font-bold text-gray-800">{formatMoney(student.monthlyPrice, locale)}</span>
+                      {(student.discountAmount ?? 0) > 0 && (
+                        <div className="text-[10px] space-y-0.5">
+                          <span className="text-amber-700 block">
+                            −{formatMoney(student.discountAmount ?? 0, locale)} (asosiy)
+                          </span>
+                          {student.extraDiscount ? (
+                            <span className="text-purple-600 block">
+                              −{formatMoney(student.extraDiscount, locale)} (qo'shimcha)
+                            </span>
+                          ) : null}
+                          <span className="font-black text-green-600 border-t border-gray-100 pt-0.5 block">
+                            Jami: {formatMoney((student as any).finalPrice || (student.monthlyPrice - (student.discountAmount || 0) - (student.extraDiscount || 0)), locale)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td>
                     <span className={`badge ${student.status === 'active' ? 'badge-success' : student.status === 'left' ? 'badge-warning' : 'badge-danger'}`}>
@@ -407,6 +585,20 @@ export default function StudentsPage() {
                         onClick={() => handleDelete(student._id)}
                       >
                         {t('delete')}
+                      </button>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '4px 8px', fontSize: '12px', backgroundColor: '#f59e0b', color: 'white' }}
+                        onClick={() => openPauseModal(student)}
+                      >
+                        To'xtatish
+                      </button>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '4px 8px', fontSize: '12px', backgroundColor: '#6366f1', color: 'white' }}
+                        onClick={() => openScheduleModal(student)}
+                      >
+                        Oylik to'lov muddati
                       </button>
                     </div>
                   </td>
@@ -681,6 +873,234 @@ export default function StudentsPage() {
               {t('save')}
             </button>
             <button type="button" className="btn btn-secondary px-6" onClick={closeModal}>
+              {t('cancel')}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={showPauseModal} onClose={() => setShowPauseModal(false)} title="Talabani to'xtatish">
+        <div className="flex gap-2 mb-6 border-b">
+          <button
+            onClick={() => setPauseTab('kanikul')}
+            className={`pb-2 px-4 text-sm font-bold transition-all ${pauseTab === 'kanikul' ? 'border-b-2 border-purple-600 text-purple-600' : 'text-gray-400'}`}
+          >
+            🏖️ Kanikul
+          </button>
+          <button
+            onClick={() => setPauseTab('uzoq')}
+            className={`pb-2 px-4 text-sm font-bold transition-all ${pauseTab === 'uzoq' ? 'border-b-2 border-orange-500 text-orange-500' : 'text-gray-400'}`}
+          >
+            ⏸️ Uzoq tanaffus
+          </button>
+          <button
+            onClick={() => setPauseTab('yakunlash')}
+            className={`pb-2 px-4 text-sm font-bold transition-all ${pauseTab === 'yakunlash' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-400'}`}
+          >
+            🔴 Yakunlash
+          </button>
+        </div>
+
+        <form onSubmit={handlePauseSubmit} className="space-y-4">
+          {pauseTab === 'kanikul' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="form-group">
+                  <label className="form-label font-bold">Muddat (oy)</label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={pauseFormData.months}
+                    onChange={(e) => setPauseFormData({ ...pauseFormData, months: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label font-bold">Muddat (kun)</label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={pauseFormData.days}
+                    onChange={(e) => setPauseFormData({ ...pauseFormData, days: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label font-bold">To'xtatish sanasi</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={pauseFormData.pauseStartDate}
+                  onChange={(e) => setPauseFormData({ ...pauseFormData, pauseStartDate: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label font-bold">Qayta boshlash sanasi (yoki avto-hisob)</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={pauseFormData.pauseEndDate}
+                  onChange={(e) => setPauseFormData({ ...pauseFormData, pauseEndDate: e.target.value })}
+                />
+                <p className="text-[10px] text-gray-400 mt-1 italic">* Ushbu muddatda qarz hisoblanmaydi. Muddati tugagach avtomatik faollashadi.</p>
+              </div>
+            </div>
+          )}
+
+          {pauseTab === 'uzoq' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="form-group">
+                <label className="form-label font-bold">To'xtatish sanasi</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={pauseFormData.pauseStartDate}
+                  onChange={(e) => setPauseFormData({ ...pauseFormData, pauseStartDate: e.target.value })}
+                />
+              </div>
+              <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 text-sm text-orange-700">
+                ⚠️ Uzoq tanaffus (3+ oy) holatida talaba admin tomonidan qo'lda faollashtirilishi kerak.
+              </div>
+            </div>
+          )}
+
+          {pauseTab === 'yakunlash' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="form-group">
+                <label className="form-label font-bold">Yakunlash sanasi</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={pauseFormData.stopDate}
+                  onChange={(e) => setPauseFormData({ ...pauseFormData, stopDate: e.target.value })}
+                />
+                <p className="text-[10px] text-gray-400 mt-1 italic">* Yakunlash sanasidan boshlab qarz hisoblanmaydi.</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-6 border-t">
+            <button type="submit" className="btn btn-primary flex-1 font-bold">Tasdiqlash</button>
+            <button type="button" className="btn btn-secondary px-6" onClick={() => setShowPauseModal(false)}>Bekor qilish</button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={showScheduleModal} onClose={() => setShowScheduleModal(false)} title="Oylik to'lov muddati sozlamalari">
+        <form onSubmit={handleScheduleSubmit} className="space-y-6">
+          <div className="form-group">
+            <label className="form-label font-bold">Boshlash sanasi</label>
+            <input
+              type="date"
+              className="input"
+              value={scheduleFormData.startDate}
+              onChange={(e) => setScheduleFormData({ ...scheduleFormData, startDate: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label font-bold block mb-2">Dars kunlari (Asosiy)</label>
+            <div className="flex flex-wrap gap-3">
+              {['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'].map((day) => (
+                <label key={day} className="flex items-center gap-2 cursor-pointer bg-gray-50 px-3 py-2 rounded-xl border hover:border-purple-400 transition-all">
+                  <input
+                    type="checkbox"
+                    checked={scheduleFormData.lessonDays.includes(day)}
+                    onChange={(e) => {
+                      const next = e.target.checked
+                        ? [...scheduleFormData.lessonDays, day]
+                        : scheduleFormData.lessonDays.filter((d) => d !== day);
+                      setScheduleFormData({ ...scheduleFormData, lessonDays: next });
+                    }}
+                    className="w-4 h-4 accent-purple-600"
+                  />
+                  <span className="text-sm font-bold">{day}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="form-group border-t pt-4">
+            <label className="form-label font-bold block mb-3 text-purple-700">Haftalik istisnolar (ixtiyoriy)</label>
+            <div className="space-y-3">
+              {([1, 2, 3, 4] as const).map((num) => {
+                const weekKey = `week${num}` as keyof typeof scheduleFormData.weekOverrides;
+                const isOverridden = scheduleFormData.weekOverrides[weekKey] !== null;
+                
+                return (
+                  <div key={weekKey} className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-sm text-gray-700">{num}-hafta</span>
+                      <button
+                        type="button"
+                        onClick={() => setOverrideWeek(overrideWeek === weekKey ? null : weekKey)}
+                        className="text-purple-600 hover:text-purple-800 text-sm flex items-center gap-1 font-bold"
+                      >
+                        {isOverridden ? 'O\'zgartirilgan' : 'O\'zgartirish'} 
+                        <span className={`transition-transform ${overrideWeek === weekKey ? 'rotate-90' : ''}`}>→</span>
+                      </button>
+                    </div>
+                    
+                    {overrideWeek === weekKey && (
+                      <div className="mt-4 flex flex-wrap gap-2 animate-in slide-in-from-top-2 duration-200">
+                        {['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'].map((day) => (
+                          <label key={day} className="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1.5 rounded-lg border text-xs">
+                            <input
+                              type="checkbox"
+                              checked={(scheduleFormData.weekOverrides[weekKey] || scheduleFormData.lessonDays).includes(day)}
+                              onChange={(e) => {
+                                const current = scheduleFormData.weekOverrides[weekKey] || [...scheduleFormData.lessonDays];
+                                const next = e.target.checked
+                                  ? [...current, day]
+                                  : current.filter((d) => d !== day);
+                                setScheduleFormData({
+                                  ...scheduleFormData,
+                                  weekOverrides: { ...scheduleFormData.weekOverrides, [weekKey]: next },
+                                });
+                              }}
+                              className="w-3.5 h-3.5 accent-purple-600"
+                            />
+                            {day}
+                          </label>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setScheduleFormData({
+                            ...scheduleFormData,
+                            weekOverrides: { ...scheduleFormData.weekOverrides, [weekKey]: null }
+                          })}
+                          className="text-[10px] text-red-500 underline ml-2"
+                        >
+                          Bekor qilish
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="form-group border-t pt-4">
+            <label className="form-label font-bold">Tugash sanasi</label>
+            <input
+              type="date"
+              className="input"
+              value={scheduleFormData.endDate}
+              onChange={(e) => setScheduleFormData({ ...scheduleFormData, endDate: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button type="submit" className="btn btn-primary flex-1 py-3 font-bold shadow-lg shadow-purple-200">
+              Saqlash
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary px-6"
+              onClick={() => setShowScheduleModal(false)}
+            >
               {t('cancel')}
             </button>
           </div>

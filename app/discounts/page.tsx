@@ -53,6 +53,8 @@ export default function DiscountsPage() {
     studentIds: [] as string[],
     discountType: 'percentage' as 'percentage' | 'fixed',
     discountValue: 0,
+    isDoubleSubject: false,
+    applyType: 'total' as 'total' | 'separate',
     reason: 'family',
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0],
@@ -132,6 +134,8 @@ export default function DiscountsPage() {
         studentIds: discount.students?.map(s => s._id) || [],
         discountType: discount.discountType,
         discountValue: discount.discountValue,
+        isDoubleSubject: (discount as any).isDoubleSubject || false,
+        applyType: (discount as any).applyType || 'total',
         reason: discount.reason,
         startDate: new Date(discount.startDate).toISOString().split('T')[0],
         endDate: new Date(discount.endDate).toISOString().split('T')[0],
@@ -143,6 +147,8 @@ export default function DiscountsPage() {
         studentIds: [],
         discountType: 'percentage',
         discountValue: 0,
+        isDoubleSubject: false,
+        applyType: 'total',
         reason: 'family',
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0],
@@ -334,20 +340,40 @@ export default function DiscountsPage() {
             <div className="text-sm text-gray-500 mt-1">
               Tanlangan: {formData.studentIds.length} ta talaba
             </div>
+            {formData.studentIds.length > 0 && (
+              <label className="flex items-center gap-2 mt-3 p-2 bg-purple-50 rounded-xl border border-purple-100 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isDoubleSubject}
+                  onChange={(e) => setFormData({ ...formData, isDoubleSubject: e.target.checked })}
+                  className="w-4 h-4 accent-purple-600"
+                />
+                <span className="text-sm font-bold text-purple-700">2 ta fanga (tanlangan talabalar uchun)</span>
+              </label>
+            )}
+          </div>
+
+          <div className="form-group mb-4">
+            <label className="form-label font-bold mb-2 block">Chegirma turi</label>
+            <div className="flex gap-2 p-1 bg-gray-100 rounded-xl w-fit">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, discountType: 'fixed' })}
+                className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${formData.discountType === 'fixed' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
+              >
+                So'm
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, discountType: 'percentage' })}
+                className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${formData.discountType === 'percentage' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
+              >
+                Foiz %
+              </button>
+            </div>
           </div>
 
           <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Chegirma turi</label>
-              <select
-                className="select"
-                value={formData.discountType}
-                onChange={(e) => setFormData({ ...formData, discountType: e.target.value as any })}
-              >
-                <option value="percentage">Foiz (%)</option>
-                <option value="fixed">{"Summa (so'm)"}</option>
-              </select>
-            </div>
             <div className="form-group">
               <label className="form-label">
                 {formData.discountType === 'percentage' ? 'Foiz (%)' : 'Summa'}
@@ -361,6 +387,25 @@ export default function DiscountsPage() {
                 max={formData.discountType === 'percentage' ? 100 : undefined}
                 required
               />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Qo'llash turi</label>
+              <div className="flex gap-2 h-[44px]">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, applyType: 'total' })}
+                  className={`flex-1 rounded-xl border font-bold text-xs transition-all ${formData.applyType === 'total' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200'}`}
+                >
+                  Umumiy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, applyType: 'separate' })}
+                  className={`flex-1 rounded-xl border font-bold text-xs transition-all ${formData.applyType === 'separate' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-500 border-gray-200'}`}
+                >
+                  Alohida
+                </button>
+              </div>
             </div>
           </div>
 

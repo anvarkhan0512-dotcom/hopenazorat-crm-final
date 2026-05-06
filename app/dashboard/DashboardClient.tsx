@@ -9,6 +9,7 @@ import { Building } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useAuth } from '@/components/AuthProvider';
+import DashboardTabModal from '@/components/DashboardTabModal';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -89,6 +90,15 @@ export default function DashboardClient() {
 
   const [activeModal, setActiveModal] = useState<'students' | 'groups' | 'income' | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
+  const [tabModal, setTabModal] = useState<{
+    isOpen: boolean;
+    tabKey: 'attendance' | 'finances' | 'students' | 'payments' | 'reports';
+    title: string;
+  }>({
+    isOpen: false,
+    tabKey: 'students',
+    title: '',
+  });
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -357,24 +367,46 @@ export default function DashboardClient() {
       )}
 
       <div className="toolbar flex-wrap">
-        <Link href="/dashboard/attendance" className="btn btn-primary">
+        <button 
+          onClick={() => setTabModal({ isOpen: true, tabKey: 'attendance', title: t('attendance') })} 
+          className="btn btn-primary"
+        >
           {t('attendance')}
-        </Link>
+        </button>
         {isOffice && (
-          <Link href="/admin/finances" className="btn btn-secondary">
+          <button 
+            onClick={() => setTabModal({ isOpen: true, tabKey: 'finances', title: 'Moliya (ustozlar)' })} 
+            className="btn btn-secondary"
+          >
             Moliya (ustozlar)
-          </Link>
+          </button>
         )}
-        <Link href="/students" className="btn btn-secondary">
+        <button 
+          onClick={() => setTabModal({ isOpen: true, tabKey: 'students', title: t('students') })} 
+          className="btn btn-secondary"
+        >
           {t('students')}
-        </Link>
-        <Link href="/payments" className="btn btn-secondary">
+        </button>
+        <button 
+          onClick={() => setTabModal({ isOpen: true, tabKey: 'payments', title: t('payments') })} 
+          className="btn btn-secondary"
+        >
           {t('payments')}
-        </Link>
-        <Link href="/reports" className="btn btn-secondary">
+        </button>
+        <button 
+          onClick={() => setTabModal({ isOpen: true, tabKey: 'reports', title: t('reports') })} 
+          className="btn btn-secondary"
+        >
           {t('reports')}
-        </Link>
+        </button>
       </div>
+
+      <DashboardTabModal 
+        isOpen={tabModal.isOpen}
+        tabKey={tabModal.tabKey}
+        title={tabModal.title}
+        onClose={() => setTabModal(prev => ({ ...prev, isOpen: false }))}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">

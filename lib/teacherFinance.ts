@@ -3,6 +3,7 @@ import { Payment } from '@/models/Payment';
 import { Student, computeStudentFinalPrice } from '@/models/Student';
 import { Group } from '@/models/Group';
 import { User } from '@/models/User';
+import { Staff } from '@/models/Staff';
 
 export const DEFAULT_TEACHER_SHARE_PCT = 30;
 
@@ -124,6 +125,8 @@ export async function getAdminFinanceOverview(month: number, year: number) {
   const { start, end } = startEndOfMonth(new Date(year, month - 1, 1));
 
   const teachers = await User.find({ role: 'teacher' }).select('username displayName _id').lean();
+  const teacherStaff = await Staff.find({ position: 'teacher' }).lean();
+  const staffMap = new Map(teacherStaff.map(s => [s.userId?.toString(), s]));
 
   const result: {
     teacherId: string;
@@ -132,11 +135,14 @@ export async function getAdminFinanceOverview(month: number, year: number) {
     totalPayments: number;
     teacherShare: number;
     centerShare: number;
+    salaryOverride?: number;
+    overrideVisible?: boolean;
     byStudent: { studentId: string; name: string; amount: number; teacherPart: number; centerPart: number }[];
   }[] = [];
 
   for (const t of teachers) {
     const s = await getTeacherPaymentStats(t._id, month, year);
+    const staff = staffMap.get(t._id.toString());
     result.push({
       teacherId: t._id.toString(),
       username: t.username,
@@ -144,6 +150,8 @@ export async function getAdminFinanceOverview(month: number, year: number) {
       totalPayments: s.totalPayments,
       teacherShare: s.teacherShare,
       centerShare: s.centerShare,
+      salaryOverride: staff?.salaryOverride,
+      overrideVisible: staff?.overrideVisible,
       byStudent: s.byStudent,
     });
   }

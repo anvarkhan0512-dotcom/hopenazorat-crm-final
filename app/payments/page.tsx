@@ -39,6 +39,9 @@ export default function PaymentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showDeadlineModal, setShowDeadlineModal] = useState(false);
+  const [selectedPaymentForDeadline, setSelectedPaymentForDeadline] = useState<Payment | null>(null);
+  const [newDeadline, setNewDeadline] = useState('');
   const [studentFilter, setStudentFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
@@ -54,8 +57,10 @@ export default function PaymentsPage() {
     periodStart: '',
     periodEnd: '',
     lessonCount: 12,
-    expectedDueDate: '',
     description: '',
+    isPartial: false,
+    fullPaymentDeadline: '',
+    isMonthly: true,
   });
 
   useEffect(() => {
@@ -122,8 +127,10 @@ export default function PaymentsPage() {
           periodStart: formData.periodStart || undefined,
           periodEnd: formData.periodEnd || undefined,
           lessonCount: formData.lessonCount,
-          expectedDueDate: formData.expectedDueDate || undefined,
           description: formData.description,
+          isPartial: formData.isPartial,
+          fullPaymentDeadline: formData.isPartial ? formData.fullPaymentDeadline : undefined,
+          isMonthly: formData.isMonthly,
         }),
       });
 
@@ -149,6 +156,29 @@ export default function PaymentsPage() {
     }
   };
 
+  const openDeadlineModal = (payment: Payment) => {
+    setSelectedPaymentForDeadline(payment);
+    setNewDeadline(payment.fullPaymentDeadline ? payment.fullPaymentDeadline.split('T')[0] : '');
+    setShowDeadlineModal(true);
+  };
+
+  const handleUpdateDeadline = async () => {
+    if (!selectedPaymentForDeadline) return;
+    try {
+      const res = await fetch(`/api/payments/${selectedPaymentForDeadline._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullPaymentDeadline: newDeadline }),
+      });
+      if (res.ok) {
+        fetchData();
+        setShowDeadlineModal(false);
+      }
+    } catch (error) {
+      console.error('Error updating deadline:', error);
+    }
+  };
+
   const openModal = () => {
     const selectedStudent = students.find((s) => s._id === formData.studentId);
     setPeriodEndManual(false);
@@ -160,8 +190,10 @@ export default function PaymentsPage() {
       periodStart: '',
       periodEnd: '',
       lessonCount: 12,
-      expectedDueDate: '',
       description: '',
+      isPartial: false,
+      fullPaymentDeadline: '',
+      isMonthly: true,
     });
     setShowModal(true);
   };
@@ -177,8 +209,10 @@ export default function PaymentsPage() {
       periodStart: '',
       periodEnd: '',
       lessonCount: 12,
-      expectedDueDate: '',
       description: '',
+      isPartial: false,
+      fullPaymentDeadline: '',
+      isMonthly: true,
     });
   };
 
@@ -266,7 +300,7 @@ export default function PaymentsPage() {
               <th>{t('phone')}</th>
               <th>{t('amount')}</th>
               <th>{t('date')}</th>
-              <th>{t('actions')}</th>
+              <th>Status / {t('actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -320,32 +354,28 @@ export default function PaymentsPage() {
                         {months[payment.month - 1]} {payment.year}
                       </span>
                     )}
-                    {payment.daysVariance != null && (
-                      <span
-                        className={`block text-xs font-medium ${
-                          payment.daysVariance > 0
-                            ? 'text-red-600'
-                            : payment.daysVariance < 0
-                              ? 'text-amber-700'
-                              : 'text-green-700'
-                        }`}
-                      >
-                        {payment.daysVariance > 0
-                          ? `+${payment.daysVariance} kun kechikkan`
-                          : payment.daysVariance < 0
-                            ? `${payment.daysVariance} kun oldin`
-                            : 'Vaqtida'}
-                      </span>
-                    )}
                   </td>
                   <td>
-                    <button
-                      className="btn btn-danger"
-                      style={{ padding: '4px 8px', fontSize: '12px' }}
-                      onClick={() => handleDelete(payment._id)}
-                    >
-                      {t('delete')}
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      {payment.isPartial && (
+                        <div className="flex items-center gap-1 text-red-500 font-bold text-xs bg-red-50 p-1 rounded border border-red-100">
+                          ⏳ {payment.fullPaymentDeadline ? payment.fullPaymentDeadline.split('T')[0] : 'Muddat belgilanmagan'}
+                          <button 
+                            onClick={() => openDeadlineModal(payment)}
+                            className="ml-auto text-[10px] bg-white border px-1 rounded hover:bg-gray-50"
+                          >
+                            O'zgartirish
+                          </button>
+                        </div>
+                      )}
+                      <button
+                        className="btn btn-danger"
+                        style={{ padding: '4px 8px', fontSize: '12px', width: 'fit-content' }}
+                        onClick={() => handleDelete(payment._id)}
+                      >
+                        {t('delete')}
+                      </button>
+                    </div>
                   </td>
                 </tr>
                 );
@@ -354,6 +384,24 @@ export default function PaymentsPage() {
           </tbody>
         </table>
       </div>
+
+      <Modal isOpen={showDeadlineModal} onClose={() => setShowDeadlineModal(false)} title="To'liq to'lov muddatini tahrirlash">
+        <div className="space-y-4">
+          <div className="form-group">
+            <label className="form-label font-bold">Yangi muddat</label>
+            <input
+              type="date"
+              className="input"
+              value={newDeadline}
+              onChange={(e) => setNewDeadline(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleUpdateDeadline} className="btn btn-primary flex-1">Saqlash</button>
+            <button onClick={() => setShowDeadlineModal(false)} className="btn btn-secondary">Bekor qilish</button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal isOpen={showModal} onClose={closeModal} title={t('addPayment')}>
         <form onSubmit={handleSubmit}>
@@ -382,56 +430,88 @@ export default function PaymentsPage() {
               onChange={(e) => setFormData({ ...formData, amount: parseInt(e.target.value) || 0 })}
               required
             />
+            <div className="mt-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isPartial}
+                  onChange={(e) => setFormData({ ...formData, isPartial: e.target.checked })}
+                  className="w-4 h-4 accent-purple-600"
+                />
+                <span className="text-sm font-bold text-gray-700">Qisman to'lov</span>
+              </label>
+            </div>
           </div>
-          <div className="form-group border rounded-lg p-3 mb-3">
-            <label className="form-label">12 darslik davr (boshlanish / tugash)</label>
-            <div className="grid grid-cols-2 gap-2">
+
+          {formData.isPartial && (
+            <div className="form-group animate-in slide-in-from-top-2 duration-200">
+              <label className="form-label font-bold text-red-500">To'liq summa muddati</label>
               <input
                 type="date"
-                className="input"
-                value={formData.periodStart}
-                onChange={(e) => {
-                  setPeriodEndManual(false);
-                  setFormData({ ...formData, periodStart: e.target.value });
-                }}
-              />
-              <input
-                type="date"
-                className="input"
-                value={formData.periodEnd}
-                onChange={(e) => {
-                  setPeriodEndManual(true);
-                  setFormData({ ...formData, periodEnd: e.target.value });
-                }}
+                className="input border-red-200 focus:border-red-500"
+                value={formData.fullPaymentDeadline}
+                onChange={(e) => setFormData({ ...formData, fullPaymentDeadline: e.target.value })}
+                required={formData.isPartial}
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Tugash sanasi guruhning haftalik jadvali va (agar tanlangan boʻlsa) toq/juft hafta
-              filtri boʻyicha avtomatik hisoblanadi; qoʻlda oʻzgartirsangiz, avtomatik toʻxtaydi.
-            </p>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Darslar soni</label>
-            <input
-              type="number"
-              min={1}
-              max={24}
-              className="input"
-              value={formData.lessonCount}
-              onChange={(e) => {
-                setPeriodEndManual(false);
-                setFormData({ ...formData, lessonCount: parseInt(e.target.value, 10) || 12 });
-              }}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Kutilgan to‘lov sanasi (kechikish hisobi)</label>
-            <input
-              type="date"
-              className="input"
-              value={formData.expectedDueDate}
-              onChange={(e) => setFormData({ ...formData, expectedDueDate: e.target.value })}
-            />
+          )}
+
+          <div className="form-group border rounded-2xl p-4 bg-gray-50 mb-4">
+            <div className="flex justify-between items-center mb-3">
+              <label className="form-label font-bold text-purple-700 mb-0">12 darslik / Oylik</label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isMonthly}
+                  onChange={(e) => setFormData({ ...formData, isMonthly: e.target.checked })}
+                  className="w-4 h-4 accent-purple-600"
+                />
+                <span className="text-xs font-bold text-gray-500">Oylik</span>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="form-group mb-0">
+                <label className="text-[10px] text-gray-400 uppercase font-bold mb-1 block">Boshlanish</label>
+                <input
+                  type="date"
+                  className="input text-sm"
+                  value={formData.periodStart}
+                  onChange={(e) => {
+                    setPeriodEndManual(false);
+                    setFormData({ ...formData, periodStart: e.target.value });
+                  }}
+                />
+              </div>
+              <div className="form-group mb-0">
+                <label className="text-[10px] text-gray-400 uppercase font-bold mb-1 block">Tugash</label>
+                <input
+                  type="date"
+                  className="input text-sm"
+                  value={formData.periodEnd}
+                  onChange={(e) => {
+                    setPeriodEndManual(true);
+                    setFormData({ ...formData, periodEnd: e.target.value });
+                  }}
+                />
+              </div>
+            </div>
+
+            {!formData.isMonthly && (
+              <div className="mt-3">
+                <label className="text-[10px] text-gray-400 uppercase font-bold mb-1 block">Darslar soni</label>
+                <input
+                  type="number"
+                  min={1}
+                  className="input text-sm"
+                  value={formData.lessonCount}
+                  onChange={(e) => {
+                    setPeriodEndManual(false);
+                    setFormData({ ...formData, lessonCount: parseInt(e.target.value, 10) || 12 });
+                  }}
+                />
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="form-group">

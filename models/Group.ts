@@ -17,6 +17,9 @@ export interface IGroup extends Document {
   teacherUserId2?: mongoose.Types.ObjectId;
   schedule: string;
   weeklySchedule: IWeeklySlot[];
+  lessonDays: string[];
+  startTime: string;
+  endTime: string;
   price: number;
   /** Ustoz ulushi foizi (masalan 30). teacherPayoutFixed bo‘sh bo‘lsa ishlatiladi */
   teacherSharePercent: number;
@@ -47,6 +50,9 @@ const GroupSchema = new Schema<IGroup>(
       ],
       default: [],
     },
+    lessonDays: { type: [String], default: [] },
+    startTime: { type: String, default: '09:00' },
+    endTime: { type: String, default: '10:30' },
     price: { type: Number, default: 0, index: true },
     teacherSharePercent: { type: Number, default: 30 },
     teacherPayoutFixed: { type: Number, default: 0 },

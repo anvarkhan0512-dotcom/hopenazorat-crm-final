@@ -20,6 +20,7 @@ const ERR_CODE_MAP: Record<string, string> = {
   USER_NOT_FOUND: 'errUserNotFound',
   WRONG_PASSWORD: 'errWrongPassword',
   ROLE_MISMATCH: 'errRoleMismatch',
+  STUDENT_BLOCKED: 'studentBlocked',
 };
 
 function LoginForm() {

@@ -85,6 +85,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (data.extraDiscount !== undefined) student.extraDiscount = Number(data.extraDiscount);
     if (data.faceDescriptor !== undefined) student.faceDescriptor = data.faceDescriptor;
     if (data.avatarUrl !== undefined) student.avatarUrl = data.avatarUrl;
+    if (data.paymentSchedule !== undefined) student.paymentSchedule = data.paymentSchedule;
+    if (data.pauseStatus !== undefined) student.pauseStatus = data.pauseStatus;
+    if (data.pauseStartDate !== undefined) student.pauseStartDate = data.pauseStartDate ? new Date(data.pauseStartDate) : undefined;
+    if (data.pauseEndDate !== undefined) student.pauseEndDate = data.pauseEndDate ? new Date(data.pauseEndDate) : undefined;
+    if (data.pauseType !== undefined) student.pauseType = data.pauseType;
+    if (data.stopDate !== undefined) student.stopDate = data.stopDate ? new Date(data.stopDate) : undefined;
 
     if (data.regenerateParentCode) {
       student.parentAccessCode = await ensureUniqueParentCode();
@@ -118,6 +124,53 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     );
   } catch (error) {
     return NextResponse.json({ error: 'Tahrirlashda xato' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const auth = await getAuthUser(request);
+    if (!auth || !isAdminRole(auth.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    await connectDB();
+    const { action, deadline, reason } = await request.json();
+    const student = await Student.findById(params.id);
+
+    if (!student) {
+      return NextResponse.json({ error: "O'quvchi topilmadi" }, { status: 404 });
+    }
+
+    if (action === 'block') {
+      student.isBlocked = true;
+      student.blockReason = reason || 'To\'lov muddati o\'tib ketgan';
+      student.blockedAt = new Date();
+    } else if (action === 'unblock') {
+      student.isBlocked = false;
+      student.blockReason = '';
+      student.blockedAt = undefined;
+    } else if (action === 'extend-deadline') {
+      if (!deadline) {
+        return NextResponse.json({ error: 'Sana kiritilmadi' }, { status: 400 });
+      }
+      student.paymentDeadline = new Date(deadline);
+      student.deadlineExtendCount = (student.deadlineExtendCount || 0) + 1;
+      // If student was blocked, unblock them when extending deadline
+      if (student.isBlocked) {
+        student.isBlocked = false;
+        student.blockReason = '';
+        student.blockedAt = undefined;
+      }
+    } else {
+      return NextResponse.json({ error: 'Noto\'g\'ri harakat' }, { status: 400 });
+    }
+
+    await student.save();
+    return NextResponse.json({ success: true, student });
+  } catch (error) {
+    console.error('PATCH error:', error);
+    return NextResponse.json({ error: 'Amal bajarishda xato' }, { status: 500 });
   }
 }
 

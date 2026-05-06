@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/components/LanguageProvider';
@@ -16,6 +17,7 @@ const adminMenu: Item[] = [
   { key: 'freeLessons', href: '/free-lessons', icon: '🎁' },
   { key: 'invoices', href: '/invoices', icon: '📄' },
   { key: 'payments', href: '/payments', icon: '💰' },
+  { key: 'paymentDeadlines', href: '/payment-deadlines', icon: '📅' },
   { key: 'debtors', href: '/debtors', icon: '⚠️' },
   { key: 'discounts', href: '/discounts', icon: '🎫' },
   { key: 'attendance', href: '/dashboard/attendance', icon: '✅' },
@@ -63,6 +65,7 @@ export default function Sidebar({ isOpen, onClose, collapsed }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useLanguage();
   const { user } = useAuth();
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   const role = user?.role;
   const isAdmin = role === 'admin' || role === 'manager';
@@ -83,6 +86,21 @@ export default function Sidebar({ isOpen, onClose, collapsed }: SidebarProps) {
     if (href === '/student') return pathname === '/student' || pathname.startsWith('/student/');
     return pathname === href || pathname.startsWith(href + '/');
   };
+
+  // Save scroll position
+  const handleScroll = () => {
+    if (sidebarRef.current) {
+      sessionStorage.setItem('sidebarScroll', sidebarRef.current.scrollTop.toString());
+    }
+  };
+
+  // Restore on mount
+  useEffect(() => {
+    const saved = sessionStorage.getItem('sidebarScroll');
+    if (saved && sidebarRef.current) {
+      sidebarRef.current.scrollTop = parseInt(saved);
+    }
+  }, []);
 
   return (
     <>
@@ -114,7 +132,11 @@ export default function Sidebar({ isOpen, onClose, collapsed }: SidebarProps) {
           </button>
         </div>
 
-        <nav className="sidebar-nav flex-1 overflow-y-auto px-2 pb-4 scrollbar-thin scrollbar-thumb-purple-600">
+        <nav 
+          ref={sidebarRef}
+          onScroll={handleScroll}
+          className="sidebar-nav flex-1 overflow-y-auto px-2 pb-4 scrollbar-thin scrollbar-thumb-purple-600"
+        >
           {menuItems.map((item) => (
             <Link
               key={item.key}

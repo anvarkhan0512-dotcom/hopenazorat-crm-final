@@ -9,6 +9,8 @@ export interface IDiscount extends Document {
   originalTotal: number;
   discountAmount: number;
   finalTotal: number;
+  isDoubleSubject: boolean;
+  applyType: 'total' | 'separate';
   reason: string;
   startDate: Date;
   endDate: Date;
@@ -32,6 +34,8 @@ const DiscountSchema = new Schema<IDiscount>(
     originalTotal: { type: Number, default: 0 },
     discountAmount: { type: Number, default: 0 },
     finalTotal: { type: Number, default: 0 },
+    isDoubleSubject: { type: Boolean, default: false },
+    applyType: { type: String, enum: ['total', 'separate'], default: 'total' },
     reason: { type: String, default: '' },
     startDate: { type: Date, required: true, index: true },
     endDate: { type: Date, required: true, index: true },

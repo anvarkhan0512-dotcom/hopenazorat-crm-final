@@ -9,6 +9,7 @@ import { getAuthUser, isAdminRole } from '@/lib/auth-server';
 import { ensureUniqueParentCode } from '@/lib/parentCode';
 import { createStudentLoginUser } from '@/lib/studentUser';
 import { notifyStudentAdded } from '@/lib/telegram';
+import { checkAndNotifyDeadlines, checkUnpaidLessons } from '@/lib/cron-check';
 
 function serializeStudent(s: Record<string, unknown>) {
   const effective = computeStudentFinalPrice(s as any);
@@ -35,6 +36,12 @@ export async function GET(request: NextRequest) {
 
     if (auth.role === 'parent' || auth.role === 'student') {
       return NextResponse.json([]);
+    }
+
+    // Auto-check deadlines on student list fetch (basic cron-like behavior)
+    if (isAdminRole(auth.role)) {
+      await checkAndNotifyDeadlines();
+      await checkUnpaidLessons();
     }
 
     if (auth.role === 'teacher') {

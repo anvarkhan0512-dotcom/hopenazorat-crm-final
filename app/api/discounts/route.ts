@@ -44,6 +44,8 @@ export async function GET(request: NextRequest) {
       discountAmount: d.discountAmount,
       finalTotal: d.finalTotal,
       reason: d.reason,
+      isDoubleSubject: d.isDoubleSubject,
+      applyType: d.applyType,
       startDate: d.startDate,
       endDate: d.endDate,
       isActive: d.isActive,
@@ -66,6 +68,8 @@ export async function POST(request: NextRequest) {
       studentIds,
       discountType,
       discountValue,
+      isDoubleSubject,
+      applyType,
       reason,
       startDate,
       endDate,
@@ -94,9 +98,26 @@ export async function POST(request: NextRequest) {
     let discountAmount = 0;
     
     if (discountType === 'percentage') {
-      discountAmount = Math.round(originalTotal * (discountValue / 100));
+      if (applyType === 'separate') {
+        // Calculate percentage for each student and sum up
+        discountAmount = students.reduce((sum, s) => sum + Math.round((s.monthlyPrice || 0) * (discountValue / 100)), 0);
+      } else {
+        // Apply to total
+        discountAmount = Math.round(originalTotal * (discountValue / 100));
+      }
     } else {
-      discountAmount = Math.min(discountValue, originalTotal);
+      if (applyType === 'separate') {
+        // Apply fixed amount to each student
+        discountAmount = discountValue * students.length;
+      } else {
+        // Apply fixed amount to total
+        discountAmount = Math.min(discountValue, originalTotal);
+      }
+    }
+
+    if (isDoubleSubject) {
+      // If 2 subjects, double the discount amount if separate, or double total if percentage on total
+      discountAmount *= 2;
     }
 
     const finalTotal = originalTotal - discountAmount;
@@ -114,6 +135,8 @@ export async function POST(request: NextRequest) {
       familyName,
       discountType: discountType || 'percentage',
       discountValue,
+      isDoubleSubject: !!isDoubleSubject,
+      applyType: applyType || 'total',
       originalTotal,
       discountAmount,
       finalTotal,

@@ -6,6 +6,11 @@ export interface IStaff extends Document {
   fullName: string;
   position: StaffPosition;
   monthlySalary: number;
+  salaryType: 'fixed' | 'auto';
+  salaryAmount: number;
+  salaryPercent: number;
+  salaryOverride?: number;
+  overrideVisible?: boolean;
   phone: string;
   userId?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -21,6 +26,11 @@ const StaffSchema = new Schema<IStaff>(
       index: true,
     },
     monthlySalary: { type: Number, required: true, default: 0, index: true },
+    salaryType: { type: String, enum: ['fixed', 'auto'], default: 'fixed' },
+    salaryAmount: { type: Number, default: 0 },
+    salaryPercent: { type: Number, default: 0 },
+    salaryOverride: { type: Number },
+    overrideVisible: { type: Boolean, default: true },
     phone: { type: String, default: '' },
     userId: { type: Schema.Types.ObjectId, ref: 'User', sparse: true, index: true },
   },
