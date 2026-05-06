@@ -65,19 +65,21 @@ function LoginForm() {
       <div
         className="hidden lg:block fixed"
         style={{
-          left: '1%',
-          top: '50%',
-          transform: 'translateY(-50%)',
+          left: 0,
+          top: 0,
+          bottom: 0,
           zIndex: 1,
-          width: '22%',
-          maxWidth: '320px',
+          width: 'calc(50% - 480px)',
+          minWidth: '200px',
         }}
       >
         <img
           src="/images/login-left.jpg"
           alt="Hope Study talabalar"
-          className="rounded-2xl shadow-2xl border-2 border-yellow-400/30 opacity-90 hover:opacity-100 transition-opacity"
-          style={{ width: '100%', height: 'auto' }}
+          className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity"
+          style={{
+            borderRight: '2px solid rgba(234,179,8,0.3)',
+          }}
         />
       </div>
 
@@ -85,19 +87,21 @@ function LoginForm() {
       <div
         className="hidden lg:block fixed"
         style={{
-          right: '1%',
-          top: '50%',
-          transform: 'translateY(-50%)',
+          right: 0,
+          top: 0,
+          bottom: 0,
           zIndex: 1,
-          width: '22%',
-          maxWidth: '320px',
+          width: 'calc(50% - 480px)',
+          minWidth: '200px',
         }}
       >
         <img
           src="/images/login-right.jpg"
           alt="Hope Study ustoz"
-          className="rounded-2xl shadow-2xl border-2 border-yellow-400/30 opacity-90 hover:opacity-100 transition-opacity"
-          style={{ width: '100%', height: 'auto' }}
+          className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity"
+          style={{
+            borderLeft: '2px solid rgba(234,179,8,0.3)',
+          }}
         />
       </div>
 
