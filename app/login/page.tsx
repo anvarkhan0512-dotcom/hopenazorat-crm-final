@@ -61,24 +61,6 @@ function LoginForm() {
         <div className="absolute inset-0 opacity-20 hope-particles-bg" />
       </div>
 
-      {/* LEFT SIDE - floating education icons */}
-      <div style={{ position: 'fixed', left: '2%', top: '10%', zIndex: 1 }} className="hidden lg:flex flex-col gap-8 opacity-60">
-        <div className="animate-float-slow text-6xl">👨‍🎓</div>
-        <div className="animate-float text-5xl">📚</div>
-        <div className="animate-float-slow text-4xl">✏️</div>
-        <div className="animate-float text-5xl">🎓</div>
-        <div className="animate-float-slow text-4xl">📝</div>
-      </div>
-
-      {/* RIGHT SIDE - floating education icons */}
-      <div style={{ position: 'fixed', right: '2%', top: '10%', zIndex: 1 }} className="hidden lg:flex flex-col gap-8 opacity-60">
-        <div className="animate-float text-6xl">👩‍🏫</div>
-        <div className="animate-float-slow text-5xl">🏫</div>
-        <div className="animate-float text-4xl">🌟</div>
-        <div className="animate-float-slow text-5xl">📖</div>
-        <div className="animate-float text-4xl">🏆</div>
-      </div>
-
       <div className="relative z-10 w-full min-h-screen flex items-center justify-center p-4">
         <div className="hope-login-card bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl overflow-hidden max-w-md w-full">
           <div className="hope-login-card-inner p-8">
@@ -168,10 +150,6 @@ function LoginForm() {
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="fixed bottom-4 left-0 right-0 text-center text-white/20 text-xs hidden lg:block">
-        🏫 Hope Study — Ta&apos;lim kelajakka investitsiya
       </div>
 
       <style jsx>{`
