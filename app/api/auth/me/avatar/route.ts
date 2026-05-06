@@ -29,18 +29,13 @@ export async function POST(request: NextRequest) {
     }
 
     const buf = Buffer.from(await file.arrayBuffer());
-    const ext =
-      file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
-    const name = `${crypto.randomUUID()}.${ext}`;
-    const dir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(path.join(dir, name), buf);
+    const base64 = buf.toString('base64');
+    const dataUrl = `data:${file.type};base64,${base64}`;
 
-    const url = `/uploads/avatars/${name}`;
     await connectDB();
-    await User.updateOne({ _id: auth._id }, { $set: { avatarUrl: url } });
+    await User.updateOne({ _id: auth._id }, { $set: { avatarUrl: dataUrl } });
 
-    return NextResponse.json({ url });
+    return NextResponse.json({ url: dataUrl });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: 'Yuklashda xato' }, { status: 500 });

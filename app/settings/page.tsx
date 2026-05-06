@@ -89,6 +89,13 @@ export default function SettingsPage() {
     <DashboardLayout title="Sozlamalar" subtitle="Profil va parol">
       <div className="card max-w-lg">
         <h3 className="card-title mb-4">Profil rasmi</h3>
+        {user?.avatarUrl && (
+          <img
+            src={user.avatarUrl}
+            alt="Profil rasmi"
+            className="w-20 h-20 rounded-full object-cover border-2 border-purple-300 mb-3"
+          />
+        )}
         <input
           type="file"
           accept="image/jpeg,image/png,image/webp"
