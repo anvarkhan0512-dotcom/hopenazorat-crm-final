@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import Modal from '@/components/Modal';
+
 import { useLanguage } from '@/components/LanguageProvider';
 
 interface Invoice {
@@ -33,19 +33,13 @@ export default function InvoicesPage() {
   const [groupFinance, setGroupFinance] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [monthFilter, setMonthFilter] = useState('');
-  const [yearFilter, setYearFilter] = useState('');
+  const currentDate = new Date();
+  const [monthFilter, setMonthFilter] = useState((currentDate.getMonth() + 1).toString());
+  const [yearFilter, setYearFilter] = useState(currentDate.getFullYear().toString());
   const [statusFilter, setStatusFilter] = useState('');
   const { t, locale } = useLanguage();
 
-  const currentDate = new Date();
-  const currentMonth = currentDate.getMonth() + 1;
   const currentYear = currentDate.getFullYear();
-
-  useEffect(() => {
-    setMonthFilter(currentMonth.toString());
-    setYearFilter(currentYear.toString());
-  }, [currentMonth, currentYear]);
 
   useEffect(() => {
     fetch('/api/groups')
@@ -159,25 +153,25 @@ export default function InvoicesPage() {
             <div>
               <div className="text-gray-500">Kutilayotgan oylik</div>
               <div className="font-semibold">
-                {groupFinance.expectedMonthlyTuition?.toLocaleString()} so&apos;m
+                {formatMoney(groupFinance.expectedMonthlyTuition || 0, locale)}
               </div>
             </div>
             <div>
               <div className="text-gray-500">Joriy oy tushumi</div>
               <div className="font-semibold">
-                {groupFinance.monthInflow?.toLocaleString()} so&apos;m
+                {formatMoney(groupFinance.monthInflow || 0, locale)}
               </div>
             </div>
             <div>
               <div className="text-gray-500">Ustoz ulushi</div>
               <div className="font-semibold text-amber-800">
-                {groupFinance.teacherShareMonth?.toLocaleString()} so&apos;m
+                {formatMoney(groupFinance.teacherShareMonth || 0, locale)}
               </div>
             </div>
             <div>
               <div className="text-gray-500">Markaz</div>
               <div className="font-semibold text-emerald-800">
-                {groupFinance.centerShareMonth?.toLocaleString()} so&apos;m
+                {formatMoney(groupFinance.centerShareMonth || 0, locale)}
               </div>
             </div>
           </div>
@@ -246,13 +240,13 @@ export default function InvoicesPage() {
           <div className="text-center"> 
             <p className="text-sm text-gray-500">Jami oylik</p> 
             <p className="font-bold text-lg"> 
-              {summary.rawTotal.toLocaleString()} so&apos;m 
+              {formatMoney(summary.rawTotal, locale)} 
             </p> 
           </div> 
           <div className="text-center"> 
             <p className="text-sm text-red-500">Chegirmalar</p> 
             <p className="font-bold text-lg text-red-500"> 
-              -{summary.totalDiscounts.toLocaleString()} so&apos;m 
+              -{formatMoney(summary.totalDiscounts, locale)} 
             </p> 
           </div> 
           <div className="text-center"> 
@@ -260,7 +254,7 @@ export default function InvoicesPage() {
               To&apos;lash kerak 
             </p> 
             <p className="font-bold text-lg text-green-600"> 
-              {(summary.rawTotal - summary.totalDiscounts).toLocaleString()} so&apos;m 
+              {formatMoney(summary.totalAmount, locale)} 
             </p> 
           </div> 
         </div> 

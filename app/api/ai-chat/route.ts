@@ -71,14 +71,19 @@ export async function POST(request: NextRequest) {
     // Real data from database 
     if (intent === 'GET_STUDENTS') { 
       try { 
-        await connectDB();
+        await connectDB(); 
         const { Student } = await import('@/models/Student');
-        const students = await Student.find({ status: 'active' }).lean(); 
-        contextData = `Tizimda hozir ${students.length} ta faol talaba bor. ` + 
-        `Ro'yxat: ${students.slice(0, 15).map((s: any) => s.name).join(', ')}` + 
-        `${students.length > 15 ? ` va yana ${students.length - 15} ta...` : ''}`; 
+        const count = await Student.countDocuments({ 
+          status: 'active' 
+        }); 
+        const students = await Student.find({ 
+          status: 'active' 
+        }).select('name').limit(20).lean(); 
+        
+        contextData = `Tizimda hozir ${count} ta faol talaba bor.\n` + 
+        `Ismlar: ${students.map((s: any) => s.name).join(', ')}`; 
       } catch (e) { 
-        contextData = 'Talabalar ma\'lumotini olishda xatolik'; 
+        contextData = 'Ma\'lumot olishda xatolik'; 
       } 
     } 
      

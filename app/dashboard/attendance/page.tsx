@@ -97,21 +97,23 @@ export default function DashboardAttendancePage() {
   };
 
   const handleSave = async () => {
-    const payload = Object.keys(attendance).map((id) => ({
-      studentId: id,
-      date,
-      lessonNumber: Number(lessonNumber) || 1,
-      status: attendance[id].status,
-      rescheduleDate:
-        attendance[id].status === 'rescheduled' ? attendance[id].rescheduleDate : null,
-      checkInTime: attendance[id].checkInTime || null,
-      transferAt:
-        attendance[id].status === 'transferred' ? attendance[id].transferAt || null : null,
-      redirectTeacherUserId:
-        attendance[id].status === 'transferred'
-          ? attendance[id].redirectTeacherUserId || null
-          : null,
-    }));
+    const payload = Object.keys(attendance)
+      .filter(id => attendance[id].status)
+      .map((id) => ({
+        studentId: id,
+        date,
+        lessonNumber: Number(lessonNumber) || 1,
+        status: attendance[id].status,
+        rescheduleDate:
+          attendance[id].status === 'rescheduled' ? attendance[id].rescheduleDate : null,
+        checkInTime: attendance[id].checkInTime || null,
+        transferAt:
+          attendance[id].status === 'transferred' ? attendance[id].transferAt || null : null,
+        redirectTeacherUserId:
+          attendance[id].status === 'transferred'
+            ? attendance[id].redirectTeacherUserId || null
+            : null,
+      }));
 
     if (payload.length === 0) return alert("O'zgarishlar mavjud emas!");
 
