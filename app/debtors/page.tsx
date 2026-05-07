@@ -11,6 +11,8 @@ interface Debtor {
   studentName: string;
   phone: string;
   groupName: string;
+  originalPrice: number;
+  totalDiscount: number;
   amount: number;
   paidAmount: number;
   debt: number;
@@ -108,7 +110,9 @@ export default function DebtorsPage() {
                     <td>
                       <div className="flex flex-col">
                         <div className="text-[10px] text-gray-500 font-mono">
-                          {formatMoney(debtor.amount, locale)} (oylik) - {formatMoney(debtor.paidAmount, locale)} (to'langan)
+                          {formatMoney(debtor.originalPrice, locale)} (oylik) 
+                          {debtor.totalDiscount > 0 && ` - ${formatMoney(debtor.totalDiscount, locale)} (chegirma)`}
+                          {debtor.paidAmount > 0 && ` - ${formatMoney(debtor.paidAmount, locale)} (to'langan)`}
                         </div>
                         <div className="text-red-500 font-black text-lg">
                           = {formatMoney(debtor.debt, locale)}

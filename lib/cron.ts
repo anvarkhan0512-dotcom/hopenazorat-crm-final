@@ -1,6 +1,7 @@
 import { generateMonthlyInvoices, getDebtorsReport } from '@/lib/billing';
 import { sendTelegramMessage } from '@/lib/telegram';
 import { runParentPaymentReminders, runDebtorTelegramReminders } from '@/lib/parentReminders';
+import { checkDiscountExpirations } from '@/lib/discount';
 
 export interface CronJob {
   name: string;
@@ -97,6 +98,7 @@ export async function runDailyDebtorCheck(): Promise<{
 
   try {
     const report = await getDebtorsReport(month, year);
+    await checkDiscountExpirations();
     
     job.lastRun = new Date();
 

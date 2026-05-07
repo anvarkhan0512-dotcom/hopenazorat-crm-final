@@ -3,6 +3,7 @@ import { Student, computeStudentFinalPrice } from '@/models/Student';
 import { Group } from '@/models/Group';
 import { Invoice, type IInvoice } from '@/models/Invoice';
 import { Payment } from '@/models/Payment';
+import { Discount } from '@/models/Discount';
 
 export interface InvoiceGenerationResult {
   generated: number;
@@ -21,6 +22,26 @@ export async function generateMonthlyInvoices(
   };
 
   try {
+    const now = new Date();
+    const activeDiscounts = await Discount.find({
+      isActive: true,
+      $or: [
+        { endDate: { $gte: now } },
+        { endDate: null }
+      ]
+    }).lean();
+
+    const discountMap = new Map<string, any>();
+    for (const discount of activeDiscounts) {
+      const ids = discount.studentIds || [];
+      const familyIds = (discount as any).familyStudentIds || [];
+      const allIds = [...ids, ...familyIds];
+      
+      for (const studentId of allIds) {
+        discountMap.set(studentId.toString(), discount);
+      }
+    }
+
     const activeStudents = await Student.find({ status: 'active', monthlyPrice: { $gt: 0 } })
       .populate('groupId')
       .lean();
@@ -38,8 +59,22 @@ export async function generateMonthlyInvoices(
         }
 
         const group = student.groupId as any;
-        const amount =
-          computeStudentFinalPrice(student as any) || (group?.price || 0);
+        let amount = computeStudentFinalPrice(student as any) || (group?.price || 0);
+
+        // Apply external discounts
+        const discount = discountMap.get(student._id.toString());
+        if (discount) {
+          const dType = discount.discountType;
+          const dValue = discount.discountValue || (discount as any).amount || 0;
+          const studentIdsCount = (discount.studentIds?.length || 0) + ((discount as any).familyStudentIds?.length || 0) || 1;
+
+          if (dType === 'percentage' || dType === 'percent') {
+            amount = Math.round(amount * (1 - dValue / 100));
+          } else {
+            const perStudentDiscount = Math.round(dValue / studentIdsCount);
+            amount = Math.max(0, amount - perStudentDiscount);
+          }
+        }
 
         if (amount <= 0) {
           continue;

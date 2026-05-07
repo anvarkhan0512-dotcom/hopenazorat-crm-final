@@ -23,26 +23,38 @@ export async function GET(request: NextRequest) {
     if (studentId) query.studentId = studentId;
 
     const invoices = await Invoice.find(query)
-      .populate('studentId', 'name phone')
+      .populate('studentId', 'name phone monthlyPrice basePrice discountAmount extraDiscount')
       .populate('groupId', 'name')
       .sort({ year: -1, month: -1 })
       .limit(100)
       .lean();
 
-    const result = invoices.map((inv: any) => ({
-      _id: inv._id,
-      studentId: inv.studentId?._id || inv.studentId,
-      studentName: inv.studentId?.name,
-      phone: inv.studentId?.phone,
-      groupName: inv.groupId?.name,
-      month: inv.month,
-      year: inv.year,
-      amount: inv.amount,
-      paidAmount: inv.paidAmount,
-      debt: inv.amount - inv.paidAmount,
-      status: inv.status,
-      createdAt: inv.createdAt,
-    }));
+    const result = invoices.map((inv: any) => {
+      const student = inv.studentId;
+      const originalPrice = student?.basePrice || student?.monthlyPrice || inv.amount;
+      
+      // Calculate total discount as the difference between original base price and the actual invoice amount
+      const totalDiscount = Math.max(0, originalPrice - inv.amount);
+      const toPay = inv.amount;
+      
+      return {
+        _id: inv._id,
+        studentId: student?._id || inv.studentId,
+        studentName: student?.name,
+        phone: student?.phone,
+        groupName: inv.groupId?.name,
+        month: inv.month,
+        year: inv.year,
+        originalPrice,
+        totalDiscount,
+        toPay,
+        amount: inv.amount,
+        paidAmount: inv.paidAmount,
+        debt: inv.amount - inv.paidAmount,
+        status: inv.status,
+        createdAt: inv.createdAt,
+      };
+    });
 
     return NextResponse.json(result);
   } catch (error) {
@@ -76,13 +88,20 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     const activeDiscounts = await Discount.find({
       isActive: true,
-      startDate: { $lte: now },
-      endDate: { $gte: now },
+      $or: [
+        { endDate: { $gte: now } },
+        { endDate: null }
+      ]
     }).lean();
 
     const discountMap = new Map<string, any>();
     for (const discount of activeDiscounts) {
-      for (const studentId of discount.studentIds) {
+      const ids = discount.studentIds || [];
+      // Also check for familyStudentIds if it exists (per user request, though not in schema)
+      const familyIds = (discount as any).familyStudentIds || [];
+      const allIds = [...ids, ...familyIds];
+      
+      for (const studentId of allIds) {
         discountMap.set(studentId.toString(), discount);
       }
     }
@@ -99,30 +118,30 @@ export async function POST(request: NextRequest) {
 
     for (const student of activeStudents) {
       try {
-        let originalPrice = student.monthlyPrice || 0;
-        const group = student.groupId as any;
-        if (!originalPrice && group?.price) {
-          originalPrice = group.price;
-        }
-
-        let amount = originalPrice;
+        let amount = student.monthlyPrice || 0;
+        
+        // Check for external discounts
         const discount = discountMap.get(student._id.toString());
+        let externalDiscountAmount = 0;
         
         if (discount) {
-          results.withDiscounts++;
-          
-          let discountAmount = 0;
-          if (discount.discountType === 'percentage') {
-            discountAmount = Math.round(originalPrice * (discount.discountValue / 100));
+          const dType = discount.discountType;
+          const dValue = discount.discountValue || (discount as any).amount || 0;
+          const studentIdsCount = (discount.studentIds?.length || 0) + ((discount as any).familyStudentIds?.length || 0) || 1;
+
+          if (dType === 'percentage' || dType === 'percent') {
+            externalDiscountAmount = Math.round(amount * (dValue / 100));
           } else {
-            const perStudent = discount.discountValue / discount.studentIds.length;
-            discountAmount = Math.min(perStudent, originalPrice);
+            // Split fixed discount among students in the same discount group
+            externalDiscountAmount = Math.min(
+              Math.round(dValue / studentIdsCount),
+              amount
+            );
           }
-          
-          amount = Math.max(0, originalPrice - discountAmount);
+          amount = Math.max(0, amount - externalDiscountAmount);
         }
 
-        if (amount <= 0 && originalPrice <= 0) continue;
+        if (amount <= 0 && (student.basePrice || 0) <= 0) continue;
 
         const invoice = new Invoice({
           studentId: student._id,
@@ -136,6 +155,9 @@ export async function POST(request: NextRequest) {
 
         await invoice.save();
         results.generated++;
+        if ((student.discountAmount || 0) > 0 || (student.extraDiscount || 0) > 0 || externalDiscountAmount > 0) {
+          results.withDiscounts++;
+        }
       } catch (error: any) {
         results.errors.push(error.message);
       }

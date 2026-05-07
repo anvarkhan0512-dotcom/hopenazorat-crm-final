@@ -31,13 +31,17 @@ export interface PaymentReminder {
  */
 export function calculateNextPaymentDate(
   lastPaymentDate: Date,
-  cycle: 'monthly' | 'weekly' | 'quarterly' | 'yearly' | 'custom',
+  cycle: 'monthly' | 'weekly' | 'quarterly' | 'yearly' | 'custom' | 'lessons',
   customDays?: number[],
   anchorDate?: Date | null
 ): Date {
   const date = new Date(lastPaymentDate);
 
   switch (cycle) {
+    case 'lessons':
+      // For lessons, we default to 1 month but this is usually tracked by attendance
+      date.setMonth(date.getMonth() + 1);
+      break;
     case 'weekly':
       date.setDate(date.getDate() + 7);
       break;

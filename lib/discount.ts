@@ -205,6 +205,37 @@ export async function calculateAllStudentsDiscounts(): Promise<StudentWithDiscou
   return results;
 }
 
+export async function checkDiscountExpirations(): Promise<number> {
+  await connectDB();
+  const { sendTelegramMessage } = await import('@/lib/telegram');
+  
+  const today = new Date();
+  const horizon = new Date();
+  horizon.setDate(today.getDate() + 3);
+  
+  const expiringDiscounts = await Discount.find({
+    isActive: true,
+    endDate: { $gt: today, $lte: horizon }
+  }).populate('studentIds', 'name');
+  
+  let notifiedCount = 0;
+  
+  for (const discount of expiringDiscounts) {
+    const studentNames = (discount.studentIds as any[]).map(s => s.name).join(', ');
+    const endDateStr = discount.endDate.toLocaleDateString('uz-UZ');
+    
+    await sendTelegramMessage(
+      `⚠️ <b>Chegirma tugash arafasida</b>\n\n` +
+      `Oʻquvchi(lar): ${studentNames}\n` +
+      `Sana: ${endDateStr} da tugaydi\n` +
+      `Sabab: ${getDiscountReasonLabel(discount.reason)}`
+    );
+    notifiedCount++;
+  }
+  
+  return notifiedCount;
+}
+
 export async function createFamilyDiscount(data: {
   familyName: string;
   studentIds: string[];

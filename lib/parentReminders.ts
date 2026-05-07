@@ -2,6 +2,7 @@ import connectDB from '@/lib/db';
 import { Student } from '@/models/Student';
 import { sendTelegramToChat } from '@/lib/telegram';
 import { tashkentCalendarDayKey } from '@/lib/tashkentDay';
+import { Discount } from '@/models/Discount';
 
 const REMINDER_COOLDOWN_MS = 36 * 60 * 60 * 1000; // don't spam more than once per 36h per student
 
@@ -27,6 +28,23 @@ export async function runParentPaymentReminders(daysAhead: number = 3): Promise<
     nextPaymentDate: { $gte: now, $lte: horizon },
   }).lean();
 
+  if (students.length === 0) return { sent: 0, skipped: 0, errors: [] };
+
+  // Fetch active discounts
+  const activeDiscounts = await Discount.find({
+    studentIds: { $in: students.map(s => s._id) },
+    isActive: true,
+    startDate: { $lte: now },
+    endDate: { $gte: now },
+  }).lean();
+
+  const discountMap = new Map<string, any>();
+  for (const d of activeDiscounts) {
+    for (const sid of d.studentIds) {
+      discountMap.set(sid.toString(), d);
+    }
+  }
+
   let sent = 0;
   let skipped = 0;
   const errors: string[] = [];
@@ -45,13 +63,24 @@ export async function runParentPaymentReminders(daysAhead: number = 3): Promise<
       continue;
     }
 
+    let finalAmount = s.monthlyPrice || 0;
+    const discount = discountMap.get(s._id.toString());
+    if (discount) {
+      if (discount.discountType === 'percentage') {
+        finalAmount = Math.round(finalAmount * (1 - discount.discountValue / 100));
+      } else {
+        const perStudentDiscount = Math.round(discount.discountValue / discount.studentIds.length);
+        finalAmount = Math.max(0, finalAmount - perStudentDiscount);
+      }
+    }
+
     const due = s.nextPaymentDate ? new Date(s.nextPaymentDate).toLocaleDateString('uz-UZ') : '-';
-    const amount = (s.monthlyPrice || 0).toLocaleString('uz-UZ');
+    const amountStr = finalAmount.toLocaleString('uz-UZ');
     const msg =
       `Assalomu alaykum, hurmatli ota-ona! 🌟\n\n` +
       `"Hope Study" o'quv markazidan eslatma: farzandingiz <b>${s.name}</b> uchun keyingi to'lov muddati yaqinlashmoqda.\n\n` +
       `📅 <b>To'lov sanasi:</b> ${due}\n` +
-      `💰 <b>To'lov miqdori:</b> ${amount} so'm\n\n` +
+      `💰 <b>To'lov miqdori:</b> ${amountStr} so'm\n\n` +
       `Ilm yo'lidagi hamkorligingiz uchun rahmat! 🙏`;
 
     try {
@@ -90,10 +119,26 @@ export async function runDebtorTelegramReminders(): Promise<{
     debtReminderUntil: { $gte: start },
   }).lean();
 
+  if (students.length === 0) return { sent: 0, skipped: 0, errors: [] };
+
+  // Fetch active discounts
+  const activeDiscounts = await Discount.find({
+    studentIds: { $in: students.map(s => s._id) },
+    isActive: true,
+    startDate: { $lte: now },
+    endDate: { $gte: now },
+  }).lean();
+
+  const discountMap = new Map<string, any>();
+  for (const d of activeDiscounts) {
+    for (const sid of d.studentIds) {
+      discountMap.set(sid.toString(), d);
+    }
+  }
+
   let sent = 0;
   let skipped = 0;
   const errors: string[] = [];
-  const now = new Date();
 
   for (const s of students) {
     const chatId = s.parentTelegramChatId?.trim();
@@ -110,12 +155,23 @@ export async function runDebtorTelegramReminders(): Promise<{
       continue;
     }
 
+    let finalAmount = s.monthlyPrice || 0;
+    const discount = discountMap.get(s._id.toString());
+    if (discount) {
+      if (discount.discountType === 'percentage') {
+        finalAmount = Math.round(finalAmount * (1 - discount.discountValue / 100));
+      } else {
+        const perStudentDiscount = Math.round(discount.discountValue / discount.studentIds.length);
+        finalAmount = Math.max(0, finalAmount - perStudentDiscount);
+      }
+    }
+
     const due = s.nextPaymentDate ? new Date(s.nextPaymentDate).toLocaleDateString('uz-UZ') : '-';
-    const amount = (s.monthlyPrice || 0).toLocaleString('uz-UZ');
+    const amountStr = finalAmount.toLocaleString('uz-UZ');
     const msg =
       `Assalomu alaykum, hurmatli ota-ona! 📢\n\n` +
       `"Hope Study" o'quv markazidan eslatma: farzandingiz <b>${s.name}</b> uchun to'lov muddati ${due} kuni yakunlangan edi. Iltimos, ushbu qarzni imkon qadar tezroq yopishingizni so'raymiz.\n\n` +
-      `💵 <b>Qarzdorlik miqdori:</b> ${amount} so'm\n\n` +
+      `💵 <b>Qarzdorlik miqdori:</b> ${amountStr} so'm\n\n` +
       `O'zaro ishonch va tartib uchun tashakkur! 😊`;
 
     try {

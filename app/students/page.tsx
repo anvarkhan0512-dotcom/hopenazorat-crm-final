@@ -36,6 +36,8 @@ interface Student {
   telegramId?: string;
   extraFans?: ExtraFan[];
   extraDiscount?: number;
+  schoolNumber?: string;
+  classNumber?: string;
 }
 
 interface Group {
@@ -104,6 +106,8 @@ export default function StudentsPage() {
     telegramId: '',
     extraFans: [] as ExtraFan[],
     extraDiscount: 0,
+    schoolNumber: '',
+    classNumber: '',
   });
 
   useEffect(() => {
@@ -284,6 +288,8 @@ export default function StudentsPage() {
         telegramId: student.telegramId || '',
         extraFans: student.extraFans || [],
         extraDiscount: student.extraDiscount || 0,
+        schoolNumber: student.schoolNumber || '',
+        classNumber: student.classNumber || '',
       });
     } else {
       setEditingStudent(null);
@@ -307,6 +313,8 @@ export default function StudentsPage() {
         telegramId: '',
         extraFans: [],
         extraDiscount: 0,
+        schoolNumber: '',
+        classNumber: '',
       });
     }
     setShowModal(true);
@@ -657,6 +665,29 @@ export default function StudentsPage() {
             >
               + telefon qo'shish
             </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="form-group">
+              <label className="form-label">Maktab raqami</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Masalan: 15"
+                value={formData.schoolNumber || ''}
+                onChange={(e) => setFormData({ ...formData, schoolNumber: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Sinf</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Masalan: 10-A"
+                value={formData.classNumber || ''}
+                onChange={(e) => setFormData({ ...formData, classNumber: e.target.value })}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

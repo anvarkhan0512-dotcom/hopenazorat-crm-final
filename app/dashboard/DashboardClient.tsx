@@ -27,6 +27,7 @@ interface DashboardData {
   debtorsCount: number;
   last7DaysIncome: { day: string; income: number }[];
   last6MonthsIncome: { month: string; income: number }[];
+  schoolStats?: { school: string; count: number }[];
   financeSummary?: {
     totalExpected: number;
     totalDiscounts: number;
@@ -408,8 +409,8 @@ export default function DashboardClient() {
         onClose={() => setTabModal(prev => ({ ...prev, isOpen: false }))}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="card lg:col-span-2">
           <div className="card-header cursor-pointer hover:bg-gray-50 transition-all" onClick={() => router.push('/reports?type=daily')}>
             <h3 className="card-title">
               {t('dailyReport')} — {t('income')}
@@ -426,6 +427,33 @@ export default function DashboardClient() {
           </div>
         </div>
 
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">Maktablar bo'yicha</h3>
+          </div>
+          <div className="space-y-4">
+            {dashboard.schoolStats && dashboard.schoolStats.length > 0 ? (
+              dashboard.schoolStats.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-purple-100 text-purple-700 rounded-lg flex items-center justify-center font-bold text-xs">
+                      {idx + 1}
+                    </div>
+                    <span className="font-bold text-gray-700">{item.school}-maktab</span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-500">{item.count} ta talaba</span>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-400 italic text-sm">
+                Ma'lumotlar mavjud emas
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
           <div className="card-header cursor-pointer hover:bg-gray-50 transition-all" onClick={() => router.push('/reports?type=monthly')}>
             <h3 className="card-title">

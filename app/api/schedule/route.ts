@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
       groupName: s.groupId?.name,
       monthlyPrice: s.monthlyPrice,
       paymentCycle: s.paymentCycle,
+      lessonCount: s.lessonCount,
       customPaymentDays: s.customPaymentDays,
       paymentStartDate: s.paymentStartDate,
       nextPaymentDate: s.nextPaymentDate,
@@ -114,6 +115,7 @@ export async function POST(request: NextRequest) {
       if (updateData.basePrice !== undefined) student.basePrice = updateData.basePrice;
       else if (updateData.monthlyPrice !== undefined) student.basePrice = updateData.monthlyPrice;
       if (updateData.paymentCycle) student.paymentCycle = updateData.paymentCycle;
+      if (updateData.lessonCount !== undefined) student.lessonCount = updateData.lessonCount;
       if (updateData.customPaymentDays) student.customPaymentDays = updateData.customPaymentDays;
       if (updateData.paymentStartDate) student.paymentStartDate = new Date(updateData.paymentStartDate);
       if (updateData.paymentEndDate) student.paymentEndDate = new Date(updateData.paymentEndDate);

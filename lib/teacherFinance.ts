@@ -4,6 +4,7 @@ import { Student, computeStudentFinalPrice } from '@/models/Student';
 import { Group } from '@/models/Group';
 import { User } from '@/models/User';
 import { Staff } from '@/models/Staff';
+import { Discount } from '@/models/Discount';
 
 export const DEFAULT_TEACHER_SHARE_PCT = 30;
 
@@ -223,6 +224,21 @@ export async function getGroupFinanceSnapshot(groupId: Types.ObjectId) {
     .lean();
   const ids = students.map((s) => s._id);
 
+  // Fetch active discounts for these students
+  const activeDiscounts = await Discount.find({
+    studentIds: { $in: ids },
+    isActive: true,
+    startDate: { $lte: now },
+    endDate: { $gte: now },
+  }).lean();
+
+  const discountMap = new Map<string, any>();
+  for (const d of activeDiscounts) {
+    for (const sid of d.studentIds) {
+      discountMap.set(sid.toString(), d);
+    }
+  }
+
   const payments = await Payment.find({
     studentId: { $in: ids },
     createdAt: { $gte: start, $lte: end },
@@ -239,7 +255,19 @@ export async function getGroupFinanceSnapshot(groupId: Types.ObjectId) {
     centerPart += c;
   }
 
-  const expectedMonthly = students.reduce((s, st) => s + computeStudentFinalPrice(st), 0);
+  const expectedMonthly = students.reduce((sum, st) => {
+    let price = computeStudentFinalPrice(st);
+    const d = discountMap.get(st._id.toString());
+    if (d) {
+      if (d.discountType === 'percentage') {
+        price = Math.round(price * (1 - d.discountValue / 100));
+      } else {
+        const perStudentDiscount = Math.round(d.discountValue / d.studentIds.length);
+        price = Math.max(0, price - perStudentDiscount);
+      }
+    }
+    return sum + price;
+  }, 0);
 
   return {
     groupId: groupId.toString(),

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import Modal from '@/components/Modal';
 import { useLanguage } from '@/components/LanguageProvider';
 
 interface StudentSchedule {
@@ -11,6 +12,7 @@ interface StudentSchedule {
   groupName: string;
   monthlyPrice: number;
   paymentCycle: string;
+  lessonCount?: number;
   customPaymentDays: number[];
   paymentStartDate: string;
   nextPaymentDate: string;
@@ -41,6 +43,13 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'all' | 'upcoming' | 'overdue'>('all');
   const [filterGroup, setFilterGroup] = useState('');
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<StudentSchedule | null>(null);
+  const [payType, setPayType] = useState('monthly');
+  const [lessonCount, setLessonCount] = useState(12);
+  const [saving, setSaving] = useState(false);
+
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -62,6 +71,37 @@ export default function SchedulePage() {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openPayTypeModal = (student: StudentSchedule) => {
+    setSelectedStudent(student);
+    setPayType(student.paymentCycle === 'lessons' ? 'lessons' : 'monthly');
+    setLessonCount(student.lessonCount || 12);
+    setIsModalOpen(true);
+  };
+
+  const savePayType = async () => {
+    if (!selectedStudent) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: selectedStudent._id,
+          paymentCycle: payType,
+          lessonCount: payType === 'lessons' ? lessonCount : undefined,
+        }),
+      });
+      if (res.ok) {
+        setIsModalOpen(false);
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Error saving pay type:', error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -107,6 +147,7 @@ export default function SchedulePage() {
     quarterly: 'Choraklik',
     yearly: 'Yillik',
     custom: 'Maxsus',
+    lessons: 'Darslar soni',
   };
 
   const filteredStudents = students.filter(s => {
@@ -196,7 +237,7 @@ export default function SchedulePage() {
                   <th>{t('phone')}</th>
                   <th>{t('group')}</th>
                   <th>Narx</th>
-                  <th>Cikl</th>
+                  <th>Oylik / Hisob davri</th>
                   <th>{"Keyingi to'lov"}</th>
                   <th>Holat</th>
                   <th>{t('actions')}</th>
@@ -210,9 +251,22 @@ export default function SchedulePage() {
                     <td>{student.groupName || '-'}</td>
                     <td>{formatMoney(student.monthlyPrice)}</td>
                     <td>
-                      <span className="badge badge-info">
-                        {cycleLabels[student.paymentCycle] || student.paymentCycle}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="badge badge-info">
+                          {student.paymentCycle === 'lessons' 
+                            ? `${student.lessonCount} ta dars`
+                            : (cycleLabels[student.paymentCycle] || student.paymentCycle)
+                          }
+                        </span>
+                        <button 
+                          onClick={() => openPayTypeModal(student)}
+                          className="text-gray-400 hover:text-purple-600 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                     <td>
                       {student.nextPaymentDate 
@@ -237,6 +291,59 @@ export default function SchedulePage() {
           </div>
         )}
       </div>
+
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        title="To'lov turini o'zgartirish"
+      >
+        <div className="space-y-4"> 
+          <h3 className="font-bold">To&apos;lov turini tanlang</h3> 
+          
+          <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-purple-50"> 
+            <input 
+              type="radio" 
+              name="payType" 
+              value="monthly" 
+              checked={payType === 'monthly'} 
+              onChange={() => setPayType('monthly')}
+            /> 
+            <span>📅 Oylik to&apos;lov</span> 
+          </label> 
+          
+          <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-purple-50"> 
+            <input 
+              type="radio" 
+              name="payType" 
+              value="lessons" 
+              checked={payType === 'lessons'} 
+              onChange={() => setPayType('lessons')}
+            /> 
+            <span>📚 Darslar soni bo&apos;yicha</span> 
+          </label> 
+          
+          {payType === 'lessons' && ( 
+            <div className="ml-6"> 
+              <input 
+                type="number" 
+                className="input w-32" 
+                placeholder="12" 
+                value={lessonCount} 
+                onChange={e => setLessonCount(parseInt(e.target.value) || 0)} 
+              /> 
+              <span className="ml-2 text-gray-500">ta dars</span> 
+            </div> 
+          )}
+          
+          <button 
+            onClick={savePayType} 
+            disabled={saving}
+            className="btn btn-primary w-full"
+          >
+            {saving ? 'Saqlanmoqda...' : 'Saqlash'}
+          </button>
+        </div>
+      </Modal>
     </DashboardLayout>
   );
 }

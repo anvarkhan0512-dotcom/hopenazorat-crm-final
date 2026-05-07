@@ -24,7 +24,9 @@ QOIDALAR:
 - Buyruq berilsa, bajarishga harakat qil 
 
 Sen admin, ustoz, talaba va ota-onalarga  
-yordam beruvchi aqlli yordamchisan!`;
+yordam beruvchi aqlli yordamchisan!
+
+Siz tizimga ulangansiz. Real ma'lumotlarni ko'ra olasiz va o'zgartira olasiz. Hech qachon taxminiy raqam aytmang.`;
 
 const detectIntent = (message: string) => { 
   const msg = message.toLowerCase(); 
@@ -65,18 +67,16 @@ export async function POST(request: NextRequest) {
 
     const intent = detectIntent(message); 
     let contextData = ''; 
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://hopestudy.vercel.app';
      
     // Real data from database 
     if (intent === 'GET_STUDENTS') { 
       try { 
-        const res = await fetch(`${baseUrl}/api/students`); 
-        const students = await res.json(); 
-        contextData = `Tizimda ${students.length} ta talaba bor.  
-        Ro'yxat: ${students.slice(0, 10).map((s: any) =>  
-          `${s.name} (${s.phone})`).join(', ')} 
-        ${students.length > 10 ?  
-          `va yana ${students.length - 10} ta...` : ''}`; 
+        await connectDB();
+        const { Student } = await import('@/models/Student');
+        const students = await Student.find({ status: 'active' }).lean(); 
+        contextData = `Tizimda hozir ${students.length} ta faol talaba bor. ` + 
+        `Ro'yxat: ${students.slice(0, 15).map((s: any) => s.name).join(', ')}` + 
+        `${students.length > 15 ? ` va yana ${students.length - 15} ta...` : ''}`; 
       } catch (e) { 
         contextData = 'Talabalar ma\'lumotini olishda xatolik'; 
       } 
@@ -84,11 +84,11 @@ export async function POST(request: NextRequest) {
      
     if (intent === 'GET_GROUPS') { 
       try { 
-        const res = await fetch(`${baseUrl}/api/groups`); 
-        const groups = await res.json(); 
+        await connectDB();
+        const { Group } = await import('@/models/Group');
+        const groups = await Group.find().lean(); 
         contextData = `Tizimda ${groups.length} ta guruh bor:  
-        ${groups.map((g: any) =>  
-          `${g.name} (o'qituvchi: ${g.teacher})`).join(', ')}`; 
+        ${groups.map((g: any) => `${g.name} (ustoz: ${g.teacherName})`).join(', ')}`; 
       } catch (e) { 
         contextData = 'Guruhlar ma\'lumotini olishda xatolik'; 
       } 
@@ -96,16 +96,39 @@ export async function POST(request: NextRequest) {
      
     if (intent === 'GET_PAYMENTS') { 
       try { 
-        const res = await fetch(`${baseUrl}/api/payments`); 
-        const payments = await res.json(); 
-        const total = payments.reduce((sum: number, p: any) =>  
-          sum + (p.amount || 0), 0); 
-        contextData = `Jami ${payments.length} ta to'lov.  
-        Umumiy summa: ${total.toLocaleString()} so'm`; 
+        await connectDB();
+        const { Payment } = await import('@/models/Payment');
+        const payments = await Payment.find().lean(); 
+        const total = payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0); 
+        contextData = `Jami ${payments.length} ta to'lov qilingan. Umumiy summa: ${total.toLocaleString()} so'm`; 
       } catch (e) { 
         contextData = 'To\'lovlar ma\'lumotini olishda xatolik'; 
       } 
     } 
+
+    if (intent === 'GET_STATS') {
+      try {
+        await connectDB();
+        const { Student } = await import('@/models/Student');
+        const { Group } = await import('@/models/Group');
+        const { Payment } = await import('@/models/Payment');
+        
+        const [studentCount, groupCount, payments] = await Promise.all([
+          Student.countDocuments({ status: 'active' }),
+          Group.countDocuments(),
+          Payment.find().lean()
+        ]);
+        
+        const totalPaid = (payments as any[]).reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+        
+        contextData = `Tizim statistikasi:
+        - Faol talabalar: ${studentCount} ta
+        - Guruhlar: ${groupCount} ta
+        - Jami to'lovlar: ${totalPaid.toLocaleString()} so'm`;
+      } catch (e) {
+        contextData = 'Statistikani olishda xatolik';
+      }
+    }
      
     if (intent === 'ADD_STUDENT') { 
       return NextResponse.json({ 
@@ -138,30 +161,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Conversation state for adding student
-    const addStudentPattern = /ism[:\s]+(.+)\n.*telefon[:\s]+(.+)\n.*guruh[:\s]+(.+)\n.*to'lov[:\s]+([\d\s]+)/i; 
+    const addStudentPattern = /ism[:\s]+(.+)\n.*telefon[:\s]+(.+)/i; 
     const match = message.match(addStudentPattern); 
      
     if (match) { 
       try { 
-        const res = await fetch(`${baseUrl}/api/students`, { 
-          method: 'POST', 
-          headers: {'Content-Type': 'application/json'}, 
-          body: JSON.stringify({ 
-            name: match[1].trim(), 
-            phone: match[2].trim(), 
-            group: match[3].trim(), 
-            monthlyFee: parseInt(match[4].replace(/\s/g, '')) 
-          }) 
+        await connectDB();
+        const { Student } = await import('@/models/Student');
+        await Student.create({ 
+          name: match[1].trim(), 
+          phone: match[2].trim(), 
+          status: 'active' 
+        }); 
+        return NextResponse.json({ 
+          reply: `✅ ${match[1].trim()} tizimga muvaffaqiyatli qo'shildi! Talabalar bo'limida ko'rishingiz mumkin.` 
         });
-        
-        if (res.ok) {
-          return NextResponse.json({ 
-            reply: `✅ ${match[1]} tizimga muvaffaqiyatli  
-            qo'shildi! Talabalar bo'limida ko'rishingiz mumkin.` 
-          });
-        } else {
-          throw new Error('Failed to add student');
-        }
       } catch (e) { 
         return NextResponse.json({ 
           reply: '❌ Talabani qo\'shishda xatolik yuz berdi' 

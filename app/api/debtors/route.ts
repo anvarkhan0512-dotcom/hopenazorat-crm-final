@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     const [invoices, summary] = await Promise.all([
       Invoice.find(query)
-        .populate('studentId', 'name phone')
+        .populate('studentId', 'name phone monthlyPrice basePrice')
         .populate('groupId', 'name')
         .sort({ amount: -1 })
         .lean(),
@@ -55,18 +55,26 @@ export async function GET(request: NextRequest) {
       ]),
     ]);
 
-    const debtors = invoices.map((inv: any) => ({
-      _id: inv._id,
-      invoiceId: inv._id,
-      studentId: inv.studentId?._id || inv.studentId,
-      studentName: inv.studentId?.name,
-      phone: inv.studentId?.phone,
-      groupName: inv.groupId?.name,
-      amount: inv.amount,
-      paidAmount: inv.paidAmount,
-      debt: inv.amount - inv.paidAmount,
-      status: inv.status,
-    }));
+    const debtors = invoices.map((inv: any) => {
+      const student = inv.studentId;
+      const originalPrice = student?.basePrice || student?.monthlyPrice || inv.amount;
+      const totalDiscount = Math.max(0, originalPrice - inv.amount);
+
+      return {
+        _id: inv._id,
+        invoiceId: inv._id,
+        studentId: student?._id || inv.studentId,
+        studentName: student?.name,
+        phone: student?.phone,
+        groupName: inv.groupId?.name,
+        originalPrice,
+        totalDiscount,
+        amount: inv.amount,
+        paidAmount: inv.paidAmount,
+        debt: inv.amount - inv.paidAmount,
+        status: inv.status,
+      };
+    });
 
     const summaryResult = {
       pending: 0,

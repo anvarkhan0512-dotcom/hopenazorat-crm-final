@@ -13,6 +13,8 @@ interface Invoice {
   groupName: string;
   month: number;
   year: number;
+  originalPrice: number;
+  totalDiscount: number;
   amount: number;
   paidAmount: number;
   debt: number;
@@ -124,13 +126,15 @@ export default function InvoicesPage() {
     paid: invoices.filter(i => i.status === 'paid').length,
     partial: invoices.filter(i => i.status === 'partial').length,
     pending: invoices.filter(i => i.status === 'pending').length,
+    rawTotal: invoices.reduce((sum, i) => sum + i.originalPrice, 0),
+    totalDiscounts: invoices.reduce((sum, i) => sum + i.totalDiscount, 0),
     totalAmount: invoices.reduce((sum, i) => sum + i.amount, 0),
     totalPaid: invoices.reduce((sum, i) => sum + i.paidAmount, 0),
     totalDebt: invoices.reduce((sum, i) => sum + i.debt, 0),
   };
 
   return (
-    <DashboardLayout title={t('payments')}>
+    <DashboardLayout title="To'lovlar Umumiy">
       <div className="card mb-4">
         <h3 className="card-title mb-2">Guruh bo‘yicha real vaqtda hisob-kitob</h3>
         <div className="flex flex-wrap gap-2 items-center">
@@ -238,19 +242,44 @@ export default function InvoicesPage() {
       </div>
 
       {summary.total > 0 && (
+        <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl mb-4"> 
+          <div className="text-center"> 
+            <p className="text-sm text-gray-500">Jami oylik</p> 
+            <p className="font-bold text-lg"> 
+              {summary.rawTotal.toLocaleString()} so&apos;m 
+            </p> 
+          </div> 
+          <div className="text-center"> 
+            <p className="text-sm text-red-500">Chegirmalar</p> 
+            <p className="font-bold text-lg text-red-500"> 
+              -{summary.totalDiscounts.toLocaleString()} so&apos;m 
+            </p> 
+          </div> 
+          <div className="text-center"> 
+            <p className="text-sm text-green-600"> 
+              To&apos;lash kerak 
+            </p> 
+            <p className="font-bold text-lg text-green-600"> 
+              {(summary.rawTotal - summary.totalDiscounts).toLocaleString()} so&apos;m 
+            </p> 
+          </div> 
+        </div> 
+      )}
+
+      {summary.total > 0 && (
         <div className="card mb-4">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-sm text-gray-500">Jami summa</div>
-              <div className="text-xl font-bold">{formatMoney(summary.totalAmount, locale)}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">{t('paid')}</div>
+              <div className="text-sm text-gray-500">Jami tushum (to&apos;langan)</div>
               <div className="text-xl font-bold" style={{ color: '#10b981' }}>{formatMoney(summary.totalPaid, locale)}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-500">{t('totalDebt')}</div>
+              <div className="text-sm text-gray-500">Kutilayotgan qoldiq</div>
               <div className="text-xl font-bold" style={{ color: '#ef4444' }}>{formatMoney(summary.totalDebt, locale)}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Jami talaba</div>
+              <div className="text-xl font-bold">{summary.total}</div>
             </div>
           </div>
         </div>
@@ -264,7 +293,9 @@ export default function InvoicesPage() {
                 <th>{t('name')}</th>
                 <th>{t('phone')}</th>
                 <th>{t('group')}</th>
-                <th>{t('amount')}</th>
+                <th>Oylik narx</th>
+                <th>Chegirma</th>
+                <th>To&apos;lash kerak</th>
                 <th>{t('paid')}</th>
                 <th>{t('totalDebt')}</th>
                 <th>{t('status')}</th>
@@ -273,13 +304,13 @@ export default function InvoicesPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8">
+                  <td colSpan={9} className="text-center py-8">
                     <div className="spinner"></div>
                   </td>
                 </tr>
               ) : invoices.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8">
+                  <td colSpan={9} className="text-center py-8">
                     {t('noData')}
                   </td>
                 </tr>
@@ -289,7 +320,9 @@ export default function InvoicesPage() {
                     <td className="font-bold">{invoice.studentName}</td>
                     <td>{invoice.phone}</td>
                     <td>{invoice.groupName || '-'}</td>
-                    <td>{formatMoney(invoice.amount, locale)}</td>
+                    <td className="text-gray-500">{formatMoney(invoice.originalPrice, locale)}</td>
+                    <td className="text-red-500">-{formatMoney(invoice.totalDiscount, locale)}</td>
+                    <td className="text-emerald-600 font-bold">{formatMoney(invoice.amount, locale)}</td>
                     <td>{formatMoney(invoice.paidAmount, locale)}</td>
                     <td className={invoice.debt > 0 ? 'text-red-600 font-bold' : ''}>
                       {formatMoney(invoice.debt, locale)}

@@ -68,6 +68,8 @@ export default function FreeLessonsPage() {
     arrivalDate: new Date().toISOString().split('T')[0],
     lessonDays: [] as string[],
     lessonTime: '14:00',
+    schoolNumber: '',
+    classNumber: '',
   });
 
   const [statusForm, setStatusForm] = useState({
@@ -125,6 +127,8 @@ export default function FreeLessonsPage() {
         arrivalDate: new Date().toISOString().split('T')[0],
         lessonDays: [],
         lessonTime: '14:00',
+        schoolNumber: '',
+        classNumber: '',
       });
       loadData();
     }
@@ -373,6 +377,28 @@ export default function FreeLessonsPage() {
               onChange={e => setAddForm({ ...addForm, studentName: e.target.value })}
               required
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="form-group">
+              <label className="form-label font-bold">Maktab raqami</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Masalan: 15"
+                value={addForm.schoolNumber || ''}
+                onChange={e => setAddForm({ ...addForm, schoolNumber: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label font-bold">Sinf</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Masalan: 10-A"
+                value={addForm.classNumber || ''}
+                onChange={e => setAddForm({ ...addForm, classNumber: e.target.value })}
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="form-group">

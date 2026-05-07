@@ -90,8 +90,16 @@ export async function GET() {
         },
       ]),
       getAdminFinanceOverview(currentMonth, currentYear),
-      Student.find({ status: 'active' }).select('basePrice discountAmount').lean(),
+      Student.find({ status: 'active' }).select('basePrice discountAmount schoolNumber').lean(),
     ]);
+
+    const schoolAgg = await Student.aggregate([
+      { $match: { status: 'active', schoolNumber: { $ne: '' } } },
+      { $group: { _id: '$schoolNumber', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]);
+    const schoolStats = schoolAgg.map(s => ({ school: s._id, count: s.count }));
 
     const paymentsThisMonth = paymentsAgg[0]?.total || 0;
 
@@ -132,6 +140,7 @@ export async function GET() {
       debtorsCount,
       last7DaysIncome,
       last6MonthsIncome,
+      schoolStats,
       financeSummary: {
         totalExpected: totalExpectedInflow - totalDiscounts,
         totalDiscounts,
