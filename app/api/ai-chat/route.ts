@@ -28,169 +28,243 @@ yordam beruvchi aqlli yordamchisan!
 
 Siz tizimga ulangansiz. Real ma'lumotlarni ko'ra olasiz va o'zgartira olasiz. Hech qachon taxminiy raqam aytmang.`;
 
-const detectIntent = (message: string) => { 
+// Role-based data fetcher 
+async function getRoleContext( 
+  userId: string, 
+  role: string, 
+  message: string 
+): Promise<string> { 
+  await connectDB(); 
   const msg = message.toLowerCase(); 
-  if (msg.includes('talabalar') &&  
-     (msg.includes('ro\'yxat') || msg.includes('soni') ||  
-      msg.includes('hammasi') || msg.includes('ko\'rsat')))  
-    return 'GET_STUDENTS'; 
-  if (msg.includes('guruhlar') &&  
-     (msg.includes('ro\'yxat') || msg.includes('ko\'rsat'))) 
-    return 'GET_GROUPS'; 
-  if (msg.includes('to\'lovlar') || msg.includes('qarzdorlar')) 
-    return 'GET_PAYMENTS'; 
-  if (msg.includes('talaba qo\'sh') ||  
-      msg.includes('yangi talaba')) 
-    return 'ADD_STUDENT'; 
-  if (msg.includes('guruh qo\'sh') ||  
-      msg.includes('yangi guruh')) 
-    return 'ADD_GROUP'; 
-  if (msg.includes('statistika') ||  
-      msg.includes('hisobot') ||  
-      msg.includes('dashboard')) 
-    return 'GET_STATS'; 
-  return null; 
-};
+  
+  // ===== ADMIN ===== 
+  if (role === 'admin' || role === 'manager') { 
+    
+    // Students info 
+    if (msg.includes('talaba') || 
+        msg.includes('o\'quvchi') || 
+        msg.includes('nechta') || 
+        msg.includes('ro\'yxat')) { 
+      const { Student } = await import('@/models/Student'); 
+      const students = await Student.find({ status: 'active' }) 
+        .populate('groupId', 'name') 
+        .select('name phone status monthlyPrice groupId') 
+        .lean(); 
+      return `Faol talabalar: ${students.length} ta.\n` + 
+        students.slice(0,20).map((s: any) => 
+          `- ${s.name} | ${s.phone || 'tel yo\'q'} | ` + 
+          `Guruh: ${s.groupId?.name || 'belgilanmagan'} | ` + 
+          `Oylik: ${(s.monthlyPrice || 0).toLocaleString()} so'm` 
+        ).join('\n'); 
+    } 
+    
+    // Groups info 
+    if (msg.includes('guruh')) { 
+      const { Group } = await import('@/models/Group'); 
+      const groups = await Group.find() 
+        .populate('teacherUserId', 'displayName') 
+        .lean(); 
+      return `Guruhlar: ${groups.length} ta.\n` + 
+        groups.map((g: any) => 
+          `- ${g.name} | ` + 
+          `Ustoz: ${g.teacherUserId?.displayName || 'belgilanmagan'} | ` + 
+          `Narx: ${(g.price || 0).toLocaleString()} so'm` 
+        ).join('\n'); 
+    } 
+    
+    // Payments info 
+    if (msg.includes('to\'lov') || 
+        msg.includes('daromad') || 
+        msg.includes('pul')) { 
+      const { Payment } = await import('@/models/Payment'); 
+      const now = new Date(); 
+      const startOfMonth = new Date( 
+        now.getFullYear(), now.getMonth(), 1); 
+      const payments = await Payment.find({ 
+        createdAt: { $gte: startOfMonth } 
+      }).lean(); 
+      const total = payments.reduce( 
+        (sum: number, p: any) => sum + (p.amount || 0), 0); 
+      return `Bu oylik to'lovlar: ${payments.length} ta.\n` + 
+        `Jami tushum: ${total.toLocaleString()} so'm`; 
+    } 
+    
+    // Debtors 
+    if (msg.includes('qarzdor') || 
+        msg.includes('qarz')) { 
+      const { Student } = await import('@/models/Student'); 
+      const debtors = await Student.find({ 
+        status: 'active', 
+        lastPaymentDate: { 
+          $lt: new Date(Date.now() - 30*24*60*60*1000) 
+        } 
+      }).select('name phone monthlyPrice').lean(); 
+      return `Qarzdorlar: ${debtors.length} ta.\n` + 
+        debtors.slice(0,15).map((s: any) => 
+          `- ${s.name} | ${(s.monthlyPrice||0).toLocaleString()} so'm` 
+        ).join('\n'); 
+    } 
+    
+    // Staff 
+    if (msg.includes('hodim') || 
+        msg.includes('ustoz') || 
+        msg.includes('o\'qituvchi')) { 
+      const { User } = await import('@/models/User'); 
+      const staff = await User.find({ 
+        role: { $in: ['teacher', 'manager'] } 
+      }).select('displayName role').lean(); 
+      return `Xodimlar: ${staff.length} ta.\n` + 
+        staff.map((s: any) => 
+          `- ${s.displayName} (${s.role})` 
+        ).join('\n'); 
+    } 
+    
+    // General stats 
+    const { Student } = await import('@/models/Student'); 
+    const { Group } = await import('@/models/Group'); 
+    const [sCount, gCount] = await Promise.all([ 
+      Student.countDocuments({ status: 'active' }), 
+      Group.countDocuments() 
+    ]); 
+    return `Tizim: ${sCount} faol talaba, ${gCount} guruh`; 
+  } 
+  
+  // ===== TEACHER ===== 
+  if (role === 'teacher') { 
+    if (msg.includes('talaba') || 
+        msg.includes('o\'quvchi')) { 
+      const { Student } = await import('@/models/Student'); 
+      const { Group } = await import('@/models/Group'); 
+      const myGroups = await Group.find({ 
+        teacherUserId: userId 
+      }).lean(); 
+      const groupIds = myGroups.map((g: any) => g._id); 
+      const students = await Student.find({ 
+        groupId: { $in: groupIds }, 
+        status: 'active' 
+      }).populate('groupId', 'name').lean(); 
+      return `Sizning talabalaringiz: ${students.length} ta\n` + 
+        students.map((s: any) => 
+          `- ${s.name} | ${s.groupId?.name}` 
+        ).join('\n'); 
+    } 
+    
+    if (msg.includes('guruh') || 
+        msg.includes('dars')) { 
+      const { Group } = await import('@/models/Group'); 
+      const groups = await Group.find({ 
+        teacherUserId: userId 
+      }).lean(); 
+      return `Sizning guruhlaringiz: ${groups.length} ta\n` + 
+        groups.map((g: any) => 
+          `- ${g.name} | Vaqt: ${g.schedule || 'belgilanmagan'}` 
+        ).join('\n'); 
+    } 
+    
+    return `Salom! Men sizning guruhlaringiz va 
+    talabalaringiz haqida yordam bera olaman.`; 
+  } 
+  
+  // ===== STUDENT ===== 
+  if (role === 'student') { 
+    const { User } = await import('@/models/User'); 
+    const user = await User.findById(userId).lean() as any; 
+    
+    const { Student } = await import('@/models/Student'); 
+    const student = await Student.findOne({ 
+      $or: [ 
+        { studentUserId: userId }, 
+        { phone: user?.username } 
+      ] 
+    }).populate('groupId').lean() as any; 
+    
+    if (!student) return 'Talaba ma\'lumoti topilmadi'; 
+    
+    if (msg.includes('to\'lov') || 
+        msg.includes('qarz')) { 
+      const { Payment } = await import('@/models/Payment'); 
+      const payments = await Payment.find({ 
+        studentId: student._id 
+      }).sort({ createdAt: -1 }).limit(5).lean(); 
+      return `Sizning to'lovlaringiz:\n` + 
+        payments.map((p: any) => 
+          `- ${new Date(p.createdAt).toLocaleDateString('uz')} | ` + 
+          `${(p.amount||0).toLocaleString()} so'm` 
+        ).join('\n') + 
+        `\nOylik to'lov: ${(student.monthlyPrice||0).toLocaleString()} so'm`; 
+    } 
+    
+    if (msg.includes('guruh') || 
+        msg.includes('dars')) { 
+      return `Sizning guruhingiz: ${student.groupId?.name || 'belgilanmagan'}\n` + 
+        `Jadval: ${student.groupId?.schedule || 'belgilanmagan'}\n` + 
+        `Oylik: ${(student.monthlyPrice||0).toLocaleString()} so'm`; 
+    } 
+    
+    return `Salom ${student.name}! ` + 
+      `Guruh: ${student.groupId?.name || 'belgilanmagan'}. ` + 
+      `To\'lov, dars jadvali haqida so\'rang.`; 
+  } 
+  
+  // ===== PARENT ===== 
+  if (role === 'parent') { 
+    const { Student } = await import('@/models/Student'); 
+    const children = await Student.find({ 
+      parentUserId: userId 
+    }).populate('groupId').lean(); 
+    
+    if (children.length === 0) { 
+      return 'Farzandingiz tizimga ulanmagan.'; 
+    } 
+    
+    if (msg.includes('to\'lov') || 
+        msg.includes('qarz')) { 
+      const { Payment } = await import('@/models/Payment'); 
+      let result = ''; 
+      for (const child of children) { 
+        const payments = await Payment.find({ 
+          studentId: (child as any)._id 
+        }).sort({ createdAt: -1 }).limit(3).lean(); 
+        result += `\n${(child as any).name}:\n` + 
+          payments.map((p: any) => 
+            `  - ${new Date(p.createdAt).toLocaleDateString('uz')}: ` + 
+            `${(p.amount||0).toLocaleString()} so'm` 
+          ).join('\n'); 
+      } 
+      return `Farzandlaringizning to'lovlari:${result}`; 
+    } 
+    
+    return children.map((c: any) => 
+      `${c.name} | Guruh: ${c.groupId?.name || 'belgilanmagan'} | ` + 
+      `Oylik: ${(c.monthlyPrice||0).toLocaleString()} so'm` 
+    ).join('\n'); 
+  } 
+  
+  return ''; 
+}
 
 export async function POST(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);
-    if (!auth) {
+    if (!auth || !auth.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const formData = await request.formData();
-    const message = formData.get('message') as string;
-    const historyJson = formData.get('history') as string;
+    const message = (formData.get('message') as string) || '';
+    const historyJson = (formData.get('history') as string) || '[]';
     const history = historyJson ? JSON.parse(historyJson) : [];
     const files = formData.getAll('files') as File[];
 
-    const intent = detectIntent(message); 
-    let contextData = ''; 
-     
-    // Real data from database 
-    if (intent === 'GET_STUDENTS') { 
-      try { 
-        await connectDB(); 
-        const { Student } = await import('@/models/Student');
-        const count = await Student.countDocuments({ 
-          status: 'active' 
-        }); 
-        const students = await Student.find({ 
-          status: 'active' 
-        }).select('name').limit(20).lean(); 
-        
-        contextData = `Tizimda hozir ${count} ta faol talaba bor.\n` + 
-        `Ismlar: ${students.map((s: any) => s.name).join(', ')}`; 
-      } catch (e) { 
-        contextData = 'Ma\'lumot olishda xatolik'; 
-      } 
-    } 
-     
-    if (intent === 'GET_GROUPS') { 
-      try { 
-        await connectDB();
-        const { Group } = await import('@/models/Group');
-        const groups = await Group.find().lean(); 
-        contextData = `Tizimda ${groups.length} ta guruh bor:  
-        ${groups.map((g: any) => `${g.name} (ustoz: ${g.teacherName})`).join(', ')}`; 
-      } catch (e) { 
-        contextData = 'Guruhlar ma\'lumotini olishda xatolik'; 
-      } 
-    } 
-     
-    if (intent === 'GET_PAYMENTS') { 
-      try { 
-        await connectDB();
-        const { Payment } = await import('@/models/Payment');
-        const payments = await Payment.find().lean(); 
-        const total = payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0); 
-        contextData = `Jami ${payments.length} ta to'lov qilingan. Umumiy summa: ${total.toLocaleString()} so'm`; 
-      } catch (e) { 
-        contextData = 'To\'lovlar ma\'lumotini olishda xatolik'; 
-      } 
-    } 
-
-    if (intent === 'GET_STATS') {
-      try {
-        await connectDB();
-        const { Student } = await import('@/models/Student');
-        const { Group } = await import('@/models/Group');
-        const { Payment } = await import('@/models/Payment');
-        
-        const [studentCount, groupCount, payments] = await Promise.all([
-          Student.countDocuments({ status: 'active' }),
-          Group.countDocuments(),
-          Payment.find().lean()
-        ]);
-        
-        const totalPaid = (payments as any[]).reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
-        
-        contextData = `Tizim statistikasi:
-        - Faol talabalar: ${studentCount} ta
-        - Guruhlar: ${groupCount} ta
-        - Jami to'lovlar: ${totalPaid.toLocaleString()} so'm`;
-      } catch (e) {
-        contextData = 'Statistikani olishda xatolik';
-      }
-    }
-     
-    if (intent === 'ADD_STUDENT') { 
-      return NextResponse.json({ 
-        reply: `Yangi talaba qo'shish uchun  
-        quyidagi ma'lumotlarni yuboring: 
-         
-        📝 Ism va familiya: 
-        📞 Telefon raqam: 
-        👥 Guruh nomi: 
-        💰 Oylik to'lov (so'mda): 
-         
-        Yuqoridagi formatda yozing, men tizimga  
-        o'zim kiritaman!`, 
-        action: 'COLLECT_STUDENT_INFO' 
-      }); 
-    } 
-     
-    if (intent === 'ADD_GROUP') { 
-      return NextResponse.json({ 
-        reply: `Yangi guruh qo'shish uchun: 
-         
-        📚 Guruh nomi: 
-        👨‍🏫 O'qituvchi: 
-        🕐 Dars vaqti: 
-        💰 Oylik to'lov: 
-         
-        Formatda yozing, kiritaman!`, 
-        action: 'COLLECT_GROUP_INFO' 
-      }); 
-    }
-
-    // Conversation state for adding student
-    const addStudentPattern = /ism[:\s]+(.+)\n.*telefon[:\s]+(.+)/i; 
-    const match = message.match(addStudentPattern); 
-     
-    if (match) { 
-      try { 
-        await connectDB();
-        const { Student } = await import('@/models/Student');
-        await Student.create({ 
-          name: match[1].trim(), 
-          phone: match[2].trim(), 
-          status: 'active' 
-        }); 
-        return NextResponse.json({ 
-          reply: `✅ ${match[1].trim()} tizimga muvaffaqiyatli qo'shildi! Talabalar bo'limida ko'rishingiz mumkin.` 
-        });
-      } catch (e) { 
-        return NextResponse.json({ 
-          reply: '❌ Talabani qo\'shishda xatolik yuz berdi' 
-        }); 
-      } 
-    }
-
-    // Add context to AI prompt 
-    const fullMessage = contextData  
-      ? `${contextData}\n\nFoydalanuvchi savoli: ${message}` 
+    const roleContext = await getRoleContext( 
+      auth.userId, 
+      auth.role, 
+      message 
+    ); 
+    
+    const fullMessage = roleContext 
+      ? `[TIZIM MA'LUMOTLARI]:\n${roleContext}\n\n` + 
+        `[FOYDALANUVCHI SAVOLI]: ${message}` 
       : message;
 
     const messages = [
