@@ -131,6 +131,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
 
       const res = await fetch('/api/ai-chat', {
         method: 'POST',
+        credentials: 'include',
         body: formData,
       });
 

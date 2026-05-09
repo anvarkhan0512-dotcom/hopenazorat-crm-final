@@ -246,9 +246,23 @@ async function getRoleContext(
 export async function POST(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);
+    
+    console.log('Auth check:', { 
+      cookies: request.cookies.getAll(), 
+      headers: request.headers.get('authorization'),
+      authResult: auth ? { id: auth.id, role: auth.role } : 'null'
+    });
+
     if (!auth || !auth.userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      // Temporary: also check auth.id since getAuthUser returns AuthUser with .id and ._id
+      const actualUserId = auth?.id || (auth as any)?.userId;
+      if (!actualUserId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
+
+    const userId = auth?.id || (auth as any)?.userId;
+    const userRole = auth?.role || (auth as any)?.role;
 
     const formData = await request.formData();
     const message = (formData.get('message') as string) || '';
@@ -257,8 +271,8 @@ export async function POST(request: NextRequest) {
     const files = formData.getAll('files') as File[];
 
     const roleContext = await getRoleContext( 
-      auth.userId, 
-      auth.role, 
+      userId, 
+      userRole, 
       message 
     ); 
     

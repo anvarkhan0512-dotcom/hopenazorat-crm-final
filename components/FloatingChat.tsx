@@ -41,6 +41,7 @@ export default function FloatingChat() {
         JSON.stringify(messages));
       const res = await fetch('/api/ai-chat', {
         method: 'POST',
+        credentials: 'include',
         body: formData
       });
       const data = await res.json();
