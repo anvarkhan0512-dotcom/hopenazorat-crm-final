@@ -105,4 +105,13 @@ export function requireStudent(u: AuthUser | null) {
   return null;
 }
 
+export function requireBoss(u: AuthUser | null) {
+  const a = requireAuthUser(u);
+  if (a) return a;
+  if (u!.role !== 'boss') {
+    return { error: 'Forbidden' as const, status: 403 as const };
+  }
+  return null;
+}
+
 export { isAdminRole, JWT_SECRET };

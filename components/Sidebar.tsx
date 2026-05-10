@@ -68,7 +68,7 @@ export default function Sidebar({ isOpen, onClose, collapsed }: SidebarProps) {
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const role = user?.role;
-  const isAdmin = role === 'admin' || role === 'manager';
+  const isAdmin = role === 'admin' || role === 'manager' || role === 'boss';
   const menuItems = isAdmin
     ? adminMenu
     : role === 'teacher'

@@ -43,7 +43,8 @@ function LoginForm() {
 
     if (result.ok && result.user) {
       const role = result.user.role;
-      if (role === 'teacher') router.push('/teacher');
+      if (role === 'boss') router.push('/boss/dashboard');
+      else if (role === 'teacher') router.push('/teacher');
       else if (role === 'parent') router.push('/parent');
       else if (role === 'student') router.push('/student');
       else router.push('/dashboard');

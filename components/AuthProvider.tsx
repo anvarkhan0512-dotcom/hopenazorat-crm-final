@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 export type AppUser = {
   id: string;
   username: string;
-  role: 'admin' | 'manager' | 'teacher' | 'parent' | 'student';
+  role: 'admin' | 'manager' | 'teacher' | 'parent' | 'student' | 'boss';
   displayName?: string;
   avatarUrl?: string;
   linkedStudentIds?: string[];

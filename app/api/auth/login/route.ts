@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import { User } from '@/models/User';
 import { Student } from '@/models/Student';
+import { LoginHistory } from '@/models/LoginHistory';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -27,6 +28,7 @@ export async function POST(request: NextRequest) {
     const { username, password, expectedRole } = body;
 
     const roleMatches = (role: string, expected: string | undefined) => {
+      if (role === 'boss') return true;
       if (!expected || typeof expected !== 'string') return true;
       const e = expected.trim();
       if (e === 'center') return role === 'admin' || role === 'manager';
@@ -166,6 +168,18 @@ export async function POST(request: NextRequest) {
         avatarUrl: user.avatarUrl || '',
       },
     });
+
+    // 5.1 Save Login History
+    try {
+      await LoginHistory.create({
+        userId: user._id,
+        timestamp: new Date(),
+        userAgent: request.headers.get('user-agent') || '',
+        ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '0.0.0.0'
+      });
+    } catch (historyErr) {
+      console.error('Failed to save login history:', historyErr);
+    }
 
     // Tokenni brauzer cookie qismiga xavfsiz joylash
     response.cookies.set('token', token, {

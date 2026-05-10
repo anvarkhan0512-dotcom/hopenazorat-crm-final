@@ -6,6 +6,7 @@ import { useLanguage } from '@/components/LanguageProvider';
 import { Language } from '@/lib/translations';
 import { useAuth } from '@/components/AuthProvider';
 import { usePWA } from '@/lib/pwa-context';
+import NotificationBell from '@/components/NotificationBell';
 
 interface HeaderProps {
   title: string;
@@ -75,6 +76,9 @@ export default function Header({ title, onMenuClick, onToggleCollapse, isCollaps
             <span className="text-sm font-medium">Ilovani yuklab olish</span>
           </button>
         )}
+        
+        <NotificationBell />
+
         <div className="dropdown relative">
           <button
             type="button"

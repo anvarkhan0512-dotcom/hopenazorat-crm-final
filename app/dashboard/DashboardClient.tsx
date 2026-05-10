@@ -87,7 +87,7 @@ export default function DashboardClient() {
   const { t, locale } = useLanguage();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const isOffice = user?.role === 'admin' || user?.role === 'manager';
+  const isOffice = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'boss';
 
   const [activeModal, setActiveModal] = useState<'students' | 'groups' | 'income' | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<any>(null);

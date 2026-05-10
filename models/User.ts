@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Model, Types } from 'mongoose';
 
-export type UserRole = 'admin' | 'manager' | 'teacher' | 'parent' | 'student';
+export type UserRole = 'admin' | 'manager' | 'teacher' | 'parent' | 'student' | 'boss';
 
 export interface IUser extends Document {
   username: string;
@@ -26,7 +26,7 @@ const UserSchema = new Schema<IUser>(
     password: { type: String, required: true },
     role: {
       type: String,
-      enum: ['admin', 'manager', 'teacher', 'parent', 'student'],
+      enum: ['admin', 'manager', 'teacher', 'parent', 'student', 'boss'],
       default: 'parent',
       index: true,
     },
@@ -48,5 +48,5 @@ UserSchema.index({ role: 1, createdAt: -1 });
 export const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
 
 export function isAdminRole(role: string | undefined): boolean {
-  return role === 'admin' || role === 'manager';
+  return role === 'admin' || role === 'manager' || role === 'boss';
 }
