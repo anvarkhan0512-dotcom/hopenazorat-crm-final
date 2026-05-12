@@ -3,31 +3,77 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
+import Modal from '@/components/Modal';
 import NotificationBell from '@/components/NotificationBell';
 
-interface BossStats {
-  markaz: {
-    todayRevenue: number;
-    activeStudents: number;
-  };
-  parents: {
-    total: number;
-    connected: number;
-  };
-  teachers: {
-    name: string;
-    avatar?: string;
-  }[];
-  students: {
-    total: number;
-    active: number;
-    inactive: number;
-  };
+interface StaffMember {
+  _id: string;
+  username: string;
+  role: string;
+  displayName: string;
+  avatarUrl: string;
+  revealablePassword: string;
+  lastLogin: string | null;
+  loginCount: number;
+  monthlyEarnings?: number;
+  paymentsReceived?: number;
+  paymentsCount?: number;
+  createdAt: string;
+}
+
+interface ParentMember {
+  _id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string;
+  revealablePassword: string;
+  children: { name: string; phone: string }[];
+  lastLogin: string | null;
+  createdAt: string;
+}
+
+interface StudentFull {
+  _id: string;
+  name: string;
+  phone: string;
+  groupName: string;
+  status: string;
+  arrivalDate: string;
+  monthlyPrice: number;
+  nextPaymentDate: string;
+  lastPaymentDate: string | null;
+  lastPaymentAmount: number;
+  parentName: string;
+  parentPhone: string;
+  studentUsername: string;
+  studentPassword: string;
+  homeworkStatus: string;
+  lastLogin: string | null;
+  createdAt: string;
 }
 
 export default function BossDashboard() {
-  const [stats, setStats] = useState<BossStats | null>(null);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [parents, setParents] = useState<ParentMember[]>([]);
+  const [students, setStudents] = useState<StudentFull[]>([]);
   const [loading, setLoading] = useState(true);
+  const [impersonating, setImpersonating] = useState<string | null>(null);
+
+  const [modalOpen, setModalOpen] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+  const [isNewCenterModalOpen, setIsNewCenterModalOpen] = useState(false);
+  const [newCenterForm, setNewCenterForm] = useState({
+    name: '',
+    adminUsername: '',
+    adminPassword: '',
+    trialDays: '7',
+    logoText: '',
+    primaryColor: '#7c3aed',
+  });
+  const [newCenterSaving, setNewCenterSaving] = useState(false);
+  const [newCenterResult, setNewCenterResult] = useState<string | null>(null);
+
   const { user, logout } = useAuth();
   const router = useRouter();
 
@@ -36,159 +82,469 @@ export default function BossDashboard() {
       router.push('/dashboard');
       return;
     }
-    fetchStats();
+    fetchAllData();
   }, [user]);
 
-  const fetchStats = async () => {
+  const fetchAllData = async () => {
+    setLoading(true);
     try {
-      const res = await fetch('/api/boss/stats');
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
-      }
+      const [staffRes, parentsRes, studentsRes] = await Promise.all([
+        fetch('/api/boss/staff'),
+        fetch('/api/boss/parents'),
+        fetch('/api/boss/students-full'),
+      ]);
+
+      if (staffRes.ok) setStaff(await staffRes.json());
+      if (parentsRes.ok) setParents(await parentsRes.json());
+      if (studentsRes.ok) setStudents(await studentsRes.json());
     } catch (error) {
-      console.error('Failed to fetch boss stats:', error);
+      console.error('Fetch error:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleImpersonate = async (targetUserId: string) => {
+    setImpersonating(targetUserId);
+    try {
+      const res = await fetch('/api/boss/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = data.redirectTo;
+      } else {
+        alert(data.error || 'Xatolik yuz berdi');
+      }
+    } catch (error) {
+      console.error('Impersonate error:', error);
+      alert('Xatolik yuz berdi');
+    } finally {
+      setImpersonating(null);
+    }
+  };
+
+  const handleCreateCenter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNewCenterSaving(true);
+    try {
+      const res = await fetch('/api/boss/centers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCenterForm),
+      });
+      const data = await res.json();
+      if (res.ok && data.center?._id) {
+        setNewCenterResult(`Login URL: hopestudy.uz/login?c=${data.center._id}`);
+        setTimeout(() => {
+          setIsNewCenterModalOpen(false);
+          setNewCenterResult(null);
+          setNewCenterForm({
+            name: '',
+            adminUsername: '',
+            adminPassword: '',
+            trialDays: '7',
+            logoText: '',
+            primaryColor: '#7c3aed',
+          });
+          fetchAllData();
+        }, 3000);
+      } else {
+        alert(data.error || 'Xatolik yuz berdi');
+      }
+    } catch (error) {
+      console.error('Create center error:', error);
+      alert('Xatolik yuz berdi');
+    } finally {
+      setNewCenterSaving(false);
+    }
+  };
+
+  const togglePassword = (id: string) => {
+    setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const openModal = (type: string) => {
+    setModalOpen(type);
+  };
+
+  const renderStaffModal = () => {
+    const admins = staff.filter(s => s.role === 'admin' || s.role === 'manager');
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold text-gray-900">Admin &amp; Managerlar</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b">
+                <th className="p-2 text-left">Avatar</th>
+                <th className="p-2 text-left">Ism</th>
+                <th className="p-2 text-left">Login</th>
+                <th className="p-2 text-left">Parol</th>
+                <th className="p-2 text-left">Kirish</th>
+                <th className="p-2 text-left">Amal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {admins.map(s => (
+                <tr key={s._id} className="border-b hover:bg-gray-50">
+                  <td className="p-2">
+                    <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold overflow-hidden">
+                      {s.avatarUrl ? (
+                        <img src={s.avatarUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        (s.displayName || s.username).charAt(0).toUpperCase()
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-2 font-medium">{s.displayName || '-'}</td>
+                  <td className="p-2 font-mono text-xs">{s.username}</td>
+                  <td className="p-2">
+                    <div className="flex items-center gap-1">
+                      <span className="font-mono text-xs">
+                        {showPasswords[s._id] ? s.revealablePassword || '********' : '********'}
+                      </span>
+                      <button onClick={() => togglePassword(s._id)} className="text-gray-400 hover:text-gray-600">
+                        👁
+                      </button>
+                    </div>
+                  </td>
+                  <td className="p-2 text-xs text-gray-500">
+                    {s.lastLogin ? new Date(s.lastLogin).toLocaleDateString('uz-UZ') : 'Hech qachon'}
+                  </td>
+                  <td className="p-2">
+                    <button
+                      onClick={() => handleImpersonate(s._id)}
+                      disabled={impersonating === s._id}
+                      className="px-3 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      {impersonating === s._id ? '...' : 'Tizimga kirish'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  const renderTeachersModal = () => {
+    const teachers = staff.filter(s => s.role === 'teacher');
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold text-gray-900">Ustozlar</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b">
+                <th className="p-2 text-left">Avatar</th>
+                <th className="p-2 text-left">Ism</th>
+                <th className="p-2 text-left">Login</th>
+                <th className="p-2 text-left">Parol</th>
+                <th className="p-2 text-left">Oylik daromad</th>
+                <th className="p-2 text-left">Oldi/Olmadi</th>
+                <th className="p-2 text-left">Amal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {teachers.map(t => (
+                <tr key={t._id} className="border-b hover:bg-gray-50">
+                  <td className="p-2">
+                    <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold overflow-hidden">
+                      {t.avatarUrl ? (
+                        <img src={t.avatarUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        (t.displayName || t.username).charAt(0).toUpperCase()
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-2 font-medium">{t.displayName || '-'}</td>
+                  <td className="p-2 font-mono text-xs">{t.username}</td>
+                  <td className="p-2">
+                    <div className="flex items-center gap-1">
+                      <span className="font-mono text-xs">
+                        {showPasswords[t._id] ? t.revealablePassword || '********' : '********'}
+                      </span>
+                      <button onClick={() => togglePassword(t._id)} className="text-gray-400 hover:text-gray-600">
+                        👁
+                      </button>
+                    </div>
+                  </td>
+                  <td className="p-2 font-bold text-emerald-600">
+                    {t.monthlyEarnings?.toLocaleString()} so&apos;m
+                  </td>
+                  <td className="p-2">
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      (t.paymentsCount || 0) > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {t.paymentsCount || 0} ta to&apos;lov
+                    </span>
+                  </td>
+                  <td className="p-2">
+                    <button
+                      onClick={() => handleImpersonate(t._id)}
+                      disabled={impersonating === t._id}
+                      className="px-3 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      {impersonating === t._id ? '...' : 'Tizimga kirish'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  const renderParentsModal = () => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-bold text-gray-900">Ota-onalar</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 border-b">
+              <th className="p-2 text-left">Ism</th>
+              <th className="p-2 text-left">Login</th>
+              <th className="p-2 text-left">Parol</th>
+              <th className="p-2 text-left">Farzand</th>
+              <th className="p-2 text-left">Kirgan</th>
+              <th className="p-2 text-left">Amal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {parents.map(p => (
+              <tr key={p._id} className="border-b hover:bg-gray-50">
+                <td className="p-2 font-medium">{p.displayName || '-'}</td>
+                <td className="p-2 font-mono text-xs">{p.username}</td>
+                <td className="p-2">
+                  <div className="flex items-center gap-1">
+                    <span className="font-mono text-xs">
+                      {showPasswords[p._id] ? p.revealablePassword || '********' : '********'}
+                    </span>
+                    <button onClick={() => togglePassword(p._id)} className="text-gray-400 hover:text-gray-600">
+                      👁
+                    </button>
+                  </div>
+                </td>
+                <td className="p-2 text-xs">
+                  {p.children.map((c, i) => (
+                    <div key={i}>{c.name}</div>
+                  ))}
+                </td>
+                <td className="p-2 text-xs text-gray-500">
+                  {p.lastLogin ? new Date(p.lastLogin).toLocaleDateString('uz-UZ') : 'Hech qachon'}
+                </td>
+                <td className="p-2">
+                  <button
+                    onClick={() => handleImpersonate(p._id)}
+                    disabled={impersonating === p._id}
+                    className="px-3 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                  >
+                    {impersonating === p._id ? '...' : 'Tizimga kirish'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderStudentsModal = () => (
+    <div className="space-y-4">
+      <h3 className="text-lg font-bold text-gray-900">Talabalar</h3>
+      <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 bg-gray-50">
+            <tr className="border-b">
+              <th className="p-2 text-left">Ism</th>
+              <th className="p-2 text-left">Guruh</th>
+              <th className="p-2 text-left">To&apos;lov</th>
+              <th className="p-2 text-left">Holat</th>
+              <th className="p-2 text-left">Kelgan</th>
+              <th className="p-2 text-left">Ota-ona</th>
+              <th className="p-2 text-left">Login</th>
+              <th className="p-2 text-left">Amal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {students.map(s => (
+              <tr key={s._id} className="border-b hover:bg-gray-50">
+                <td className="p-2 font-medium">{s.name}</td>
+                <td className="p-2 text-xs">{s.groupName || '-'}</td>
+                <td className="p-2">
+                  <div className={`text-xs ${s.overduePayments > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {s.lastPaymentDate
+                      ? `${s.lastPaymentAmount.toLocaleString()} so'm (${new Date(s.lastPaymentDate).toLocaleDateString('uz-UZ')})`
+                      : 'To\'lov yo\'q'}
+                  </div>
+                </td>
+                <td className="p-2">
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    s.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {s.status}
+                  </span>
+                </td>
+                <td className="p-2 text-xs text-gray-500">
+                  {s.arrivalDate ? new Date(s.arrivalDate).toLocaleDateString('uz-UZ') : '-'}
+                </td>
+                <td className="p-2 text-xs">
+                  <div>{s.parentName || '-'}</div>
+                  <div className="text-gray-400">{s.parentPhone || ''}</div>
+                </td>
+                <td className="p-2">
+                  <div className="flex items-center gap-1">
+                    <span className="font-mono text-xs">
+                      {showPasswords[s._id]
+                        ? `${s.studentUsername || '-'} / ${s.studentPassword || '-'}`
+                        : '******** / ********'}
+                    </span>
+                    <button onClick={() => togglePassword(s._id)} className="text-gray-400 hover:text-gray-600">
+                      👁
+                    </button>
+                  </div>
+                </td>
+                <td className="p-2">
+                  <button
+                    onClick={() => handleImpersonate(s.studentUserId || s._id)}
+                    disabled={impersonating === s.studentUserId || impersonating === s._id}
+                    className="px-3 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                  >
+                    {impersonating === s.studentUserId || impersonating === s._id ? '...' : 'Kirish'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-gray-900 text-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500" />
       </div>
     );
   }
 
   return (
-    <div className="h-screen w-screen grid grid-cols-2 grid-rows-2 gap-0 overflow-hidden bg-black">
-      {/* TOP-LEFT: Markaz */}
-      <div 
-        onClick={() => router.push('/boss/markaz')}
-        className="relative group cursor-pointer overflow-hidden bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-950 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98] border-b border-r border-white/5"
+    <div className="h-screen w-screen grid grid-cols-2 grid-rows-2 relative overflow-hidden bg-black">
+      <button
+        onClick={() => setIsNewCenterModalOpen(true)}
+        className="absolute top-4 left-4 z-20 bg-white text-purple-600 px-4 py-2 rounded-xl text-sm font-bold shadow-lg hover:bg-purple-50 transition-all flex items-center gap-2"
+      >
+        <span>+</span> Yangi markaz qo&apos;shish
+      </button>
+
+      <div className="absolute top-4 right-4 z-20">
+        <NotificationBell />
+      </div>
+
+      <div
+        onClick={() => openModal('markaz')}
+        className="cursor-pointer overflow-hidden bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-950 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98] border-b border-r border-white/5"
       >
         <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-700">
           <span className="text-9xl">🏛️</span>
         </div>
         <div>
           <h2 className="text-4xl font-black text-white/90 tracking-tighter uppercase italic">Markaz</h2>
-          <p className="text-purple-300 text-sm font-bold mt-1">Bugungi tushum va faoliyat</p>
+          <p className="text-purple-300 text-sm font-bold mt-1">Admin &amp; Manager boshqaruvi</p>
         </div>
-        <div className="flex gap-4">
-          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl flex-1 border border-white/10">
-            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Bugungi tushum</p>
-            <p className="text-2xl font-black text-white mt-1">{stats?.markaz.todayRevenue.toLocaleString()} <span className="text-xs">so&apos;m</span></p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl flex-1 border border-white/10">
-            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Faol talabalar</p>
-            <p className="text-2xl font-black text-white mt-1">{stats?.markaz.activeStudents} <span className="text-xs">ta</span></p>
-          </div>
+        <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+          <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
+            Jami adminlar: {staff.filter(s => s.role === 'admin' || s.role === 'manager').length} ta
+          </p>
         </div>
       </div>
 
-      {/* TOP-RIGHT: Ota-onalar */}
-      <div 
-        onClick={() => router.push('/boss/ota-ona')}
-        className="relative group cursor-pointer overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-900 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98] border-b border-white/5"
+      <div
+        onClick={() => openModal('ota-onalar')}
+        className="cursor-pointer overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-900 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98] border-b border-white/5"
       >
-        <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-700">
+        <div className="absolute top-0 right-0 p-12 opacity-10">
           <span className="text-9xl">👪</span>
         </div>
         <div>
           <h2 className="text-4xl font-black text-white/90 tracking-tighter uppercase italic">Ota-onalar</h2>
-          <p className="text-blue-300 text-sm font-bold mt-1">Tizimdagi ota-onalar va aloqa</p>
+          <p className="text-blue-300 text-sm font-bold mt-1">Ota-ona akkauntlari</p>
         </div>
-        <div className="flex gap-4">
-          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl flex-1 border border-white/10">
-            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Jami ota-ona</p>
-            <p className="text-2xl font-black text-white mt-1">{stats?.parents.total} <span className="text-xs">ta</span></p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl flex-1 border border-white/10">
-            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Telegram ulanish</p>
-            <p className="text-2xl font-black text-white mt-1">{stats?.parents.connected} <span className="text-xs">ta</span></p>
-          </div>
+        <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+          <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
+            Jami ota-onalar: {parents.length} ta
+          </p>
         </div>
       </div>
 
-      {/* BOTTOM-LEFT: Ustozlar */}
-      <div 
-        onClick={() => router.push('/boss/ustozlar')}
-        className="relative group cursor-pointer overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98] border-r border-white/5"
+      <div
+        onClick={() => openModal('ustozlar')}
+        className="cursor-pointer overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98] border-r border-white/5"
       >
-        <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-700">
+        <div className="absolute top-0 right-0 p-12 opacity-10">
           <span className="text-9xl">👨‍🏫</span>
         </div>
         <div>
           <h2 className="text-4xl font-black text-white/90 tracking-tighter uppercase italic">Ustozlar</h2>
-          <p className="text-emerald-300 text-sm font-bold mt-1">Jamoa va o&apos;qituvchilar</p>
+          <p className="text-emerald-300 text-sm font-bold mt-1">Ustozlar va oylik daromadlar</p>
         </div>
-        <div className="flex items-center gap-2 overflow-hidden py-2">
-          {stats?.teachers.map((t, i) => (
-            <div key={i} className="flex-shrink-0 group/item relative">
-              <div className="w-12 h-12 rounded-full border-2 border-white/20 overflow-hidden bg-emerald-700 flex items-center justify-center text-white font-bold shadow-lg">
-                {t.avatar ? (
-                  <img src={t.avatar} alt={t.name} className="w-full h-full object-cover" />
-                ) : (
-                  t.name.charAt(0)
-                )}
-              </div>
-              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover/item:opacity-100 transition-opacity whitespace-nowrap z-50">
-                {t.name}
-              </div>
-            </div>
-          ))}
-          {stats && stats.teachers.length === 0 && (
-            <p className="text-white/30 text-sm">Hozircha ustozlar mavjud emas</p>
-          )}
+        <div className="flex gap-4">
+          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl flex-1 border border-white/10">
+            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Ustozlar</p>
+            <p className="text-2xl font-black text-white">
+              {staff.filter(s => s.role === 'teacher').length} <span className="text-xs">ta</span>
+            </p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl flex-1 border border-white/10">
+            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Jami oylik</p>
+            <p className="text-lg font-black text-emerald-400">
+              {staff
+                .filter(s => s.role === 'teacher')
+                .reduce((sum, t) => sum + (t.monthlyEarnings || 0), 0)
+                .toLocaleString()}
+              <span className="text-xs"> so&apos;m</span>
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* BOTTOM-RIGHT: Talabalar */}
-      <div 
-        onClick={() => router.push('/boss/talabalar')}
-        className="relative group cursor-pointer overflow-hidden bg-gradient-to-br from-orange-900 via-orange-800 to-amber-950 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98]"
+      <div
+        onClick={() => openModal('talabalar')}
+        className="cursor-pointer overflow-hidden bg-gradient-to-br from-orange-900 via-orange-800 to-amber-950 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98]"
       >
-        <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-700">
+        <div className="absolute top-0 right-0 p-12 opacity-10">
           <span className="text-9xl">🎓</span>
         </div>
         <div>
           <h2 className="text-4xl font-black text-white/90 tracking-tighter uppercase italic">Talabalar</h2>
-          <p className="text-orange-300 text-sm font-bold mt-1">O&apos;quvchilar kontingenti</p>
+          <p className="text-orange-300 text-sm font-bold mt-1">Talabalar boshqaruvi</p>
         </div>
-        <div className="flex gap-4">
-          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl flex-1 border border-white/10">
-            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Jami talaba</p>
-            <p className="text-2xl font-black text-white mt-1">{stats?.students.total} <span className="text-xs">ta</span></p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl flex-1 border border-white/10">
-            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Faol / Tark etgan</p>
-            <div className="flex items-baseline gap-2 mt-1">
-              <p className="text-2xl font-black text-emerald-400">{stats?.students.active}</p>
-              <p className="text-xl font-bold text-white/20">/</p>
-              <p className="text-lg font-bold text-orange-400/70">{stats?.students.inactive}</p>
-            </div>
-          </div>
+        <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+          <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
+            Jami talabalar: {students.length} ta
+          </p>
         </div>
       </div>
 
-      {/* Center Logo Overlay / Action */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-        <button 
-          onClick={() => router.push('/boss/centers')}
-          className="w-32 h-32 bg-white rounded-full border-8 border-black/20 flex flex-col items-center justify-center shadow-2xl hover:scale-110 transition-transform active:scale-95 group"
-        >
-          <span className="text-3xl group-hover:animate-bounce">🏢</span>
-          <span className="text-[10px] font-black uppercase mt-1 text-black">Markazlar</span>
-        </button>
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+        <div className="w-24 h-24 bg-white rounded-full shadow-2xl flex items-center justify-center">
+          <img src="/icons/icon-192.png" alt="Hope Study" className="w-16 h-16" />
+        </div>
       </div>
 
-      {/* Top right actions */}
-      <div className="absolute top-4 right-4 z-50 flex items-center gap-4">
-        <NotificationBell />
-        <button 
-          onClick={(e) => { e.stopPropagation(); logout(); }}
-          className="p-2 bg-white/5 hover:bg-white/20 rounded-full transition-colors text-white/30 hover:text-white"
+      <div className="absolute top-4 right-16 z-20">
+        <button
+          onClick={() => logout()}
+          className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white/50 hover:text-white"
           title="Chiqish"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,6 +552,96 @@ export default function BossDashboard() {
           </svg>
         </button>
       </div>
+
+      <Modal isOpen={modalOpen === 'markaz'} onClose={() => setModalOpen(null)} title="Markaz Boshqaruvi">
+        {renderStaffModal()}
+      </Modal>
+
+      <Modal isOpen={modalOpen === 'ustozlar'} onClose={() => setModalOpen(null)} title="Ustozlar">
+        {renderTeachersModal()}
+      </Modal>
+
+      <Modal isOpen={modalOpen === 'ota-onalar'} onClose={() => setModalOpen(null)} title="Ota-onalar">
+        {renderParentsModal()}
+      </Modal>
+
+      <Modal isOpen={modalOpen === 'talabalar'} onClose={() => setModalOpen(null)} title="Talabalar">
+        {renderStudentsModal()}
+      </Modal>
+
+      <Modal isOpen={isNewCenterModalOpen} onClose={() => !newCenterSaving && setIsNewCenterModalOpen(false)} title="Yangi markaz qo'shish">
+        <form onSubmit={handleCreateCenter} className="space-y-4">
+          {newCenterResult ? (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+              <p className="text-emerald-700 font-bold text-sm">{newCenterResult}</p>
+              <p className="text-emerald-600 text-xs mt-1">Markaz muvaffaqiyatli yaratildi!</p>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="text-xs font-bold text-gray-400 uppercase mb-1 block">Markaz nomi</label>
+                <input
+                  type="text"
+                  value={newCenterForm.name}
+                  onChange={e => setNewCenterForm(f => ({ ...f, name: e.target.value }))}
+                  className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-purple-500 outline-none"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase mb-1 block">Admin login</label>
+                  <input
+                    type="text"
+                    value={newCenterForm.adminUsername}
+                    onChange={e => setNewCenterForm(f => ({ ...f, adminUsername: e.target.value }))}
+                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-purple-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase mb-1 block">Admin parol</label>
+                  <input
+                    type="password"
+                    value={newCenterForm.adminPassword}
+                    onChange={e => setNewCenterForm(f => ({ ...f, adminPassword: e.target.value }))}
+                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-purple-500 outline-none"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase mb-1 block">Trial kunlar</label>
+                  <input
+                    type="number"
+                    value={newCenterForm.trialDays}
+                    onChange={e => setNewCenterForm(f => ({ ...f, trialDays: e.target.value }))}
+                    className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-purple-500 outline-none"
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-400 uppercase mb-1 block">Boshlang&apos;ich rang</label>
+                  <input
+                    type="color"
+                    value={newCenterForm.primaryColor}
+                    onChange={e => setNewCenterForm(f => ({ ...f, primaryColor: e.target.value }))}
+                    className="w-full h-10 border rounded-xl cursor-pointer"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={newCenterSaving}
+                className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold hover:bg-purple-700 disabled:opacity-50"
+              >
+                {newCenterSaving ? 'Yaratilmoqda...' : "Markaz yaratish"}
+              </button>
+            </>
+          )}
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -14,7 +14,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as {
+      id: string;
+      isBossImpersonating?: boolean;
+      bossId?: string;
+    };
     await connectDB();
     const u = await User.findById(decoded.id).select('-password').lean();
     if (!u) {
@@ -30,6 +34,8 @@ export async function GET(request: NextRequest) {
         avatarUrl: u.avatarUrl || '',
         telegramChatId: u.telegramChatId || '',
         linkedStudentIds: (u.linkedStudentIds || []).map((id) => id.toString()),
+        isBossImpersonating: decoded.isBossImpersonating || false,
+        bossId: decoded.bossId,
       },
     });
   } catch (error) {

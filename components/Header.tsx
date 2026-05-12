@@ -21,6 +21,20 @@ export default function Header({ title, onMenuClick, onToggleCollapse, isCollaps
   const { canInstall, isInstalled, showInstallPrompt } = usePWA();
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [returningToBoss, setReturningToBoss] = useState(false);
+
+  const isBossImpersonating = (user as any)?.isBossImpersonating;
+
+  const handleReturnToBoss = async () => {
+    setReturningToBoss(true);
+    try {
+      await fetch('/api/boss/return-to-boss', { method: 'POST' });
+      window.location.href = '/boss/dashboard';
+    } catch (error) {
+      console.error('Return to boss error:', error);
+      setReturningToBoss(false);
+    }
+  };
 
   const languages: { code: Language; labelKey: string }[] = [
     { code: 'uz', labelKey: 'uzbek' },
@@ -43,7 +57,24 @@ export default function Header({ title, onMenuClick, onToggleCollapse, isCollaps
     (user?.displayName?.trim()?.[0] || user?.username?.trim()?.[0] || '?').toUpperCase();
 
   return (
-    <header className="topbar">
+    <>
+      {isBossImpersonating && (
+        <div className="bg-red-600 text-white px-4 py-2 flex items-center justify-between z-[100]">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">👑</span>
+            <span className="font-bold text-sm">Boshliq rejimi</span>
+            <span className="text-red-200 text-xs">Siz {user?.role} sifatida kirgansiz</span>
+          </div>
+          <button
+            onClick={handleReturnToBoss}
+            disabled={returningToBoss}
+            className="bg-white text-red-600 px-4 py-1 rounded-lg text-sm font-bold hover:bg-red-50 disabled:opacity-50 transition-all"
+          >
+            {returningToBoss ? 'Qaytish...' : 'Orqaga qaytish'}
+          </button>
+        </div>
+      )}
+      <header className="topbar">
       <div className="flex items-center gap-4">
         <button type="button" className="mobile-menu-btn lg:hidden" onClick={onMenuClick} aria-label="Menyu">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,5 +196,6 @@ export default function Header({ title, onMenuClick, onToggleCollapse, isCollaps
         </div>
       </div>
     </header>
+    </>
   );
 }

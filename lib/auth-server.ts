@@ -17,13 +17,20 @@ export type AuthUser = {
   linkedStudentIds: Types.ObjectId[];
   centerBlocked?: boolean;
   centerExpired?: boolean;
+  isBossImpersonating?: boolean;
+  bossId?: string;
 };
 
 export async function getAuthUser(request: NextRequest): Promise<AuthUser | null> {
   const token = request.cookies.get('token')?.value;
   if (!token) return null;
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; centerId?: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as {
+      id: string;
+      centerId?: string;
+      isBossImpersonating?: boolean;
+      bossId?: string;
+    };
     await connectDB();
     const u = await User.findById(decoded.id).lean();
     if (!u) return null;
@@ -49,6 +56,8 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
       linkedStudentIds: (u.linkedStudentIds || []) as Types.ObjectId[],
       centerBlocked,
       centerExpired,
+      isBossImpersonating: decoded.isBossImpersonating,
+      bossId: decoded.bossId,
     };
   } catch {
     return null;
