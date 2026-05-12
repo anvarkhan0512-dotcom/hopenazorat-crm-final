@@ -59,7 +59,7 @@ export default function StaffPage() {
   const load = () => {
     fetch('/api/staff')
       .then((r) => r.json())
-      .then(setList);
+      .then((data) => setList(data.items || []));
   };
 
   useEffect(() => {
@@ -166,7 +166,7 @@ export default function StaffPage() {
     );
   }
 
-  const totalSalary = list.reduce((a, s) => a + (s.monthlySalary || 0), 0);
+  const totalSalary = (list || []).reduce((a, s) => a + (s.monthlySalary || 0), 0);
 
   return (
     <DashboardLayout title={t('staff')}>
@@ -193,14 +193,14 @@ export default function StaffPage() {
             </tr>
           </thead>
           <tbody>
-            {list.length === 0 ? (
+            {(!list || list.length === 0) ? (
               <tr>
                 <td colSpan={5} className="text-center py-8">
                   {t('empty')}
                 </td>
               </tr>
             ) : (
-              list.map((s) => (
+              (list || []).map((s) => (
                 <tr key={s._id}>
                   <td>{s.fullName}</td>
                   <td>{posLabels[s.position]}</td>

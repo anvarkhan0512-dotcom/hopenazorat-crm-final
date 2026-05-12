@@ -95,7 +95,7 @@ export default function FreeLessonsPage() {
       ]);
       const lessonsData = await lessonsRes.json();
       const teachersData = await teachersRes.json();
-      setList(lessonsData);
+      setList(lessonsData.items || []);
       setTeachers(teachersData);
     } catch (e) {
       console.error(e);
@@ -167,10 +167,10 @@ export default function FreeLessonsPage() {
   };
 
   const stats = useMemo(() => {
-    const total = list.length;
-    const stayed = list.filter(l => l.status === 'Qoldi').length;
-    const left = list.filter(l => l.status === 'Ketdi').length;
-    const pending = list.filter(l => l.status === '-').length;
+    const total = (list || []).length;
+    const stayed = (list || []).filter(l => l.status === 'Qoldi').length;
+    const left = (list || []).filter(l => l.status === 'Ketdi').length;
+    const pending = (list || []).filter(l => l.status === '-').length;
     return { total, stayed, left, pending };
   }, [list]);
 
@@ -238,10 +238,10 @@ export default function FreeLessonsPage() {
                 </tr>
               </thead>
               <tbody>
-                {list.length === 0 ? (
+                {(!list || list.length === 0) ? (
                   <tr><td colSpan={6} className="text-center py-12 text-gray-400">Ma'lumot topilmadi</td></tr>
                 ) : (
-                  list.map((item, i) => (
+                  (list || []).map((item, i) => (
                     <tr key={item._id} className="hover:bg-gray-50">
                       <td className="text-center">{i + 1}</td>
                       <td className="font-medium text-purple-700">{item.studentName}</td>

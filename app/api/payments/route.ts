@@ -41,10 +41,10 @@ export async function GET(request: NextRequest) {
     if (year) query.year = parseInt(year);
 
     const payments = await Payment.find(query).populate('studentId').sort({ createdAt: -1 });
-    return NextResponse.json(payments);
+    return NextResponse.json({ items: payments });
   } catch (error) {
     console.error('Error fetching payments:', error);
-    return NextResponse.json({ error: 'Error fetching payments' }, { status: 500 });
+    return NextResponse.json({ error: 'Error fetching payments', items: [] }, { status: 500 });
   }
 }
 

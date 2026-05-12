@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       .limit(100)
       .lean();
 
-    const result = invoices.map((inv: any) => {
+    const items = invoices.map((inv: any) => {
       const student = inv.studentId;
       const originalPrice = student?.basePrice || student?.monthlyPrice || inv.amount;
       
@@ -72,10 +72,10 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({ items });
   } catch (error) {
     console.error('Error fetching invoices:', error);
-    return NextResponse.json({ error: 'Error fetching invoices' }, { status: 500 });
+    return NextResponse.json({ error: 'Error fetching invoices', items: [] }, { status: 500 });
   }
 }
 

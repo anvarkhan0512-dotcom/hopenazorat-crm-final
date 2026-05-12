@@ -78,7 +78,7 @@ export default function GroupsPage() {
         fetch('/api/users/teachers'),
       ]);
       const data = await gRes.json();
-      setGroups(data);
+      setGroups(data.items || []);
       if (tRes.ok) setTeachers(await tRes.json());
     } catch (error) {
       console.error('Error fetching groups:', error);

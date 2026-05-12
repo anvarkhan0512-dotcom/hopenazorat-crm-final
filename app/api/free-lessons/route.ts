@@ -11,15 +11,25 @@ export async function GET(request: NextRequest) {
     if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     await connectDB();
-    const list = await FreeLesson.find()
+    const query: any = {};
+    const centerId = auth.centerId;
+    if (auth.role !== 'boss') {
+      if (centerId) {
+        query.centerId = centerId;
+      } else {
+        query.$or = [{ centerId: { $exists: false } }, { centerId: null }];
+      }
+    }
+
+    const list = await FreeLesson.find(query)
       .sort({ createdAt: -1 })
       .populate('teacherId', 'displayName username')
       .populate('notifyTeacherId', 'displayName username')
       .lean();
-    return NextResponse.json(list);
+    return NextResponse.json({ items: list });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Server error', items: [] }, { status: 500 });
   }
 }
 

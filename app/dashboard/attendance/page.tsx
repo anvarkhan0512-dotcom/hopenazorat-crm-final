@@ -40,7 +40,7 @@ export default function DashboardAttendancePage() {
     try {
       const res = await fetch('/api/groups');
       const data = await res.json();
-      setGroups(data);
+      setGroups(data.items || []);
     } catch (err) {
       console.error(err);
     }
@@ -51,7 +51,7 @@ export default function DashboardAttendancePage() {
     try {
       const res = await fetch(`/api/attendance?startDate=${dateRange.start}&endDate=${dateRange.end}`);
       const data = await res.json();
-      setHistory(data);
+      setHistory(data.items || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -70,7 +70,7 @@ export default function DashboardAttendancePage() {
     try {
       const res = await fetch('/api/students');
       const data = await res.json();
-      setStudents(Array.isArray(data) ? data : []);
+      setStudents(Array.isArray(data.items) ? data.items : []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -134,13 +134,13 @@ export default function DashboardAttendancePage() {
     }
   };
 
-  const filtered = students.filter((s: any) => {
+  const filtered = (students || []).filter((s: any) => {
     const matchesSearch = s.name?.toLowerCase().includes(search.toLowerCase());
     const matchesGroup = !selectedGroupId || s.groupId?._id === selectedGroupId;
     return matchesSearch && matchesGroup;
   });
 
-  const filteredHistory = history.filter((h: any) => {
+  const filteredHistory = (history || []).filter((h: any) => {
     const matchesSearch = h.studentName?.toLowerCase().includes(historySearch.toLowerCase()) || 
                          h.groupName?.toLowerCase().includes(historySearch.toLowerCase());
     return matchesSearch;

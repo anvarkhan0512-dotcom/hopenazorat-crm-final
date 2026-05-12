@@ -44,7 +44,7 @@ export default function InvoicesPage() {
   useEffect(() => {
     fetch('/api/groups')
       .then((r) => r.json())
-      .then((g) => setGroups(Array.isArray(g) ? g : []))
+      .then((g) => setGroups(Array.isArray(g.items) ? g.items : []))
       .catch(() => setGroups([]));
   }, []);
 
@@ -64,7 +64,7 @@ export default function InvoicesPage() {
 
       const res = await fetch(`/api/invoices?${params}`);
       const data = await res.json();
-      setInvoices(data);
+      setInvoices(data.items || []);
     } catch (error) {
       console.error('Error fetching invoices:', error);
     } finally {
@@ -116,15 +116,15 @@ export default function InvoicesPage() {
   };
 
   const summary = {
-    total: invoices.length,
-    paid: invoices.filter(i => i.status === 'paid').length,
-    partial: invoices.filter(i => i.status === 'partial').length,
-    pending: invoices.filter(i => i.status === 'pending').length,
-    rawTotal: invoices.reduce((sum, i) => sum + i.originalPrice, 0),
-    totalDiscounts: invoices.reduce((sum, i) => sum + i.totalDiscount, 0),
-    totalAmount: invoices.reduce((sum, i) => sum + i.amount, 0),
-    totalPaid: invoices.reduce((sum, i) => sum + i.paidAmount, 0),
-    totalDebt: invoices.reduce((sum, i) => sum + i.debt, 0),
+    total: (invoices || []).length,
+    paid: (invoices || []).filter(i => i.status === 'paid').length,
+    partial: (invoices || []).filter(i => i.status === 'partial').length,
+    pending: (invoices || []).filter(i => i.status === 'pending').length,
+    rawTotal: (invoices || []).reduce((sum, i) => sum + i.originalPrice, 0),
+    totalDiscounts: (invoices || []).reduce((sum, i) => sum + i.totalDiscount, 0),
+    totalAmount: (invoices || []).reduce((sum, i) => sum + i.amount, 0),
+    totalPaid: (invoices || []).reduce((sum, i) => sum + i.paidAmount, 0),
+    totalDebt: (invoices || []).reduce((sum, i) => sum + i.debt, 0),
   };
 
   return (

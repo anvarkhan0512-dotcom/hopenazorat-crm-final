@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     const groupId = searchParams.get('groupId');
     const search = searchParams.get('search');
 
-    const query: Record<string, unknown> = {};
+    const query: any = {};
 
     // Data isolation
     const centerId = auth!.centerId;
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (auth!.role === 'parent' || auth!.role === 'student') {
-      return NextResponse.json([]);
+      return NextResponse.json({ items: [] });
     }
 
     // Auto-check deadlines on student list fetch (basic cron-like behavior)
@@ -88,23 +88,34 @@ export async function GET(request: NextRequest) {
           _id: groupId,
           $or: [{ teacherUserId: auth._id }, { teacherUserId2: auth._id }],
         });
-        if (!ok) return NextResponse.json([]);
+        if (!ok) return NextResponse.json({ items: [] });
       }
       query.groupId = groupId;
     }
 
     if (search) {
       const rx = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      query.$or = [{ name: rx }, { phone: rx }, { phones: rx }];
+      const searchFilter = { $or: [{ name: rx }, { phone: rx }, { phones: rx }] };
+      
+      // Merge search filter with existing query
+      if (query.$or) {
+        query.$and = [{ $or: query.$or }, searchFilter];
+        delete query.$or;
+      } else {
+        Object.assign(query, searchFilter);
+      }
     }
 
     const students = await Student.find(query)
       .populate('groupId', 'name weeklySchedule lessonCalendarWeekParity schedule')
       .sort({ createdAt: -1 })
       .lean();
-    return NextResponse.json(students.map((s) => serializeStudent(s as Record<string, unknown>)));
+    
+    const items = students.map((s) => serializeStudent(s as Record<string, unknown>));
+    return NextResponse.json({ items });
   } catch (error) {
-    return NextResponse.json({ error: "O'quvchilarni yuklashda xato" }, { status: 500 });
+    console.error('Students GET error:', error);
+    return NextResponse.json({ error: "O'quvchilarni yuklashda xato", items: [] }, { status: 500 });
   }
 }
 

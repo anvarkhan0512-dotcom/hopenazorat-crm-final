@@ -33,7 +33,7 @@ export default function DebtorsPage() {
     try {
       const res = await fetch('/api/debtors');
       const data = await res.json();
-      setDebtors(data.debtors || []);
+      setDebtors(data.items || []);
       setSummary(data.summary);
     } catch (error) {
       console.error('Error fetching debtors:', error);
@@ -80,7 +80,7 @@ export default function DebtorsPage() {
       </div>
 
       <div className="card">
-        {debtors.length === 0 ? (
+        {(!debtors || debtors.length === 0) ? (
           <div className="empty-state">
             <div className="empty-state-icon">✅</div>
             <div className="empty-state-title">{t('noData')}</div>
@@ -99,7 +99,7 @@ export default function DebtorsPage() {
                 </tr>
               </thead>
               <tbody>
-                {debtors.map((debtor) => (
+                {(debtors || []).map((debtor) => (
                   <tr key={debtor._id}>
                     <td>
                       <div className="font-bold">{debtor.studentName}</div>

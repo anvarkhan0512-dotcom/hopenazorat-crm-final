@@ -69,8 +69,8 @@ export default function DiscountsPage() {
       ]);
       const discountsData = await discountsRes.json();
       const studentsData = await studentsRes.json();
-      setDiscounts(discountsData);
-      setStudents(studentsData.filter((s: Student) => s.monthlyPrice > 0));
+      setDiscounts(discountsData.items || []);
+      setStudents((studentsData.items || []).filter((s: Student) => s.monthlyPrice > 0));
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -91,7 +91,7 @@ export default function DiscountsPage() {
         : '/api/discounts';
       const method = editingDiscount ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const res = await fetch(url, { 
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -177,10 +177,10 @@ export default function DiscountsPage() {
   };
 
   const summary = {
-    totalDiscounts: discounts.length,
-    activeCount: discounts.filter(d => d.isActive).length,
-    totalSavings: discounts.reduce((sum, d) => sum + d.discountAmount, 0),
-    familiesCount: new Set(discounts.map(d => d.familyName)).size,
+    totalDiscounts: (discounts || []).length,
+    activeCount: (discounts || []).filter(d => d.isActive).length,
+    totalSavings: (discounts || []).reduce((sum, d) => sum + d.discountAmount, 0),
+    familiesCount: new Set((discounts || []).map(d => d.familyName)).size,
   };
 
   return (
@@ -227,7 +227,7 @@ export default function DiscountsPage() {
           <div className="loading">
             <div className="spinner"></div>
           </div>
-        ) : discounts.length === 0 ? (
+        ) : (!discounts || discounts.length === 0) ? (
           <div className="empty-state">
             <div className="empty-state-icon">🎫</div>
             <div className="empty-state-title">{t('noData')}</div>
@@ -250,7 +250,7 @@ export default function DiscountsPage() {
                 </tr>
               </thead>
               <tbody>
-                {discounts.map((discount) => (
+                {(discounts || []).map((d) => (
                   <tr key={discount._id}>
                     <td className="font-bold">{discount.familyName}</td>
                     <td>{discount.students?.length || 0}</td>

@@ -7,6 +7,9 @@ import { invalidateCache } from '@/lib/cache';
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await getAuthUser(request);
+    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     await connectDB();
     
     const { searchParams } = new URL(request.url);
@@ -14,6 +17,14 @@ export async function GET(request: NextRequest) {
     const reason = searchParams.get('reason');
 
     const query: any = {};
+    const centerId = auth.centerId;
+    if (auth.role !== 'boss') {
+      if (centerId) {
+        query.centerId = centerId;
+      } else {
+        query.$or = [{ centerId: { $exists: false } }, { centerId: null }];
+      }
+    }
     
     if (active === 'true') {
       const now = new Date();
@@ -28,7 +39,7 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .lean();
 
-    const result = discounts.map((d: any) => ({
+    const items = discounts.map((d: any) => ({
       _id: d._id,
       familyId: d.familyId,
       familyName: d.familyName,
@@ -51,10 +62,10 @@ export async function GET(request: NextRequest) {
       isActive: d.isActive,
     }));
 
-    return NextResponse.json(result);
+    return NextResponse.json({ items });
   } catch (error) {
     console.error('Error fetching discounts:', error);
-    return NextResponse.json({ error: 'Error fetching discounts' }, { status: 500 });
+    return NextResponse.json({ error: 'Error fetching discounts', items: [] }, { status: 500 });
   }
 }
 

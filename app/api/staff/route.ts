@@ -26,10 +26,10 @@ export async function GET(request: NextRequest) {
     }
 
     const list = await Staff.find(query).sort({ position: 1, fullName: 1 }).lean();
-    return NextResponse.json(list);
+    return NextResponse.json({ items: list });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: 'Server' }, { status: 500 });
+    return NextResponse.json({ error: 'Server error', items: [] }, { status: 500 });
   }
 }
 

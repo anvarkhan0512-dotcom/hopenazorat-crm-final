@@ -122,8 +122,8 @@ export default function StudentsPage() {
       ]);
       const studentsData = await studentsRes.json();
       const groupsData = await groupsRes.json();
-      setStudents(studentsData);
-      setGroups(groupsData);
+      setStudents(studentsData.items || []);
+      setGroups(groupsData.items || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -142,7 +142,7 @@ export default function StudentsPage() {
     return `${months} oy, ${days} kun`;
   };
 
-  const filteredStudents = students.filter((student) => {
+  const filteredStudents = (students || []).filter((student) => {
     const phoneHay = [student.phone, ...(student.phones || [])].join(' ');
     const matchesSearch =
       student.name.toLowerCase().includes(search.toLowerCase()) || phoneHay.includes(search);
@@ -159,7 +159,7 @@ export default function StudentsPage() {
   });
 
   const exportToExcel = () => {
-    const dataToExport = filteredStudents.map((s, i) => ({
+    const dataToExport = (filteredStudents || []).map((s, i) => ({
       '№': i + 1,
       'Ism': s.name,
       'Telefon': (s.phones || [s.phone]).join(', '),

@@ -99,35 +99,25 @@ export async function GET(request: NextRequest) {
       paid: 0,
       totalDebt: 0,
       totalPaid: 0,
+      totalAmount: 0,
     };
 
-    for (const s of summary) {
-      if (s._id === 'pending') {
-        summaryResult.pending = s.count;
-        summaryResult.totalDebt += s.totalAmount;
-      } else if (s._id === 'partial') {
-        summaryResult.partial = s.count;
-        summaryResult.totalDebt += s.totalAmount - s.totalPaid;
-        summaryResult.totalPaid += s.totalPaid;
-      } else {
-        summaryResult.paid = s.count;
-        summaryResult.totalPaid += s.totalPaid;
-      }
-    }
+    summary.forEach((s: any) => {
+      if (s._id === 'pending') summaryResult.pending = s.count;
+      if (s._id === 'partial') summaryResult.partial = s.count;
+      if (s._id === 'paid') summaryResult.paid = s.count;
+      summaryResult.totalAmount += s.totalAmount;
+      summaryResult.totalPaid += s.totalPaid;
+    });
+    summaryResult.totalDebt = summaryResult.totalAmount - summaryResult.totalPaid;
 
-    const result = {
-      month: currentMonth,
-      year: currentYear,
-      debtors,
-      summary: summaryResult,
-    };
+    const payload = { items: debtors, summary: summaryResult };
+    setCache(cacheKey, payload, 60 * 1000);
 
-    setCache(cacheKey, result, 300 * 1000);
-
-    return NextResponse.json(result);
+    return NextResponse.json(payload);
   } catch (error) {
     console.error('Error fetching debtors:', error);
-    return NextResponse.json({ error: 'Error fetching debtors' }, { status: 500 });
+    return NextResponse.json({ error: 'Error fetching debtors', items: [], summary: {} }, { status: 500 });
   }
 }
 

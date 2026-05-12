@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     const { searchParams } = new URL(request.url);
-    const query: Record<string, unknown> = {};
+    const query: Record<string, any> = {};
 
     // Data isolation
     const centerId = auth!.centerId;
@@ -198,46 +198,25 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (searchParams.get('studentId')) query.studentId = searchParams.get('studentId');
-    if (searchParams.get('groupId')) query.groupId = searchParams.get('groupId');
-    if (searchParams.get('startDate') || searchParams.get('endDate')) {
-      const start = searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : new Date(0);
-      const end = searchParams.get('endDate') ? new Date(searchParams.get('endDate')!) : new Date();
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-      query.date = { $gte: start, $lte: end };
-    } else if (searchParams.get('date')) {
-      const d = new Date(searchParams.get('date')!);
+    const { studentId, date, groupId, month, year } = Object.fromEntries(searchParams.entries());
+
+    if (studentId) query.studentId = studentId;
+    if (date) {
+      const d = new Date(date);
       d.setHours(12, 0, 0, 0);
       query.date = d;
     }
+    if (groupId) query.groupId = groupId;
+    if (month && year) {
+      const start = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const end = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+      query.date = { $gte: start, $lte: end };
+    }
 
-    const attendance = await Attendance.find(query)
-      .populate('studentId', 'name phone')
-      .populate('groupId', 'name')
-      .sort({ date: -1, lessonNumber: -1 })
-      .lean();
-
-    const result = attendance.map((a: any) => ({
-      _id: a._id,
-      studentId: a.studentId?._id || a.studentId,
-      studentName: a.studentId?.name,
-      phone: a.studentId?.phone,
-      groupId: a.groupId?._id || a.groupId,
-      groupName: a.groupId?.name,
-      date: a.date?.toISOString()?.split('T')[0],
-      lessonNumber: a.lessonNumber,
-      status: a.status,
-      checkInTime: a.checkInTime,
-      checkOutTime: a.checkOutTime,
-      rescheduleDate: a.rescheduleDate,
-      transferAt: a.transferAt,
-      redirectTeacherUserId: a.redirectTeacherUserId,
-    }));
-
-    return NextResponse.json(result);
+    const list = await Attendance.find(query).sort({ date: -1, lessonNumber: 1 }).lean();
+    return NextResponse.json({ items: list });
   } catch (error) {
-    console.error('GET error:', error);
-    return NextResponse.json({ error: "Ma'lumotlarni olishda xatolik" }, { status: 500 });
+    console.error('Attendance GET error:', error);
+    return NextResponse.json({ error: 'Server error', items: [] }, { status: 500 });
   }
 }

@@ -16,7 +16,7 @@ const fetcher = async (url: string) => {
   const res = await fetch(url);
   const json = await res.json();
   if (!res.ok || json.error) throw new Error(json.error || 'fetch failed');
-  return json;
+  return json.items !== undefined ? json.items : json;
 };
 
 interface DashboardData {
@@ -123,7 +123,7 @@ export default function DashboardClient() {
 
   const exportToExcel = () => {
     if (!students) return;
-    const ws = XLSX.utils.json_to_sheet(students.map((s, i) => ({
+    const ws = XLSX.utils.json_to_sheet((students || []).map((s: any, i: number) => ({
       '№': i + 1,
       'Ism': s.name,
       'Telefon': s.phone,
@@ -146,8 +146,8 @@ export default function DashboardClient() {
     );
   }
 
-  const maxDaily = Math.max(1, ...dashboard.last7DaysIncome.map((d) => d.income));
-  const maxMonthly = Math.max(1, ...dashboard.last6MonthsIncome.map((d) => d.income));
+  const maxDaily = Math.max(1, ...(dashboard.last7DaysIncome || []).map((d) => d.income));
+  const maxMonthly = Math.max(1, ...(dashboard.last6MonthsIncome || []).map((d) => d.income));
 
   const utilizationPercent = Math.min(100, Math.round((dashboard.activeStudents / 150) * 100)); // 150 - sig'im
 
@@ -241,7 +241,7 @@ export default function DashboardClient() {
                   </tr>
                 </thead>
                 <tbody>
-                  {students?.map((s, i) => (
+                  {(students || []).map((s: any, i: number) => (
                     <tr key={s._id} className="hover:bg-gray-50">
                       <td className="p-3 border text-center">{i + 1}</td>
                       <td className="p-3 border font-medium">{s.name}</td>

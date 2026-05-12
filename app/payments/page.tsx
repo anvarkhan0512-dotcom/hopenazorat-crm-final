@@ -96,8 +96,8 @@ export default function PaymentsPage() {
       ]);
       const paymentsData = await paymentsRes.json();
       const studentsData = await studentsRes.json();
-      setPayments(paymentsData);
-      setStudents(studentsData);
+      setPayments(paymentsData.items || []);
+      setStudents(studentsData.items || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -105,7 +105,7 @@ export default function PaymentsPage() {
     }
   };
 
-  const filteredPayments = payments.filter((payment) => {
+  const filteredPayments = (payments || []).filter((payment) => {
     const matchesStudent = !studentFilter || payment.studentId?._id === studentFilter;
     const matchesMonth = !monthFilter || payment.month === parseInt(monthFilter);
     const matchesYear = !yearFilter || payment.year === parseInt(yearFilter);

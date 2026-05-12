@@ -33,24 +33,27 @@ export async function GET(request: NextRequest) {
         query.$and = [{ $or: query.$or }, teacherFilter];
         delete query.$or;
       } else {
-        query.$and = [{ centerId: query.centerId }, teacherFilter];
+        const currentCenterId = query.centerId;
+        query.$and = [{ centerId: currentCenterId }, teacherFilter];
         delete query.centerId;
       }
       const groups = await Group.find(query)
         .sort({ createdAt: -1 })
         .lean();
-      return NextResponse.json(groups.map((g) => serializeGroupForClient(g as any, auth!.role)));
+      const items = groups.map((g) => serializeGroupForClient(g as any, auth!.role));
+      return NextResponse.json({ items });
     }
 
     if (auth!.role === 'parent' || auth!.role === 'student') {
-      return NextResponse.json([]);
+      return NextResponse.json({ items: [] });
     }
 
     const groups = await Group.find(query).sort({ createdAt: -1 }).lean();
-    return NextResponse.json(groups.map((g) => serializeGroupForClient(g as any, auth!.role)));
+    const items = groups.map((g) => serializeGroupForClient(g as any, auth!.role));
+    return NextResponse.json({ items });
   } catch (error) {
     console.error('Error fetching groups:', error);
-    return NextResponse.json({ error: 'Error fetching groups' }, { status: 500 });
+    return NextResponse.json({ error: 'Error fetching groups', items: [] }, { status: 500 });
   }
 }
 
