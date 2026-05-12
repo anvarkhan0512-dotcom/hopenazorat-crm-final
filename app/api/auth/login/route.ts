@@ -147,12 +147,19 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. JWT Token yaratish
+    let centerName = 'Hope Study';
+    if (user.centerId) {
+      const center = await Center.findById(user.centerId).select('name').lean();
+      if (center?.name) centerName = center.name;
+    }
+
     const token = jwt.sign(
       {
         id: user._id,
         username: user.username,
         role: user.role,
         centerId: user.centerId || null,
+        centerName: centerName,
       },
       JWT_SECRET,
       { expiresIn: '7d' } // 7 kunlik muddat

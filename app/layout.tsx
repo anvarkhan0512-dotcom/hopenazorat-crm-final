@@ -49,14 +49,16 @@ export default function RootLayout({
       <body>
         <LanguageProvider>
           <AuthProvider>
-            <PWAProvider>
-              <AIProvider>
-                <PWAInitializer />
-                {children}
-                <FloatingChat />
-                <PWAInstallModal />
-              </AIProvider>
-            </PWAProvider>
+            <CenterProvider>
+              <PWAProvider>
+                <AIProvider>
+                  <PWAInitializer />
+                  {children}
+                  <FloatingChat />
+                  <PWAInstallModal />
+                </AIProvider>
+              </PWAProvider>
+            </CenterProvider>
           </AuthProvider>
         </LanguageProvider>
       </body>

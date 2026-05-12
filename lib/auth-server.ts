@@ -14,6 +14,7 @@ export type AuthUser = {
   role: UserRole;
   displayName: string;
   centerId?: string;
+  centerName: string;
   linkedStudentIds: Types.ObjectId[];
   centerBlocked?: boolean;
   centerExpired?: boolean;
@@ -28,6 +29,7 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
     const decoded = jwt.verify(token, JWT_SECRET) as {
       id: string;
       centerId?: string;
+      centerName?: string;
       isBossImpersonating?: boolean;
       bossId?: string;
     };
@@ -53,6 +55,7 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
       role: u.role as UserRole,
       displayName: u.displayName || '',
       centerId: u.centerId?.toString() || decoded.centerId,
+      centerName: decoded.centerName || 'Hope Study',
       linkedStudentIds: (u.linkedStudentIds || []) as Types.ObjectId[],
       centerBlocked,
       centerExpired,

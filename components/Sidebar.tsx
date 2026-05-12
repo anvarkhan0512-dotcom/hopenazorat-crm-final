@@ -157,7 +157,7 @@ export default function Sidebar({ isOpen, onClose, collapsed }: SidebarProps) {
               <p>
                 {t('appVersionLabel')} 1.2.0
               </p>
-              <p className="text-xs mt-1">{t('copyrightShort')}</p>
+              <p className="text-xs mt-1">{t('copyrightShort')} {centerName}</p>
             </div>
           </div>
         )}

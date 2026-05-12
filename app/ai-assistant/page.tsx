@@ -158,7 +158,7 @@ export default function AIAssistantPage() {
   const isStudent = role === 'student' || role === 'parent';
 
   return (
-    <DashboardLayout title="AI Assistant" subtitle={isStudent ? "O&apos;qituvchi yordamchisi" : "Hope Study aqlli menejeri bilan muloqot"}>
+    <DashboardLayout title="AI Assistant" subtitle={isStudent ? "O&apos;qituvchi yordamchisi" : `${centerName} aqlli menejeri bilan muloqot`}>
       <div className="flex flex-col h-[calc(100vh-220px)] bg-white rounded-xl shadow-sm border overflow-hidden">
         {/* Chat Header */}
         <div className="px-6 py-4 border-bottom flex justify-between items-center bg-gray-50">
@@ -167,7 +167,7 @@ export default function AIAssistantPage() {
               {isStudent ? '👨‍🏫' : '🤖'}
             </div>
             <div>
-              <h3 className="font-bold text-gray-800">{isStudent ? 'Yordamchi Ustoz' : 'Hope Study AI'}</h3>
+              <h3 className="font-bold text-gray-800">{isStudent ? 'Yordamchi Ustoz' : `${centerName} AI`}</h3>
               <p className="text-xs text-green-600 flex items-center gap-1">
                 <span className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></span>
                 Onlayn

@@ -9,8 +9,7 @@ import { Building } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useAuth } from '@/components/AuthProvider';
-import DashboardTabModal from '@/components/DashboardTabModal';
-
+import 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
   const json = await res.json();
@@ -85,6 +84,7 @@ const IncomeBarRow = memo(function IncomeBarRow({
 
 export default function DashboardClient() {
   const { t, locale } = useLanguage();
+  const { centerName } = useCenter();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const isOffice = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'boss';
@@ -172,7 +172,7 @@ export default function DashboardClient() {
         </div>
         <div className="hidden md:flex ml-12 items-center gap-2 text-purple-700 font-bold bg-purple-50 px-4 py-2 rounded-xl border border-purple-100">
           <Building size={20} />
-          <span>Hope Study Center</span>
+          <span>{centerName} Center</span>
         </div>
       </div>
 

@@ -105,7 +105,7 @@ export default function FloatingChat() {
             flex items-center justify-between
             flex-shrink-0">
             <span className="text-white font-bold
-              text-sm">🤖 Hope Study AI</span>
+              text-sm">🤖 {centerName} AI</span>
             <button
               onClick={() => setIsOpen(false)}
               className="text-white text-lg

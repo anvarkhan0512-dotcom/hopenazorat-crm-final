@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
 
     const decoded = jwt.verify(token, JWT_SECRET) as {
       id: string;
+      centerName?: string;
       isBossImpersonating?: boolean;
       bossId?: string;
     };
@@ -37,6 +38,8 @@ export async function GET(request: NextRequest) {
         isBossImpersonating: decoded.isBossImpersonating || false,
         bossId: decoded.bossId,
       },
+      centerName: decoded.centerName || 'Hope Study',
+      centerId: u.centerId?.toString() || null,
     });
   } catch (error) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
