@@ -1,32 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { askGemini } from '@/lib/gemini';
+import { askGemini, SYSTEM_PROMPT } from '@/lib/gemini';
 import { askGroq } from '@/lib/groq';
 import { getAuthUser } from '@/lib/auth-server';
 import connectDB from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
-
-const SYSTEM_PROMPT = `Sen "Hope Study" o'quv markazi  
-CRM tizimining AI yordamchisisisan. 
-
-IMKONIYATLARING: 
-- Talabalar ro'yxatini ko'rsatish 
-- Guruhlar haqida ma'lumot berish   
-- To'lovlar statistikasini ko'rsatish 
-- Yangi talaba/guruh qo'shishga yordam berish 
-- Davomat va hisobotlar haqida gapirish 
-
-QOIDALAR: 
-- Faqat o'zbek tilida gapir 
-- Hech qachon pul yoki narx so'rama 
-- Qisqa va aniq javob ber 
-- Ma'lumot so'ralsa, tizimdan olib ko'rsat 
-- Buyruq berilsa, bajarishga harakat qil 
-
-Sen admin, ustoz, talaba va ota-onalarga  
-yordam beruvchi aqlli yordamchisan!
-
-Siz tizimga ulangansiz. Real ma'lumotlarni ko'ra olasiz va o'zgartira olasiz. Hech qachon taxminiy raqam aytmang.`;
 
 // Role-based data fetcher 
 async function getRoleContext( 
@@ -198,12 +176,8 @@ async function getRoleContext(
         msg.includes('dars')) { 
       return `Sizning guruhingiz: ${student.groupId?.name || 'belgilanmagan'}\n` + 
         `Jadval: ${student.groupId?.schedule || 'belgilanmagan'}\n` + 
-        `Oylik: ${(student.monthlyPrice||0).toLocaleString()} so'm`; 
+        `Oylik to'lov: ${(student.monthlyPrice||0).toLocaleString()} so'm`; 
     } 
-    
-    return `Salom ${student.name}! ` + 
-      `Guruh: ${student.groupId?.name || 'belgilanmagan'}. ` + 
-      `To\'lov, dars jadvali haqida so\'rang.`; 
   } 
   
   // ===== PARENT ===== 
@@ -213,9 +187,7 @@ async function getRoleContext(
       parentUserId: userId 
     }).populate('groupId').lean(); 
     
-    if (children.length === 0) { 
-      return 'Farzandingiz tizimga ulanmagan.'; 
-    } 
+    if (children.length === 0) return 'Farzand ma\'lumoti topilmadi'; 
     
     if (msg.includes('to\'lov') || 
         msg.includes('qarz')) { 
@@ -223,7 +195,7 @@ async function getRoleContext(
       let result = ''; 
       for (const child of children) { 
         const payments = await Payment.find({ 
-          studentId: (child as any)._id 
+          studentId: child._id 
         }).sort({ createdAt: -1 }).limit(3).lean(); 
         result += `\n${(child as any).name}:\n` + 
           payments.map((p: any) => 
@@ -247,22 +219,12 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);
     
-    console.log('Auth check:', { 
-      cookies: request.cookies.getAll(), 
-      headers: request.headers.get('authorization'),
-      authResult: auth ? { id: auth.id, role: auth.role } : 'null'
-    });
-
-    if (!auth || !auth.userId) {
-      // Temporary: also check auth.id since getAuthUser returns AuthUser with .id and ._id
-      const actualUserId = auth?.id || (auth as any)?.userId;
-      if (!actualUserId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+    if (!auth) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = auth?.id || (auth as any)?.userId;
-    const userRole = auth?.role || (auth as any)?.role;
+    const userId = auth.id;
+    const userRole = auth.role;
 
     const formData = await request.formData();
     const message = (formData.get('message') as string) || '';
@@ -303,7 +265,7 @@ export async function POST(request: NextRequest) {
     let reply = "";
     if (imageContents.length === 0) {
       try {
-        reply = await askGroq(messages);
+        reply = await askGroq(messages, SYSTEM_PROMPT);
       } catch (groqError) {
         console.error('Groq failed, fallback to Gemini:', groqError);
         const aiRes = await askGemini(messages, { systemInstruction: SYSTEM_PROMPT });

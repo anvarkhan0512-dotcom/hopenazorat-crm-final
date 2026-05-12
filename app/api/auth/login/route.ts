@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import { User } from '@/models/User';
 import { Student } from '@/models/Student';
+import { Center } from '@/models/Center';
 import { LoginHistory } from '@/models/LoginHistory';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -126,12 +127,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check center status if not boss
+    if (user.role !== 'boss' && user.centerId) {
+      const center = await Center.findById(user.centerId).lean();
+      if (center) {
+        if (center.isBlocked) {
+          return NextResponse.json(
+            { error: 'Markaz bloklangan. Boshliq bilan bog\'laning.', code: 'CENTER_BLOCKED' },
+            { status: 403 }
+          );
+        }
+        if (new Date(center.trialEndsAt) < new Date()) {
+          return NextResponse.json(
+            { error: 'Trial muddati tugagan. To\'lovni amalga oshiring.', code: 'CENTER_EXPIRED' },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     // 4. JWT Token yaratish
     const token = jwt.sign(
       {
         id: user._id,
         username: user.username,
         role: user.role,
+        centerId: user.centerId,
       },
       JWT_SECRET,
       { expiresIn: '7d' } // 7 kunlik muddat

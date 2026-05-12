@@ -10,6 +10,18 @@ import { ensureUniqueParentCode } from '@/lib/parentCode';
 import { createStudentLoginUser } from '@/lib/studentUser';
 import { notifyStudentAdded } from '@/lib/telegram';
 import { checkAndNotifyDeadlines, checkUnpaidLessons } from '@/lib/cron-check';
+import { Center } from '@/models/Center';
+
+const checkCenterTrial = async (centerId: string) => {
+  const center = await Center.findById(centerId);
+  if (!center) return;
+  if (center.trialEndsAt && new Date() > center.trialEndsAt && !center.isBlocked) {
+    await Center.findByIdAndUpdate(centerId, {
+      isBlocked: true,
+      blockReason: 'Trial muddati tugadi',
+    });
+  }
+};
 
 function serializeStudent(s: Record<string, unknown>) {
   const effective = computeStudentFinalPrice(s as any);
@@ -23,9 +35,8 @@ function serializeStudent(s: Record<string, unknown>) {
 export async function GET(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);
-    if (!auth) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authErr = requireAuthUser(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
 
     await connectDB();
     const { searchParams } = new URL(request.url);
@@ -34,12 +45,19 @@ export async function GET(request: NextRequest) {
 
     const query: Record<string, unknown> = {};
 
-    if (auth.role === 'parent' || auth.role === 'student') {
+    // Data isolation
+    if (auth!.role !== 'boss' && auth!.centerId) {
+      query.centerId = auth!.centerId;
+      // Auto-block if trial expired
+      await checkCenterTrial(auth!.centerId);
+    }
+
+    if (auth!.role === 'parent' || auth!.role === 'student') {
       return NextResponse.json([]);
     }
 
     // Auto-check deadlines on student list fetch (basic cron-like behavior)
-    if (isAdminRole(auth.role)) {
+    if (isAdminRole(auth!.role)) {
       await checkAndNotifyDeadlines();
       await checkUnpaidLessons();
     }
@@ -83,9 +101,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);
-    if (!auth || !isAdminRole(auth.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authErr = requireAdmin(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
 
     await connectDB();
     const data = await request.json();
@@ -118,6 +135,7 @@ export async function POST(request: NextRequest) {
       arrivalDate: data.arrivalDate ? new Date(data.arrivalDate) : undefined,
       parentType: data.parentType || '',
       groupId: data.groupId || null,
+      centerId: auth!.centerId,
       status: data.status || 'active',
       basePrice,
       discountAmount,

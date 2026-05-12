@@ -16,6 +16,7 @@ export interface IFreeLesson extends Document {
   notifyTeacherId?: mongoose.Types.ObjectId;
   otherNotifyTeacher?: string;
   lastLessonDate?: Date;
+  centerId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,6 +38,7 @@ const FreeLessonSchema = new Schema<IFreeLesson>(
     notifyTeacherId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     otherNotifyTeacher: { type: String, default: '' },
     lastLessonDate: { type: Date },
+    centerId: { type: Schema.Types.ObjectId, ref: 'Center', index: true },
   },
   { timestamps: true }
 );

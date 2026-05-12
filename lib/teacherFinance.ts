@@ -32,13 +32,16 @@ function splitTeacherAmount(
  * To‘lovlar: guruh sozlamalari bo‘yicha ustoz / markaz ulushi.
  * Ikki ustoz bo‘lsa, ustoz ulushi teng ikkiga bo‘linadi.
  */
-export async function getTeacherPaymentStats(teacherUserId: Types.ObjectId, month: number, year: number) {
+export async function getTeacherPaymentStats(teacherUserId: Types.ObjectId, month: number, year: number, centerId?: string) {
   const { start, end } = startEndOfMonth(new Date(year, month - 1, 1));
 
-  const groupDocs = await Group.find({
+  const query: any = {
     isActive: true,
     $or: [{ teacherUserId }, { teacherUserId2: teacherUserId }],
-  })
+  };
+  if (centerId) query.centerId = centerId;
+
+  const groupDocs = await Group.find(query)
     .select('_id teacherUserId teacherUserId2 teacherSharePercent teacherPayoutFixed')
     .lean();
 
@@ -65,9 +68,12 @@ export async function getTeacherPaymentStats(teacherUserId: Types.ObjectId, mont
     .lean();
   const studentMap = new Map(students.map((s) => [s._id.toString(), s]));
 
-  const payments = await Payment.find({
+  const paymentsQuery: any = {
     createdAt: { $gte: start, $lte: end },
-  }).lean();
+  };
+  if (centerId) paymentsQuery.centerId = centerId;
+
+  const payments = await Payment.find(paymentsQuery).lean();
 
   let totalGross = 0;
   let myTeacherShare = 0;
@@ -122,11 +128,16 @@ export async function getTeacherPaymentStats(teacherUserId: Types.ObjectId, mont
   };
 }
 
-export async function getAdminFinanceOverview(month: number, year: number) {
+export async function getAdminFinanceOverview(month: number, year: number, centerId?: string) {
   const { start, end } = startEndOfMonth(new Date(year, month - 1, 1));
 
-  const teachers = await User.find({ role: 'teacher' }).select('username displayName _id').lean();
-  const teacherStaff = await Staff.find({ position: 'teacher' }).lean();
+  const userQuery: any = { role: 'teacher' };
+  if (centerId) userQuery.centerId = centerId;
+  const teachers = await User.find(userQuery).select('username displayName _id').lean();
+
+  const staffQuery: any = { position: 'teacher' };
+  if (centerId) staffQuery.centerId = centerId;
+  const teacherStaff = await Staff.find(staffQuery).lean();
   const staffMap = new Map(teacherStaff.map(s => [s.userId?.toString(), s]));
 
   const result: {
@@ -142,7 +153,7 @@ export async function getAdminFinanceOverview(month: number, year: number) {
   }[] = [];
 
   for (const t of teachers) {
-    const s = await getTeacherPaymentStats(t._id, month, year);
+    const s = await getTeacherPaymentStats(t._id, month, year, centerId);
     const staff = staffMap.get(t._id.toString());
     result.push({
       teacherId: t._id.toString(),
@@ -157,10 +168,13 @@ export async function getAdminFinanceOverview(month: number, year: number) {
     });
   }
 
-  const unassigned = await Group.find({
+  const unassignedQuery: any = {
     isActive: true,
     $and: [{ $or: [{ teacherUserId: { $exists: false } }, { teacherUserId: null }] }, { $or: [{ teacherUserId2: { $exists: false } }, { teacherUserId2: null }] }],
-  })
+  };
+  if (centerId) unassignedQuery.centerId = centerId;
+
+  const unassigned = await Group.find(unassignedQuery)
     .select('_id')
     .lean();
 
@@ -168,14 +182,18 @@ export async function getAdminFinanceOverview(month: number, year: number) {
 
   let orphanTotal = 0;
   if (unassignedGroupIds.length > 0) {
-    const stu = await Student.find({ groupId: { $in: unassignedGroupIds }, status: 'active' })
+    const stuQuery: any = { groupId: { $in: unassignedGroupIds }, status: 'active' };
+    if (centerId) stuQuery.centerId = centerId;
+    const stu = await Student.find(stuQuery)
       .select('_id')
       .lean();
     const ids = stu.map((s) => s._id);
-    const payments = await Payment.find({
+    const pQuery: any = {
       studentId: { $in: ids },
       createdAt: { $gte: start, $lte: end },
-    }).lean();
+    };
+    if (centerId) pQuery.centerId = centerId;
+    const payments = await Payment.find(pQuery).lean();
     for (const p of payments) {
       orphanTotal += p.amount || 0;
     }

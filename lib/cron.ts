@@ -2,6 +2,7 @@ import { generateMonthlyInvoices, getDebtorsReport } from '@/lib/billing';
 import { sendTelegramMessage } from '@/lib/telegram';
 import { runParentPaymentReminders, runDebtorTelegramReminders } from '@/lib/parentReminders';
 import { checkDiscountExpirations } from '@/lib/discount';
+import { Center } from '@/models/Center';
 
 export interface CronJob {
   name: string;
@@ -37,7 +38,38 @@ export function initCronJobs(): void {
     enabled: true,
   });
 
+  cronJobs.set('center-trial-check', {
+    name: 'Daily Center Trial Expiration Check',
+    schedule: '0 0 * * *',
+    enabled: true,
+  });
+
   console.log('Cron jobs initialized:', Array.from(cronJobs.keys()));
+}
+
+export async function runCenterTrialCheckJob(): Promise<{ success: boolean; blocked: number }> {
+  const job = cronJobs.get('center-trial-check');
+  if (!job) return { success: false, blocked: 0 };
+
+  try {
+    const now = new Date();
+    const result = await Center.updateMany(
+      { trialEndsAt: { $lt: now }, isBlocked: false },
+      { $set: { isBlocked: true } }
+    );
+    
+    job.lastRun = new Date();
+    if (result.modifiedCount > 0) {
+      await sendTelegramMessage(
+        `🛑 <b>Markazlar bloklandi</b>\n\n` +
+        `Trial muddati tugagan markazlar soni: ${result.modifiedCount}`
+      );
+    }
+    return { success: true, blocked: result.modifiedCount };
+  } catch (error) {
+    console.error('Center trial check failed:', error);
+    return { success: false, blocked: 0 };
+  }
 }
 
 export async function runMonthlyInvoiceJob(): Promise<{
@@ -161,6 +193,11 @@ export function startCronScheduler(): void {
     const debtorTeleJob = cronJobs.get('debtor-telegram-daily');
     if (debtorTeleJob?.enabled && hour === 9 && minute === 0) {
       await runDebtorTelegramReminders();
+    }
+
+    const centerTrialJob = cronJobs.get('center-trial-check');
+    if (centerTrialJob?.enabled && hour === 0 && minute === 0) {
+      await runCenterTrialCheckJob();
     }
   }, 60000);
 

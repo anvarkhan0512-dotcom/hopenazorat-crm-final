@@ -7,9 +7,14 @@ import { Group } from '@/models/Group';
 import { computePeriodEndFromLessons } from '@/lib/lessonPeriod';
 import { getCached, invalidateCache, CacheKeys } from '@/lib/cache';
 import { sendTelegramMessage } from '@/lib/telegram';
+import { getAuthUser, requireAuthUser, requireAdmin } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await getAuthUser(request);
+    const authErr = requireAuthUser(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
+
     await connectDB();
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get('studentId');
@@ -18,6 +23,11 @@ export async function GET(request: NextRequest) {
 
     const query: any = {};
     
+    // Data isolation
+    if (auth!.role !== 'boss' && auth!.centerId) {
+      query.centerId = auth!.centerId;
+    }
+
     if (studentId) query.studentId = studentId;
     if (month) query.month = parseInt(month);
     if (year) query.year = parseInt(year);
@@ -38,11 +48,15 @@ function startOfDay(d: Date) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await getAuthUser(request);
+    const authErr = requireAdmin(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
+
     await connectDB();
     const data = await request.json();
 
     const student = await Student.findById(data.studentId);
-    if (!student) {
+    if (!student || (auth!.role !== 'boss' && student.centerId?.toString() !== auth!.centerId)) {
       return NextResponse.json({ error: 'Talaba topilmadi' }, { status: 400 });
     }
 
@@ -122,6 +136,7 @@ export async function POST(request: NextRequest) {
       fullPaymentDeadline: data.isPartial && data.fullPaymentDeadline ? new Date(data.fullPaymentDeadline) : undefined,
       isMonthly: !!data.isMonthly,
       description: data.description || '',
+      centerId: auth!.centerId,
     });
 
     await payment.save();

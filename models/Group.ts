@@ -28,6 +28,7 @@ export interface IGroup extends Document {
   /** Dars sanalari: barcha haftalar | faqat ISO toq haftalar | faqat juft haftalar */
   lessonCalendarWeekParity: 'all' | 'odd' | 'even';
   studentIds: mongoose.Types.ObjectId[];
+  centerId?: mongoose.Types.ObjectId;
   createdAt: Date;
   isActive: boolean;
   maxStudents: number;
@@ -62,6 +63,7 @@ const GroupSchema = new Schema<IGroup>(
       default: 'all',
     },
     studentIds: [{ type: Schema.Types.ObjectId, ref: 'Student', index: true }],
+    centerId: { type: Schema.Types.ObjectId, ref: 'Center', index: true },
     isActive: { type: Boolean, default: true, index: true },
     maxStudents: { type: Number, default: 30 },
     room: { type: String, default: '' },

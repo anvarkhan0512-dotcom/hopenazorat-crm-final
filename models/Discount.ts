@@ -16,6 +16,7 @@ export interface IDiscount extends Document {
   endDate: Date;
   isActive: boolean;
   createdBy: mongoose.Types.ObjectId;
+  centerId?: mongoose.Types.ObjectId;
   createdAt: Date;
 }
 
@@ -41,6 +42,7 @@ const DiscountSchema = new Schema<IDiscount>(
     endDate: { type: Date, required: true, index: true },
     isActive: { type: Boolean, default: true, index: true },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    centerId: { type: Schema.Types.ObjectId, ref: 'Center', index: true },
   },
   { timestamps: true }
 );

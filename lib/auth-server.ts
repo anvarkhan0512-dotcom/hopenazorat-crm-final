@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/db';
 import { User, isAdminRole, type UserRole } from '@/models/User';
+import { Center } from '@/models/Center';
 import type { Types } from 'mongoose';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'edu-crm-secret-key-2024';
@@ -12,24 +13,42 @@ export type AuthUser = {
   username: string;
   role: UserRole;
   displayName: string;
+  centerId?: string;
   linkedStudentIds: Types.ObjectId[];
+  centerBlocked?: boolean;
+  centerExpired?: boolean;
 };
 
 export async function getAuthUser(request: NextRequest): Promise<AuthUser | null> {
   const token = request.cookies.get('token')?.value;
   if (!token) return null;
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; centerId?: string };
     await connectDB();
     const u = await User.findById(decoded.id).lean();
     if (!u) return null;
+
+    let centerBlocked = false;
+    let centerExpired = false;
+
+    if (u.role !== 'boss' && u.centerId) {
+      const center = await Center.findById(u.centerId).lean();
+      if (center) {
+        if (center.isBlocked) centerBlocked = true;
+        if (new Date(center.trialEndsAt) < new Date()) centerExpired = true;
+      }
+    }
+
     return {
       _id: u._id,
       id: u._id.toString(),
       username: u.username,
       role: u.role as UserRole,
       displayName: u.displayName || '',
+      centerId: u.centerId?.toString() || decoded.centerId,
       linkedStudentIds: (u.linkedStudentIds || []) as Types.ObjectId[],
+      centerBlocked,
+      centerExpired,
     };
   } catch {
     return null;
@@ -39,6 +58,12 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
 export function requireAuthUser(u: AuthUser | null) {
   if (!u) {
     return { error: 'Unauthorized' as const, status: 401 as const };
+  }
+  if (u.centerBlocked) {
+    return { error: 'CENTER_BLOCKED' as const, status: 403 as const };
+  }
+  if (u.centerExpired) {
+    return { error: 'CENTER_EXPIRED' as const, status: 403 as const };
   }
   return null;
 }

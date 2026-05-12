@@ -9,6 +9,7 @@ export interface IInvoice extends Document {
   paidAmount: number;
   status: 'pending' | 'partial' | 'paid';
   dueDate: Date;
+  centerId?: mongoose.Types.ObjectId;
   createdAt: Date;
 }
 
@@ -27,6 +28,7 @@ const InvoiceSchema = new Schema<IInvoice>(
       index: true 
     },
     dueDate: { type: Date, default: () => new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0) },
+    centerId: { type: Schema.Types.ObjectId, ref: 'Center', index: true },
   },
   { timestamps: true }
 );

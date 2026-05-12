@@ -19,6 +19,7 @@ export interface IPayment extends Document {
   description: string;
   type: 'cash' | 'card' | 'transfer';
   branchId?: mongoose.Types.ObjectId;
+  centerId?: mongoose.Types.ObjectId;
   createdAt: Date;
 }
 
@@ -39,6 +40,7 @@ const PaymentSchema = new Schema<IPayment>(
     description: { type: String, default: '' },
     type: { type: String, enum: ['cash', 'card', 'transfer'], default: 'cash' },
     branchId: { type: Schema.Types.ObjectId, ref: 'Branch', index: true },
+    centerId: { type: Schema.Types.ObjectId, ref: 'Center', index: true },
   },
   { timestamps: true }
 );

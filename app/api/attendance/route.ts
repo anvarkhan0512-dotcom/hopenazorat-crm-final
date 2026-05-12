@@ -7,6 +7,7 @@ import { Attendance } from '@/models/Attendance';
 import { Student } from '@/models/Student';
 import { sendTelegramMessage, sendTelegramToChat } from '@/lib/telegram';
 import { User } from '@/models/User';
+import { getAuthUser, requireAuthUser, requireTeacher } from '@/lib/auth-server';
 
 function buildAttendanceTelegramText(params: {
   studentName: string;
@@ -53,6 +54,10 @@ function buildAttendanceTelegramText(params: {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await getAuthUser(request);
+    const authErr = requireTeacher(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
+
     await connectDB();
     const body = await request.json();
 
@@ -81,8 +86,8 @@ export async function POST(request: NextRequest) {
         const numLesson = Math.min(12, Math.max(1, Number(lessonNumber) || 1));
         const sid = new mongoose.Types.ObjectId(String(studentId));
         const student = await Student.findById(sid);
-        if (!student) {
-          results.errors.push(`ID ${studentId}: talaba topilmadi`);
+        if (!student || (auth!.role !== 'boss' && student.centerId?.toString() !== auth!.centerId)) {
+          results.errors.push(`ID ${studentId}: talaba topilmadi yoki ruxsat yo'q`);
           continue;
         }
 
@@ -115,6 +120,7 @@ export async function POST(request: NextRequest) {
             $set: {
               status: st,
               groupId: student.groupId || undefined,
+              centerId: auth!.centerId,
               rescheduleDate: status === 'rescheduled' && rescheduleDate ? new Date(rescheduleDate) : null,
               checkInTime: status === 'present' ? checkInTime || null : null,
               checkOutTime: item.checkOutTime || null,
@@ -170,10 +176,19 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await getAuthUser(request);
+    const authErr = requireAuthUser(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
+
     await connectDB();
 
     const { searchParams } = new URL(request.url);
     const query: Record<string, unknown> = {};
+
+    // Data isolation
+    if (auth!.role !== 'boss' && auth!.centerId) {
+      query.centerId = auth!.centerId;
+    }
 
     if (searchParams.get('studentId')) query.studentId = searchParams.get('studentId');
     if (searchParams.get('groupId')) query.groupId = searchParams.get('groupId');

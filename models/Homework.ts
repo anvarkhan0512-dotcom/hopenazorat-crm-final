@@ -8,6 +8,7 @@ export interface IHomework extends Document {
   attachmentUrl: string;
   createdBy: mongoose.Types.ObjectId;
   dueDate?: Date;
+  centerId?: mongoose.Types.ObjectId;
   createdAt: Date;
 }
 
@@ -20,6 +21,7 @@ const HomeworkSchema = new Schema<IHomework>(
     attachmentUrl: { type: String, default: '' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     dueDate: { type: Date, index: true },
+    centerId: { type: Schema.Types.ObjectId, ref: 'Center', index: true },
   },
   { timestamps: true }
 );

@@ -9,25 +9,30 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);
-    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authErr = requireAuthUser(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
 
     await connectDB();
 
-    if (auth.role === 'teacher') {
-      const groups = await Group.find({
-        $or: [{ teacherUserId: auth._id }, { teacherUserId2: auth._id }],
-      })
-        .sort({ createdAt: -1 })
-        .lean();
-      return NextResponse.json(groups.map((g) => serializeGroupForClient(g as any, auth.role)));
+    const query: any = {};
+    if (auth!.role !== 'boss' && auth!.centerId) {
+      query.centerId = auth!.centerId;
     }
 
-    if (auth.role === 'parent' || auth.role === 'student') {
+    if (auth!.role === 'teacher') {
+      query.$or = [{ teacherUserId: auth!._id }, { teacherUserId2: auth!._id }];
+      const groups = await Group.find(query)
+        .sort({ createdAt: -1 })
+        .lean();
+      return NextResponse.json(groups.map((g) => serializeGroupForClient(g as any, auth!.role)));
+    }
+
+    if (auth!.role === 'parent' || auth!.role === 'student') {
       return NextResponse.json([]);
     }
 
-    const groups = await Group.find().sort({ createdAt: -1 }).lean();
-    return NextResponse.json(groups.map((g) => serializeGroupForClient(g as any, auth.role)));
+    const groups = await Group.find(query).sort({ createdAt: -1 }).lean();
+    return NextResponse.json(groups.map((g) => serializeGroupForClient(g as any, auth!.role)));
   } catch (error) {
     console.error('Error fetching groups:', error);
     return NextResponse.json({ error: 'Error fetching groups' }, { status: 500 });
@@ -37,9 +42,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);
-    if (!auth || !isAdminRole(auth.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authErr = requireAdmin(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
 
     await connectDB();
     const data = await request.json();
@@ -63,6 +67,7 @@ export async function POST(request: NextRequest) {
       teacherPayoutFixed: data.teacherPayoutFixed ?? 0,
       lessonCalendarWeekParity: parity,
       studentIds: [],
+      centerId: auth!.centerId,
     });
 
     await group.save();

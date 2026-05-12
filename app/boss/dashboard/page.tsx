@@ -172,11 +172,15 @@ export default function BossDashboard() {
         </div>
       </div>
 
-      {/* Center Logo Overlay */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-        <div className="w-24 h-24 bg-black rounded-full border-4 border-white/10 flex items-center justify-center shadow-2xl">
-          <img src="/logo.png" alt="Logo" className="w-12 h-12 opacity-50" />
-        </div>
+      {/* Center Logo Overlay / Action */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+        <button 
+          onClick={() => router.push('/boss/centers')}
+          className="w-32 h-32 bg-white rounded-full border-8 border-black/20 flex flex-col items-center justify-center shadow-2xl hover:scale-110 transition-transform active:scale-95 group"
+        >
+          <span className="text-3xl group-hover:animate-bounce">🏢</span>
+          <span className="text-[10px] font-black uppercase mt-1 text-black">Markazlar</span>
+        </button>
       </div>
 
       {/* Top right actions */}

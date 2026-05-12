@@ -12,6 +12,7 @@ export interface IAttendance extends Document {
   /** Ko‘chirildi / transferred */
   transferAt?: Date | null;
   redirectTeacherUserId?: mongoose.Types.ObjectId | null;
+  centerId?: mongoose.Types.ObjectId;
   createdAt: Date;
 }
 
@@ -31,6 +32,7 @@ const AttendanceSchema = new Schema<IAttendance>(
     checkOutTime: { type: String, default: null },
     transferAt: { type: Date, default: null },
     redirectTeacherUserId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    centerId: { type: Schema.Types.ObjectId, ref: 'Center', index: true },
   },
   { timestamps: true }
 );

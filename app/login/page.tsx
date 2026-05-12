@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useAuth } from '@/components/AuthProvider';
 import BrandLogo from '@/components/BrandLogo';
@@ -21,6 +21,8 @@ const ERR_CODE_MAP: Record<string, string> = {
   WRONG_PASSWORD: 'errWrongPassword',
   ROLE_MISMATCH: 'errRoleMismatch',
   STUDENT_BLOCKED: 'studentBlocked',
+  CENTER_BLOCKED: 'Markaz bloklangan',
+  CENTER_EXPIRED: 'Trial muddati tugagan',
 };
 
 function LoginForm() {
@@ -29,10 +31,33 @@ function LoginForm() {
   const [loginRole, setLoginRole] = useState<LoginRole>('center');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [centerInfo, setCenterInfo] = useState<any>(null);
+  const [centerName, setCenterName] = useState('');
+  
   const { login } = useAuth();
   const { t, lang, setLang } = useLanguage();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const centerId = searchParams.get('c');
   const { canInstall, showInstallPrompt, isIOS, isInAppBrowser } = usePWA();
+
+  useEffect(() => {
+    if (centerId) {
+      fetch(`/api/centers/public?id=${centerId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.name) {
+            setCenterName(data.name);
+            setCenterInfo(data);
+            // Apply custom color if needed
+            if (data.settings?.primaryColor) {
+              document.documentElement.style.setProperty('--primary-color', data.settings.primaryColor);
+            }
+          }
+        })
+        .catch(console.error);
+    }
+  }, [centerId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,7 +163,14 @@ function LoginForm() {
       >
         <div className="hope-login-card bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl overflow-hidden max-w-md w-full">
           <div className="hope-login-card-inner p-8">
-            <BrandLogo variant="hero" tagline={t('loginBrandTagline')} />
+            <div className="text-center mb-6">
+              <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic">
+                {centerName || 'Hope Study'}
+              </h2>
+              <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest mt-1">
+                O&apos;quv markazi CRM tizimi
+              </p>
+            </div>
 
             <div className="hope-login-role-grid grid grid-cols-2 gap-2 mb-6 mt-4" role="group" aria-label={t('loginAriaRoleGroup')}>
               {roleButtons.map((r) => (

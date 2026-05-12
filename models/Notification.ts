@@ -7,6 +7,7 @@ export interface INotification extends Document {
   message: string;
   type: 'info' | 'warning' | 'success' | 'message';
   isRead: boolean;
+  centerId?: mongoose.Types.ObjectId;
   createdAt: Date;
 }
 
@@ -22,6 +23,7 @@ const NotificationSchema = new Schema<INotification>(
       default: 'info' 
     },
     isRead: { type: Boolean, default: false, index: true },
+    centerId: { type: Schema.Types.ObjectId, ref: 'Center', index: true },
     createdAt: { type: Date, default: Date.now, index: true },
   },
   { timestamps: false }

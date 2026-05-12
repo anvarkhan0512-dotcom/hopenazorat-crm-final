@@ -5,6 +5,7 @@ export interface ILoginHistory extends Document {
   timestamp: Date;
   userAgent: string;
   ip: string;
+  centerId?: mongoose.Types.ObjectId;
 }
 
 const LoginHistorySchema = new Schema<ILoginHistory>(
@@ -13,6 +14,7 @@ const LoginHistorySchema = new Schema<ILoginHistory>(
     timestamp: { type: Date, default: Date.now, index: true },
     userAgent: { type: String, default: '' },
     ip: { type: String, default: '' },
+    centerId: { type: Schema.Types.ObjectId, ref: 'Center', index: true },
   },
   { timestamps: false }
 );

@@ -8,6 +8,7 @@ export interface IHomeworkSubmission extends Document {
   status: HomeworkSubmitStatus;
   /** Student-uploaded homework photo (path under /public or absolute URL) */
   submissionImageUrl?: string;
+  centerId?: mongoose.Types.ObjectId;
   updatedAt: Date;
   createdAt: Date;
 }
@@ -23,6 +24,7 @@ const HomeworkSubmissionSchema = new Schema<IHomeworkSubmission>(
       index: true,
     },
     submissionImageUrl: { type: String, default: '' },
+    centerId: { type: Schema.Types.ObjectId, ref: 'Center', index: true },
   },
   { timestamps: true }
 );

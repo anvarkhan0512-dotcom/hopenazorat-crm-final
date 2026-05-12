@@ -13,6 +13,7 @@ export interface IStudent extends Document {
   parentTelegramChatId?: string;
   groupId?: mongoose.Types.ObjectId;
   studentUserId?: mongoose.Types.ObjectId;
+  centerId?: mongoose.Types.ObjectId;
   status: 'active' | 'inactive' | 'left';
   scoreRecords: { date: Date; score: number; reason: string }[];
   monthlyPrice: number;
@@ -84,6 +85,7 @@ const StudentSchema = new Schema(
     parentTelegramChatId: { type: String, default: '' },
     groupId: { type: Schema.Types.ObjectId, ref: 'Group', index: true },
     studentUserId: { type: Schema.Types.ObjectId, ref: 'User' },
+    centerId: { type: Schema.Types.ObjectId, ref: 'Center', index: true },
     status: {
       type: String,
       enum: ['active', 'inactive', 'left'],

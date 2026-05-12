@@ -17,6 +17,7 @@ export interface IUser extends Document {
   revealablePassword?: string;
   /** For parent role: students this account can view */
   linkedStudentIds: Types.ObjectId[];
+  centerId?: Types.ObjectId;
   createdAt: Date;
 }
 
@@ -38,12 +39,14 @@ const UserSchema = new Schema<IUser>(
     telegramUsername: { type: String, default: '' },
     revealablePassword: { type: String, default: '' },
     branchId: { type: Schema.Types.ObjectId, ref: 'Branch', index: true },
+    centerId: { type: Schema.Types.ObjectId, ref: 'Center', index: true },
     linkedStudentIds: [{ type: Schema.Types.ObjectId, ref: 'Student', index: true }],
   },
   { timestamps: true }
 );
 
 UserSchema.index({ role: 1, createdAt: -1 });
+UserSchema.index({ centerId: 1, username: 1 });
 
 export const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
 
