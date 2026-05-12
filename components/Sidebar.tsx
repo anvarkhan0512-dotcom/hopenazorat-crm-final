@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useAuth } from '@/components/AuthProvider';
+import { useCenter } from '@/lib/center-context';
 import BrandLogo from '@/components/BrandLogo';
 
 type Item = { key: string; href: string; icon: string };

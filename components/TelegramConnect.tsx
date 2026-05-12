@@ -1,10 +1,10 @@
-'use client'; 
-import { useState, useEffect } from 'react'; 
+'use client';
+import { useState, useEffect } from 'react';
 import { useCenter } from '@/lib/center-context';
- 
-export default function TelegramConnect() { 
+
+export default function TelegramConnect() {
   const { centerName } = useCenter();
-  const [showCode, setShowCode] = useState(false); 
+  const [showCode, setShowCode] = useState(false);
   const [code, setCode] = useState(''); 
   const [countdown, setCountdown] = useState(300); 
   const [connected, setConnected] = useState(false); 

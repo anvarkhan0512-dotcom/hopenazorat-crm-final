@@ -43,10 +43,11 @@ export function CenterProvider({
   ); 
 } 
  
-export const useCenter = () => { 
+export function useCenter() { 
   const context = useContext(CenterContext); 
-  if (context === undefined) { 
-    return { centerName: 'Hope Study', centerId: null }; // Prerender uchun fallback 
+  // Agar build paytida context topilmasa, ReferenceError bermasligi uchun fallback qaytaramiz 
+  if (!context) { 
+    return { centerName: 'Hope Study', centerId: null }; 
   } 
   return context; 
-}; 
+} 
