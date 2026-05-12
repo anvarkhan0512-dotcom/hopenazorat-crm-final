@@ -5,6 +5,8 @@ import { User } from '@/models/User';
 import { Student } from '@/models/Student';
 import { LoginHistory } from '@/models/LoginHistory';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);

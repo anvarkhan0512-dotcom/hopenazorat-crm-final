@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useAuth } from '@/components/AuthProvider';
@@ -25,7 +25,7 @@ const ERR_CODE_MAP: Record<string, string> = {
   CENTER_EXPIRED: 'Trial muddati tugagan',
 };
 
-function LoginForm() {
+function LoginContent() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginRole, setLoginRole] = useState<LoginRole>('center');
@@ -283,5 +283,13 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
-  return <LoginForm />;
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-purple-900 flex items-center justify-center">
+        <div className="text-white">Yuklanmoqda...</div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
+  );
 }
