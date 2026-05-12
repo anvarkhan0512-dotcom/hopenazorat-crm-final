@@ -47,6 +47,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="uz" className={`${playfair.variable} ${dmSans.variable}`}>
+      <head>
+        <script src="https://telegram.org/js/telegram-web-app.js" async></script>
+      </head>
       <body>
         <LanguageProvider>
           <AuthProvider>

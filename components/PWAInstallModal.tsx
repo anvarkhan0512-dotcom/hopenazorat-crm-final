@@ -8,6 +8,7 @@ export default function PWAInstallModal() {
     isInstalled, 
     isIOS, 
     isInAppBrowser, 
+    isTelegram,
     canInstall, 
     showInstallPrompt 
   } = usePWA();
@@ -23,8 +24,8 @@ export default function PWAInstallModal() {
       return;
     }
 
-    // If already installed, don't show
-    if (isInstalled) return;
+    // If already installed or inside Telegram, don't show
+    if (isInstalled || isTelegram) return;
 
     // Show modal after 10 seconds if installation is possible
     // canInstall is true for Android/Chrome

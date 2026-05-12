@@ -7,6 +7,7 @@ interface PWAContextType {
   isInstalled: boolean;
   isIOS: boolean;
   isInAppBrowser: boolean;
+  isTelegram: boolean;
   canInstall: boolean;
   showInstallPrompt: () => Promise<void>;
 }
@@ -18,6 +19,7 @@ export function PWAProvider({ children }: { children: ReactNode }) {
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isInAppBrowser, setIsInAppBrowser] = useState(false);
+  const [isTelegram, setIsTelegram] = useState(false);
   const [canInstall, setCanInstall] = useState(false);
 
   useEffect(() => {
@@ -40,11 +42,14 @@ export function PWAProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // 3. Detect In-App Browsers (Telegram, Instagram, Facebook, etc.)
-    const checkInAppBrowser = () => {
+    // 3. Detect In-App Browsers and Telegram
+    const checkBrowsers = () => {
       if (typeof window !== 'undefined') {
         const ua = window.navigator.userAgent.toLowerCase();
-        const isInApp = /telegram|instagram|fbav|fb_iab|messenger|line|viber/.test(ua);
+        const isTg = /telegram/.test(ua) || (window as any).Telegram?.WebApp !== undefined;
+        const isInApp = /instagram|fbav|fb_iab|messenger|line|viber/.test(ua) || (isTg && !(window as any).Telegram?.WebApp);
+        
+        setIsTelegram(isTg);
         setIsInAppBrowser(isInApp);
       }
     };
@@ -69,7 +74,7 @@ export function PWAProvider({ children }: { children: ReactNode }) {
 
     checkInstalled();
     checkIOS();
-    checkInAppBrowser();
+    checkBrowsers();
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
@@ -101,6 +106,7 @@ export function PWAProvider({ children }: { children: ReactNode }) {
       isInstalled,
       isIOS,
       isInAppBrowser,
+      isTelegram,
       canInstall,
       showInstallPrompt
     }}>

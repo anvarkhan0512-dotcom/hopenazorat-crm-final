@@ -1,11 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { usePWA } from '@/lib/pwa-context';
 
 export default function InstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const { 
+    isInstalled, 
+    isIOS, 
+    isTelegram,
+    canInstall, 
+    showInstallPrompt,
+    deferredPrompt
+  } = usePWA();
   const [showPrompt, setShowPrompt] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
     // Check if user has already closed the prompt in the last 24 hours
@@ -16,55 +23,19 @@ export default function InstallPrompt() {
       return;
     }
 
-    // Check for iOS
-    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-    
-    if (isIOSDevice && !isStandalone) {
-      setIsIOS(true);
-      setShowPrompt(true);
-    }
-
-    // Register Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then(
-          (registration) => {
-            console.log('ServiceWorker registration successful');
-          },
-          (err) => {
-            console.log('ServiceWorker registration failed: ', err);
-          }
-        );
-      });
-    }
-
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowPrompt(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleInstall = async () => {
-    if (isIOS) {
-      // iOS doesn't support beforeinstallprompt, instructions are already shown
+    if (isTelegram || isInstalled) {
+      setShowPrompt(false);
       return;
     }
 
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
+    if ((isIOS && !isInstalled) || canInstall) {
+      setShowPrompt(true);
     }
-    setDeferredPrompt(null);
+  }, [isIOS, isInstalled, isTelegram, canInstall]);
+
+  const handleInstall = async () => {
+    if (isIOS) return;
+    await showInstallPrompt();
     setShowPrompt(false);
   };
 
