@@ -1,8 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { useCenter } from '@/lib/center-context';
 
 export default function FloatingChat() {
+  const { centerName } = useCenter();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');

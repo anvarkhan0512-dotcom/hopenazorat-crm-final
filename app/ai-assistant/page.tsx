@@ -4,10 +4,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useAuth } from '@/components/AuthProvider';
+import { useCenter } from '@/lib/center-context';
 import { useRouter } from 'next/navigation';
 
 export default function AIAssistantPage() {
   const { t } = useLanguage();
+  const { centerName } = useCenter();
   const { user: authUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<any[]>([]);

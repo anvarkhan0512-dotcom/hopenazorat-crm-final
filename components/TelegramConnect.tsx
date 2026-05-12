@@ -148,7 +148,7 @@ export default function TelegramConnect() {
         <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-2xl">📢</div> 
         <div className="flex-1"> 
           <h3 className="font-bold text-gray-800"> 
-            Hope Study Kanal 
+            {centerName} Kanal 
           </h3> 
           <p className="text-sm text-blue-500"> 
             @Hope_study_chanel 

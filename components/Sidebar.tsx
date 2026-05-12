@@ -65,6 +65,7 @@ export default function Sidebar({ isOpen, onClose, collapsed }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { centerName } = useCenter();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const role = user?.role;
