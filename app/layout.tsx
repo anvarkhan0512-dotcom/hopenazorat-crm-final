@@ -3,6 +3,7 @@ import { DM_Sans, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { LanguageProvider } from '@/components/LanguageProvider';
 import { AuthProvider } from '@/components/AuthProvider';
+import { CenterProvider } from '@/lib/center-context';
 import { AIProvider } from '@/components/AIProvider';
 import { PWAProvider } from '@/lib/pwa-context';
 import PWAInstallModal from '@/components/PWAInstallModal';
