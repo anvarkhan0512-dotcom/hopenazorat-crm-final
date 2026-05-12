@@ -4,7 +4,7 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-export const SYSTEM_PROMPT = `Sen Hope Study 
+export const getGroqSystemPrompt = (centerName: string = 'O\'quv markaz') => `Sen ${centerName} 
  o'quv markazi CRM tizimining AI yordamchisisisan. 
  
  QOIDALAR: 
@@ -13,11 +13,9 @@ export const SYSTEM_PROMPT = `Sen Hope Study
  - Tizimdan real ma'lumot olib javob ber 
  - Qisqa va aniq gapir 
  - Sen bu markazning xodimisan 
- 
- IMKONIYATLARING: 
- - Talabalar, guruhlar, to'lovlar haqida ma'lumot 
- - Statistika va hisobotlar 
- - Buyruqlarni bajarish (talaba qo'shish va h.k.)`;
+ - Faqat ${centerName} haqida gapir, boshqa markazlar haqida ma'lumot berma.`;
+
+export const SYSTEM_PROMPT = getGroqSystemPrompt();
 
 export async function askGroq(
   messages: any[],

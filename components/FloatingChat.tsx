@@ -2,9 +2,11 @@
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useCenter } from '@/lib/center-context';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function FloatingChat() {
   const { centerName } = useCenter();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
@@ -12,22 +14,26 @@ export default function FloatingChat() {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
 
+  // Isolate chat history by user
+  const chatKey = user ? `chat_history_floating_${user.id}` : 'chat_history_floating_guest';
+
   useEffect(() => {
     setMounted(true);
     try {
-      const saved = localStorage.getItem('chat_history');
+      const saved = localStorage.getItem(chatKey);
       if (saved) setMessages(JSON.parse(saved));
+      else setMessages([]);
     } catch (e) {}
-  }, []);
+  }, [chatKey]);
 
   useEffect(() => {
     if (messages.length > 0) {
       try {
-        localStorage.setItem('chat_history',
+        localStorage.setItem(chatKey,
           JSON.stringify(messages));
       } catch (e) {}
     }
-  }, [messages]);
+  }, [messages, chatKey]);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;

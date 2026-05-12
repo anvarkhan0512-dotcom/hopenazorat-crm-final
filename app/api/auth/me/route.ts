@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         bossId: decoded.bossId,
         trialEndsAt,
       },
-      centerName: decoded.centerName || 'Hope Study',
+      centerName: decoded.centerName || 'O\'quv markaz',
       centerId: u.centerId?.toString() || null,
     });
   } catch (error) {

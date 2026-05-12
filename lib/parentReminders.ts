@@ -26,7 +26,7 @@ export async function runParentPaymentReminders(daysAhead: number = 3): Promise<
     notificationEnabled: true,
     parentTelegramChatId: { $exists: true, $nin: ['', null] },
     nextPaymentDate: { $gte: now, $lte: horizon },
-  }).lean();
+  }).populate('centerId', 'name').lean();
 
   if (students.length === 0) return { sent: 0, skipped: 0, errors: [] };
 
@@ -76,9 +76,10 @@ export async function runParentPaymentReminders(daysAhead: number = 3): Promise<
 
     const due = s.nextPaymentDate ? new Date(s.nextPaymentDate).toLocaleDateString('uz-UZ') : '-';
     const amountStr = finalAmount.toLocaleString('uz-UZ');
+    const centerName = (s as any).centerId?.name || 'O\'quv markaz';
     const msg =
       `Assalomu alaykum, hurmatli ota-ona! 🌟\n\n` +
-      `"Hope Study" o'quv markazidan eslatma: farzandingiz <b>${s.name}</b> uchun keyingi to'lov muddati yaqinlashmoqda.\n\n` +
+      `"${centerName}" o'quv markazidan eslatma: farzandingiz <b>${s.name}</b> uchun keyingi to'lov muddati yaqinlashmoqda.\n\n` +
       `📅 <b>To'lov sanasi:</b> ${due}\n` +
       `💰 <b>To'lov miqdori:</b> ${amountStr} so'm\n\n` +
       `Ilm yo'lidagi hamkorligingiz uchun rahmat! 🙏`;

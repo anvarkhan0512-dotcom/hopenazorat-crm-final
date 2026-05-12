@@ -109,14 +109,14 @@ export async function handleBotCommand(chatId: string, text: string, message: an
         await bot.sendMessage(chatId, 
           `✅ Muvaffaqiyatli ulandi!\n\n` + 
           `${emoji} Salom, ${user.displayName}!\n` + 
-          `Hope Study botiga xush kelibsiz!\n\n` + 
+          `<b>${user.centerName || 'Edu CRM'}</b> botiga xush kelibsiz!\n\n` + 
           `📋 Buyruqlar:\n` + 
           `/menu - Asosiy menyu\n` + 
           `/tolov - To'lov holati\n` + 
           `/davomat - Davomat\n` + 
           `/ai - AI yordamchi\n` + 
           `/help - Yordam` 
-        );
+        , { parse_mode: 'HTML' });
       } else {
         await bot.sendMessage(chatId, 
           '❌ Kod noto\'g\'ri yoki muddati o\'tgan.\n' + 
@@ -127,15 +127,41 @@ export async function handleBotCommand(chatId: string, text: string, message: an
     }
     
     // /start without code
+    const msg =
+      `👋 Salom! Men tizim botiman.\n\n` +
+      `Ulanish uchun:\n` +
+      `1. Tizimga kiring\n` +
+      `2. Telegram bo'limiga o'ting\n` +
+      `3. 6 xonali kodni oling\n` +
+      `4. /start KOD yuboring\n\n` +
+      `Misol: /start 123456\n\n` +
+      `📋 Buyruqlar:\n` +
+      `👤 /me - Ma'lumotlaringizni ko'rish\n` +
+      `🎓 /status - O'quvchi holatini tekshirish\n` +
+      `🚪 /logout - Hisobdan chiqish`;
+    await bot.sendMessage(chatId, msg);
+    return;
+  }
+
+  if (text === '/me') {
+    await connectDB();
+    const user = await User.findOne({ telegramChatId: chatId.toString() });
+    if (!user) {
+      return bot.sendMessage(chatId, `Siz tizimga kirmagansiz. Iltimos, /start KOD orqali kiring.`);
+    }
+    const centerName = user.centerName || 'O\'quv markaz';
     await bot.sendMessage(chatId, 
-      `👋 Salom! Men Hope Study botiman.\n\n` + 
-      `Ulanish uchun:\n` + 
-      `1. hopestudy.uz ga kiring\n` + 
-      `2. Telegram bo'limiga o'ting\n` + 
-      `3. 6 xonali kodni oling\n` + 
-      `4. /start KOD yuboring\n\n` + 
-      `Misol: /start 123456` 
-    );
+      `👤 <b>Foydalanuvchi:</b> ${user.displayName || user.username}\n` +
+      `🏢 <b>Markaz:</b> ${centerName}\n` +
+      `🎭 <b>Rol:</b> ${user.role}`
+    , { parse_mode: 'HTML' });
+    return;
+  } else if (text === '/status') {
+    await connectDB();
+    const user = await User.findOne({ telegramChatId: chatId.toString() });
+    if (!user) return bot.sendMessage(chatId, `Siz tizimga kirmagansiz.`);
+    const centerName = user.centerName || 'O\'quv markaz';
+    await bot.sendMessage(chatId, `⏳ ${centerName} ma'lumotlari yuklanmoqda...`);
     return;
   }
 
@@ -148,9 +174,9 @@ export async function handleBotCommand(chatId: string, text: string, message: an
   if (text === '/start') {
     await bot.sendMessage(chatId, 
       `Assalomu alaykum, Admin! 🌟\n\n` +
-      `"Hope Study" CRM botiga xush kelibsiz.\n` +
+      `CRM botiga xush kelibsiz.\n` +
       `Buyruqlar:\n/stats - Umumiy statistika\n\n` +
-      `Siz har qanday savolingizni matn yoki ovozli xabar ko'rinishida yuborishingiz mumkin. Gemini AI sizga yordam beradi!`
+      `Siz har qanday savolingizni matn yoki ovozli xabar ko'rinishida yuborishingiz mumkin. AI yordamchi sizga yordam beradi!`
     );
   } else if (text === '/stats') {
     await connectDB();
@@ -184,7 +210,7 @@ export async function handleBotCommand(chatId: string, text: string, message: an
   } else {
     // Agar buyruq bo'lmasa, Gemini AI ga yuboramiz
     const aiResponse = await askGemini(text);
-    await bot.sendMessage(chatId, `<b>Hope Study Menejeri:</b>\n\n${aiResponse}`, { parse_mode: 'HTML' });
+    await bot.sendMessage(chatId, `<b>Menejer:</b>\n\n${aiResponse}`, { parse_mode: 'HTML' });
   }
 }
 
@@ -207,7 +233,7 @@ export async function handleVoiceMessage(chatId: string, voice: TelegramBot.Voic
 
     // Gemini AI ga yuborish
     const aiResponse = await processVoiceWithGemini(buffer, voice.mime_type || 'audio/ogg');
-    await bot.sendMessage(chatId, `<b>Hope Study Menejeri (Ovozli xabarga javob):</b>\n\n${aiResponse}`, { parse_mode: 'HTML' });
+    await bot.sendMessage(chatId, `<b>Menejer (Ovozli xabarga javob):</b>\n\n${aiResponse}`, { parse_mode: 'HTML' });
   } catch (error) {
     console.error('Voice processing error:', error);
     await bot.sendMessage(chatId, "Ovozli xabarni qayta ishlashda xatolik yuz berdi.");

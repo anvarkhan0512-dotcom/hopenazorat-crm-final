@@ -101,7 +101,7 @@ function LoginContent() {
       >
         <img
           src="/images/login-left.jpg"
-          alt="Hope Study talabalar"
+          alt="Talabalar"
           style={{
             width: '100%',
             height: '100%',
@@ -136,7 +136,7 @@ function LoginContent() {
       >
         <img
           src="/images/login-right.jpg"
-          alt="Hope Study ustoz"
+          alt="Ustoz"
           style={{
             width: '100%',
             height: '100%',
@@ -165,7 +165,7 @@ function LoginContent() {
           <div className="hope-login-card-inner p-8">
             <div className="text-center mb-6">
               <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic">
-                {centerName || 'Hope Study'}
+                {centerName || 'Edu CRM'}
               </h2>
               <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest mt-1">
                 O&apos;quv markazi CRM tizimi

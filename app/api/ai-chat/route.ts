@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { askGemini, SYSTEM_PROMPT } from '@/lib/gemini';
-import { askGroq } from '@/lib/groq';
+import { askGemini, getSystemPrompt } from '@/lib/gemini';
+import { askGroq, getGroqSystemPrompt } from '@/lib/groq';
 import { getAuthUser } from '@/lib/auth-server';
 import connectDB from '@/lib/db';
 
@@ -10,11 +9,14 @@ export const dynamic = 'force-dynamic';
 async function getRoleContext( 
   userId: string, 
   role: string, 
-  message: string 
+  message: string,
+  centerId?: string
 ): Promise<string> { 
   await connectDB(); 
   const msg = message.toLowerCase(); 
   
+  const centerFilter = centerId ? { centerId } : { $or: [{ centerId: { $exists: false } }, { centerId: null }] };
+
   // ===== ADMIN ===== 
   if (role === 'admin' || role === 'manager') { 
     
@@ -24,7 +26,7 @@ async function getRoleContext(
         msg.includes('nechta') || 
         msg.includes('ro\'yxat')) { 
       const { Student } = await import('@/models/Student'); 
-      const students = await Student.find({ status: 'active' }) 
+      const students = await Student.find({ ...centerFilter, status: 'active' }) 
         .populate('groupId', 'name') 
         .select('name phone status monthlyPrice groupId') 
         .lean(); 
@@ -39,7 +41,7 @@ async function getRoleContext(
     // Groups info 
     if (msg.includes('guruh')) { 
       const { Group } = await import('@/models/Group'); 
-      const groups = await Group.find() 
+      const groups = await Group.find(centerFilter) 
         .populate('teacherUserId', 'displayName') 
         .lean(); 
       return `Guruhlar: ${groups.length} ta.\n` + 
@@ -59,6 +61,7 @@ async function getRoleContext(
       const startOfMonth = new Date( 
         now.getFullYear(), now.getMonth(), 1); 
       const payments = await Payment.find({ 
+        ...centerFilter,
         createdAt: { $gte: startOfMonth } 
       }).lean(); 
       const total = payments.reduce( 
@@ -72,6 +75,7 @@ async function getRoleContext(
         msg.includes('qarz')) { 
       const { Student } = await import('@/models/Student'); 
       const debtors = await Student.find({ 
+        ...centerFilter,
         status: 'active', 
         lastPaymentDate: { 
           $lt: new Date(Date.now() - 30*24*60*60*1000) 
@@ -89,6 +93,7 @@ async function getRoleContext(
         msg.includes('o\'qituvchi')) { 
       const { User } = await import('@/models/User'); 
       const staff = await User.find({ 
+        ...centerFilter,
         role: { $in: ['teacher', 'manager'] } 
       }).select('displayName role').lean(); 
       return `Xodimlar: ${staff.length} ta.\n` + 
@@ -101,8 +106,8 @@ async function getRoleContext(
     const { Student } = await import('@/models/Student'); 
     const { Group } = await import('@/models/Group'); 
     const [sCount, gCount] = await Promise.all([ 
-      Student.countDocuments({ status: 'active' }), 
-      Group.countDocuments() 
+      Student.countDocuments({ ...centerFilter, status: 'active' }), 
+      Group.countDocuments(centerFilter) 
     ]); 
     return `Tizim: ${sCount} faol talaba, ${gCount} guruh`; 
   } 
@@ -114,10 +119,12 @@ async function getRoleContext(
       const { Student } = await import('@/models/Student'); 
       const { Group } = await import('@/models/Group'); 
       const myGroups = await Group.find({ 
+        ...centerFilter,
         teacherUserId: userId 
       }).lean(); 
       const groupIds = myGroups.map((g: any) => g._id); 
       const students = await Student.find({ 
+        ...centerFilter,
         groupId: { $in: groupIds }, 
         status: 'active' 
       }).populate('groupId', 'name').lean(); 
@@ -131,6 +138,7 @@ async function getRoleContext(
         msg.includes('dars')) { 
       const { Group } = await import('@/models/Group'); 
       const groups = await Group.find({ 
+        ...centerFilter,
         teacherUserId: userId 
       }).lean(); 
       return `Sizning guruhlaringiz: ${groups.length} ta\n` + 
@@ -146,10 +154,11 @@ async function getRoleContext(
   // ===== STUDENT ===== 
   if (role === 'student') { 
     const { User } = await import('@/models/User'); 
-    const user = await User.findById(userId).lean() as any; 
+    const user = await User.findOne({ _id: userId, ...centerFilter }).lean() as any; 
     
     const { Student } = await import('@/models/Student'); 
     const student = await Student.findOne({ 
+      ...centerFilter,
       $or: [ 
         { studentUserId: userId }, 
         { phone: user?.username } 
@@ -162,6 +171,7 @@ async function getRoleContext(
         msg.includes('qarz')) { 
       const { Payment } = await import('@/models/Payment'); 
       const payments = await Payment.find({ 
+        ...centerFilter,
         studentId: student._id 
       }).sort({ createdAt: -1 }).limit(5).lean(); 
       return `Sizning to'lovlaringiz:\n` + 
@@ -184,6 +194,7 @@ async function getRoleContext(
   if (role === 'parent') { 
     const { Student } = await import('@/models/Student'); 
     const children = await Student.find({ 
+      ...centerFilter,
       parentUserId: userId 
     }).populate('groupId').lean(); 
     
@@ -195,6 +206,7 @@ async function getRoleContext(
       let result = ''; 
       for (const child of children) { 
         const payments = await Payment.find({ 
+          ...centerFilter,
           studentId: child._id 
         }).sort({ createdAt: -1 }).limit(3).lean(); 
         result += `\n${(child as any).name}:\n` + 
@@ -225,6 +237,10 @@ export async function POST(request: NextRequest) {
 
     const userId = auth.id;
     const userRole = auth.role;
+    const centerId = auth.centerId;
+    const centerName = auth.centerName || 'O\'quv markaz';
+    const SYSTEM_PROMPT = getSystemPrompt(centerName);
+    const GROQ_SYSTEM_PROMPT = getGroqSystemPrompt(centerName);
 
     const formData = await request.formData();
     const message = (formData.get('message') as string) || '';
@@ -235,7 +251,8 @@ export async function POST(request: NextRequest) {
     const roleContext = await getRoleContext( 
       userId, 
       userRole, 
-      message 
+      message,
+      centerId
     ); 
     
     const fullMessage = roleContext 
@@ -265,7 +282,7 @@ export async function POST(request: NextRequest) {
     let reply = "";
     if (imageContents.length === 0) {
       try {
-        reply = await askGroq(messages, SYSTEM_PROMPT);
+        reply = await askGroq(messages, GROQ_SYSTEM_PROMPT);
       } catch (groqError) {
         console.error('Groq failed, fallback to Gemini:', groqError);
         const aiRes = await askGemini(messages, { systemInstruction: SYSTEM_PROMPT });

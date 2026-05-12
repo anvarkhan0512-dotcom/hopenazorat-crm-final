@@ -16,10 +16,13 @@ export default function AIAssistantPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [input, setInput] = useState('');
 
+  // Isolate chat history by user and center
+  const chatKey = authUser ? `chat_history_${authUser.id}` : 'chat_history_guest';
+
   // Load on mount:
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('chat_history');
+      const saved = localStorage.getItem(chatKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         // Convert string timestamps back to Date objects
@@ -28,26 +31,28 @@ export default function AIAssistantPage() {
           timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date()
         }));
         setMessages(formatted);
+      } else {
+        setMessages([]); // Clear if no saved history for this user
       }
     } catch (e) {
       console.error('Error loading chat history:', e);
     }
-  }, []);
+  }, [chatKey]);
 
   // Save when messages change:
   useEffect(() => {
     if (messages.length > 0) {
       try {
-        localStorage.setItem('chat_history', JSON.stringify(messages));
+        localStorage.setItem(chatKey, JSON.stringify(messages));
       } catch (e) {
         console.error('Error saving chat history:', e);
       }
     }
-  }, [messages]);
+  }, [messages, chatKey]);
 
   const clearMessages = () => {
     setMessages([]);
-    localStorage.removeItem('chat_history');
+    localStorage.removeItem(chatKey);
   };
 
   const sendMessage = async (messageText: string, files: File[] = []) => {
@@ -207,7 +212,7 @@ export default function AIAssistantPage() {
               <p className="text-gray-500 max-w-xs mx-auto">
                 {isStudent 
                   ? "Men sizga darslaringizni tushunishda va uy vazifalarida yo&apos;nalish berishda yordam beraman."
-                  : "Men Hope Study aqlli menejeriman. Markazimiz haqida har qanday savolingiz bo&apos;lsa, so&apos;rashingiz mumkin."}
+                  : `Men ${centerName} aqlli menejeriman. Markazimiz haqida har qanday savolingiz bo&apos;lsa, so&apos;rashingiz mumkin.`}
               </p>
             </div>
           )}

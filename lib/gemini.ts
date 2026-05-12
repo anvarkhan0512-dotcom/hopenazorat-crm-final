@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-export const SYSTEM_PROMPT = `Sen Hope Study 
+export const getSystemPrompt = (centerName: string = 'O\'quv markaz') => `Sen ${centerName} 
  o'quv markazi CRM tizimining AI yordamchisisisan. 
  
  QOIDALAR: 
@@ -11,11 +11,14 @@ export const SYSTEM_PROMPT = `Sen Hope Study
  - Tizimdan real ma'lumot olib javob ber 
  - Qisqa va aniq gapir 
  - Sen bu markazning xodimisan 
+ - Faqat ${centerName} haqida gapir, boshqa markazlar haqida ma'lumot berma.
  
  IMKONIYATLARING: 
  - Talabalar, guruhlar, to'lovlar haqida ma'lumot 
  - Statistika va hisobotlar 
  - Buyruqlarni bajarish (talaba qo'shish va h.k.)`;
+
+export const SYSTEM_PROMPT = getSystemPrompt();
 
 const tools = [
   {

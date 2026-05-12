@@ -23,13 +23,13 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'Hope Study',
-  description: 'Hope Study - Online ta\'lim platformasi',
+  title: 'Edu CRM',
+  description: 'Online ta\'lim platformasi',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    title: 'Hope Study',
     statusBarStyle: 'default',
+    title: 'Edu CRM',
   },
   icons: {
     apple: '/icons/icon-192x192.png',

@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. JWT Token yaratish
-    let centerName = 'Hope Study';
+    let centerName = 'O\'quv markaz';
     if (user.centerId) {
       const center = await Center.findById(user.centerId).select('name').lean();
       if (center?.name) centerName = center.name;
