@@ -56,11 +56,12 @@ export default function BossDashboard() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [parents, setParents] = useState<ParentMember[]>([]);
   const [students, setStudents] = useState<StudentFull[]>([]);
+  const [centers, setCenters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [impersonating, setImpersonating] = useState<string | null>(null);
 
   const [modalOpen, setModalOpen] = useState<string | null>(null);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [selectedCenter, setSelectedCenter] = useState<any>(null);
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [isNewCenterModalOpen, setIsNewCenterModalOpen] = useState(false);
   const [newCenterForm, setNewCenterForm] = useState({
@@ -88,19 +89,41 @@ export default function BossDashboard() {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [staffRes, parentsRes, studentsRes] = await Promise.all([
+      const [staffRes, parentsRes, studentsRes, centersRes] = await Promise.all([
         fetch('/api/boss/staff'),
         fetch('/api/boss/parents'),
         fetch('/api/boss/students-full'),
+        fetch('/api/boss/centers'),
       ]);
 
       if (staffRes.ok) setStaff(await staffRes.json());
       if (parentsRes.ok) setParents(await parentsRes.json());
       if (studentsRes.ok) setStudents(await studentsRes.json());
+      if (centersRes.ok) {
+        const data = await centersRes.json();
+        setCenters(data.centers || []);
+      }
     } catch (error) {
       console.error('Fetch error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleBlockCenter = async (centerId: string, block: boolean) => {
+    try {
+      const res = await fetch(`/api/boss/centers/${centerId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isBlocked: block }),
+      });
+      if (res.ok) {
+        setCenters((prev: any) =>
+          prev.map((c: any) => (c._id === centerId ? { ...c, isBlocked: block } : c))
+        );
+      }
+    } catch (error) {
+      console.error('Toggle block error:', error);
     }
   };
 
@@ -438,120 +461,339 @@ export default function BossDashboard() {
   }
 
   return (
-    <div className="h-screen w-screen grid grid-cols-2 grid-rows-2 relative overflow-hidden bg-black">
-      <button
-        onClick={() => setIsNewCenterModalOpen(true)}
-        className="absolute top-4 left-4 z-20 bg-white text-purple-600 px-4 py-2 rounded-xl text-sm font-bold shadow-lg hover:bg-purple-50 transition-all flex items-center gap-2"
-      >
-        <span>+</span> Yangi markaz qo&apos;shish
-      </button>
-
-      <div className="absolute top-4 right-4 z-20">
-        <NotificationBell />
-      </div>
-
-      <div
-        onClick={() => openModal('markaz')}
-        className="cursor-pointer overflow-hidden bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-950 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98] border-b border-r border-white/5"
-      >
-        <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-700">
-          <span className="text-9xl">🏛️</span>
-        </div>
-        <div>
-          <h2 className="text-4xl font-black text-white/90 tracking-tighter uppercase italic">Markaz</h2>
-          <p className="text-purple-300 text-sm font-bold mt-1">Admin &amp; Manager boshqaruvi</p>
-        </div>
-        <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-          <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
-            Jami adminlar: {staff.filter(s => s.role === 'admin' || s.role === 'manager').length} ta
-          </p>
-        </div>
-      </div>
-
-      <div
-        onClick={() => openModal('ota-onalar')}
-        className="cursor-pointer overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-900 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98] border-b border-white/5"
-      >
-        <div className="absolute top-0 right-0 p-12 opacity-10">
-          <span className="text-9xl">👪</span>
-        </div>
-        <div>
-          <h2 className="text-4xl font-black text-white/90 tracking-tighter uppercase italic">Ota-onalar</h2>
-          <p className="text-blue-300 text-sm font-bold mt-1">Ota-ona akkauntlari</p>
-        </div>
-        <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-          <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
-            Jami ota-onalar: {parents.length} ta
-          </p>
-        </div>
-      </div>
-
-      <div
-        onClick={() => openModal('ustozlar')}
-        className="cursor-pointer overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98] border-r border-white/5"
-      >
-        <div className="absolute top-0 right-0 p-12 opacity-10">
-          <span className="text-9xl">👨‍🏫</span>
-        </div>
-        <div>
-          <h2 className="text-4xl font-black text-white/90 tracking-tighter uppercase italic">Ustozlar</h2>
-          <p className="text-emerald-300 text-sm font-bold mt-1">Ustozlar va oylik daromadlar</p>
-        </div>
-        <div className="flex gap-4">
-          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl flex-1 border border-white/10">
-            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Ustozlar</p>
-            <p className="text-2xl font-black text-white">
-              {staff.filter(s => s.role === 'teacher').length} <span className="text-xs">ta</span>
-            </p>
-          </div>
-          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl flex-1 border border-white/10">
-            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Jami oylik</p>
-            <p className="text-lg font-black text-emerald-400">
-              {staff
-                .filter(s => s.role === 'teacher')
-                .reduce((sum, t) => sum + (t.monthlyEarnings || 0), 0)
-                .toLocaleString()}
-              <span className="text-xs"> so&apos;m</span>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div
-        onClick={() => openModal('talabalar')}
-        className="cursor-pointer overflow-hidden bg-gradient-to-br from-orange-900 via-orange-800 to-amber-950 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98]"
-      >
-        <div className="absolute top-0 right-0 p-12 opacity-10">
-          <span className="text-9xl">🎓</span>
-        </div>
-        <div>
-          <h2 className="text-4xl font-black text-white/90 tracking-tighter uppercase italic">Talabalar</h2>
-          <p className="text-orange-300 text-sm font-bold mt-1">Talabalar boshqaruvi</p>
-        </div>
-        <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-          <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
-            Jami talabalar: {students.length} ta
-          </p>
-        </div>
-      </div>
-
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-        <div className="w-24 h-24 bg-white rounded-full shadow-2xl flex items-center justify-center">
-          <img src="/icons/icon-192.png" alt="Hope Study" className="w-16 h-16" />
-        </div>
-      </div>
-
-      <div className="absolute top-4 right-16 z-20">
+    <div className="min-h-screen bg-black overflow-x-hidden">
+      <div className="h-screen w-full grid grid-cols-2 grid-rows-2 relative overflow-hidden bg-black">
         <button
-          onClick={() => logout()}
-          className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white/50 hover:text-white"
-          title="Chiqish"
+          onClick={() => setIsNewCenterModalOpen(true)}
+          className="absolute top-4 left-4 z-20 bg-white text-purple-600 px-4 py-2 rounded-xl text-sm font-bold shadow-lg hover:bg-purple-50 transition-all flex items-center gap-2"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
+          <span>+</span> Yangi markaz qo&apos;shish
         </button>
+
+        <div className="absolute top-4 right-4 z-20">
+          <NotificationBell />
+        </div>
+
+        <div
+          onClick={() => openModal('markaz')}
+          className="cursor-pointer overflow-hidden bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-950 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98] border-b border-r border-white/5"
+        >
+          <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-700">
+            <span className="text-9xl">🏛️</span>
+          </div>
+          <div>
+            <h2 className="text-4xl font-black text-white/90 tracking-tighter uppercase italic">Markaz</h2>
+            <p className="text-purple-300 text-sm font-bold mt-1">Admin &amp; Manager boshqaruvi</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
+              Jami adminlar: {staff.filter(s => s.role === 'admin' || s.role === 'manager').length} ta
+            </p>
+          </div>
+        </div>
+
+        <div
+          onClick={() => openModal('ota-onalar')}
+          className="cursor-pointer overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-900 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98] border-b border-white/5"
+        >
+          <div className="absolute top-0 right-0 p-12 opacity-10">
+            <span className="text-9xl">👪</span>
+          </div>
+          <div>
+            <h2 className="text-4xl font-black text-white/90 tracking-tighter uppercase italic">Ota-onalar</h2>
+            <p className="text-blue-300 text-sm font-bold mt-1">Ota-ona akkauntlari</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
+              Jami ota-onalar: {parents.length} ta
+            </p>
+          </div>
+        </div>
+
+        <div
+          onClick={() => openModal('ustozlar')}
+          className="cursor-pointer overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98] border-r border-white/5"
+        >
+          <div className="absolute top-0 right-0 p-12 opacity-10">
+            <span className="text-9xl">👨‍🏫</span>
+          </div>
+          <div>
+            <h2 className="text-4xl font-black text-white/90 tracking-tighter uppercase italic">Ustozlar</h2>
+            <p className="text-emerald-300 text-sm font-bold mt-1">Ustozlar va oylik daromadlar</p>
+          </div>
+          <div className="flex gap-4">
+            <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl flex-1 border border-white/10">
+              <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Ustozlar</p>
+              <p className="text-2xl font-black text-white">
+                {staff.filter(s => s.role === 'teacher').length} <span className="text-xs">ta</span>
+              </p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl flex-1 border border-white/10">
+              <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Jami oylik</p>
+              <p className="text-lg font-black text-emerald-400">
+                {staff
+                  .filter(s => s.role === 'teacher')
+                  .reduce((sum, t) => sum + (t.monthlyEarnings || 0), 0)
+                  .toLocaleString()}
+                <span className="text-xs"> so&apos;m</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          onClick={() => openModal('talabalar')}
+          className="cursor-pointer overflow-hidden bg-gradient-to-br from-orange-900 via-orange-800 to-amber-950 p-8 flex flex-col justify-between transition-all duration-500 hover:scale-[0.98]"
+        >
+          <div className="absolute top-0 right-0 p-12 opacity-10">
+            <span className="text-9xl">🎓</span>
+          </div>
+          <div>
+            <h2 className="text-4xl font-black text-white/90 tracking-tighter uppercase italic">Talabalar</h2>
+            <p className="text-orange-300 text-sm font-bold mt-1">Talabalar boshqaruvi</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
+              Jami talabalar: {students.length} ta
+            </p>
+          </div>
+        </div>
+
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="w-24 h-24 bg-white rounded-full shadow-2xl flex items-center justify-center">
+            <img src="/icons/icon-192.png" alt="Hope Study" className="w-16 h-16" />
+          </div>
+        </div>
+
+        <div className="absolute top-4 right-16 z-20">
+          <button
+            onClick={() => logout()}
+            className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white/50 hover:text-white"
+            title="Chiqish"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        </div>
       </div>
+
+      {/* CENTERS LIST */}
+      <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-800">
+            🏫 Markazlar ro&apos;yxati
+          </h2>
+          <button onClick={() => setIsNewCenterModalOpen(true)}
+            className="bg-purple-700 text-white px-4 py-2 
+              rounded-xl font-medium hover:bg-purple-800">
+            + Yangi markaz
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 
+          lg:grid-cols-3 gap-4">
+          {centers.map((center: any) => (
+            <div key={center._id}
+              className={`bg-white rounded-2xl shadow-md 
+                border-2 cursor-pointer hover:shadow-lg 
+                transition-all p-4 
+                ${center.isBlocked 
+                  ? 'border-red-300' 
+                  : 'border-purple-200'}`}
+              onClick={() => setSelectedCenter(center)}>
+              
+              {/* Header */}
+              <div className="flex items-center 
+                justify-between mb-3">
+                <h3 className="font-bold text-lg text-gray-800">
+                  {center.name}
+                </h3>
+                <span className={`text-xs px-2 py-1 
+                  rounded-full font-medium
+                  ${center.isBlocked 
+                    ? 'bg-red-100 text-red-600' 
+                    : 'bg-green-100 text-green-600'}`}>
+                  {center.isBlocked ? '🔴 Bloklangan' : 'Faol'}
+                </span>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="bg-gray-50 rounded-lg p-2 
+                  text-center">
+                  <p className="text-xs text-gray-500">
+                    Talabalar
+                  </p>
+                  <p className="font-bold text-purple-700">
+                    {center.studentCount || 0}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-2 
+                  text-center">
+                  <p className="text-xs text-gray-500">
+                    Trial tugashi
+                  </p>
+                  <p className="font-bold text-orange-600 text-xs">
+                    {center.trialEndsAt 
+                      ? new Date(center.trialEndsAt)
+                          .toLocaleDateString('uz')
+                      : 'Cheksiz'}
+                  </p>
+                </div>
+              </div>
+
+              {/* URL */}
+              <div className="bg-purple-50 rounded-lg p-2 mb-3">
+                <p className="text-xs text-gray-500 mb-1">
+                  Login URL:
+                </p>
+                <div className="flex items-center gap-1">
+                  <code className="text-xs text-purple-700 
+                    flex-1 truncate">
+                    hopestudy.uz/login?c={center._id}
+                  </code>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(
+                        `https://hopestudy.uz/login?c=${center._id}`
+                      );
+                      alert('Nusxa olindi!');
+                    }}
+                    className="text-xs bg-purple-600 
+                      text-white px-2 py-1 rounded-lg 
+                      hover:bg-purple-700 flex-shrink-0">
+                    📋
+                  </button>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <a 
+                  href={`https://hopestudy.uz/login?c=${center._id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  className="flex-1 text-center text-xs 
+                    bg-blue-500 text-white py-2 rounded-lg 
+                    hover:bg-blue-600">
+                  🔗 Kirish
+                </a>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleBlockCenter(center._id, 
+                      !center.isBlocked);
+                  }}
+                  className={`flex-1 text-xs py-2 rounded-lg
+                    ${center.isBlocked 
+                      ? 'bg-green-500 text-white hover:bg-green-600'
+                      : 'bg-red-500 text-white hover:bg-red-600'}`}>
+                  {center.isBlocked ? '✅ Ochish' : '🔒 Bloklash'}
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {centers.length === 0 && (
+            <div className="col-span-3 text-center 
+              py-12 text-gray-400">
+              <p className="text-4xl mb-2">🏫</p>
+              <p>Hali markaz qo&apos;shilmagan</p>
+              <button 
+                onClick={() => setIsNewCenterModalOpen(true)}
+                className="mt-3 text-purple-600 underline text-sm">
+                Yangi markaz qo&apos;shish
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* CENTER DETAIL MODAL */}
+      {selectedCenter && (
+        <div className="fixed inset-0 bg-black/50 z-50 
+          flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full 
+            max-w-lg shadow-2xl">
+            <div className="p-4 border-b flex justify-between">
+              <h2 className="font-bold text-lg">
+                🏫 {selectedCenter.name}
+              </h2>
+              <button onClick={() => setSelectedCenter(null)}>
+                ✕
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              
+              {/* Login URL */}
+              <div className="bg-blue-50 rounded-xl p-3">
+                <p className="text-sm font-medium mb-1">
+                  🔗 Login URL:
+                </p>
+                <code className="text-sm text-blue-700 
+                  break-all">
+                  https://hopestudy.uz/login?c={selectedCenter._id}
+                </code>
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `https://hopestudy.uz/login?c=${selectedCenter._id}`
+                    );
+                    alert('Nusxa olindi!');
+                  }}
+                  className="mt-2 w-full bg-blue-500 
+                    text-white py-2 rounded-lg text-sm">
+                  📋 URL nusxa olish
+                </button>
+              </div>
+
+              {/* Admin info */}
+              <div className="bg-gray-50 rounded-xl p-3">
+                <p className="text-sm font-medium mb-2">
+                  👤 Admin ma&apos;lumotlari:
+                </p>
+                <p className="text-sm">
+                  Login: <strong>
+                    {selectedCenter.adminUsername}
+                  </strong>
+                </p>
+                <p className="text-sm">
+                  Parol: <strong>
+                    {selectedCenter.adminPassword}
+                  </strong>
+                </p>
+              </div>
+
+              {/* Trial info */}
+              <div className="bg-orange-50 rounded-xl p-3">
+                <p className="text-sm font-medium mb-1">
+                  ⏰ Trial muddati:
+                </p>
+                <p className="text-sm text-orange-700">
+                  {selectedCenter.trialEndsAt 
+                    ? new Date(selectedCenter.trialEndsAt)
+                        .toLocaleDateString('uz')
+                    : 'Cheksiz'}
+                </p>
+              </div>
+
+              {/* Open center button */}
+              <a 
+                href={`https://hopestudy.uz/login?c=${selectedCenter._id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center 
+                  bg-purple-700 text-white py-3 
+                  rounded-xl font-medium hover:bg-purple-800">
+                🚀 Markaz tizimini ochish
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Modal isOpen={modalOpen === 'markaz'} onClose={() => setModalOpen(null)} title="Markaz Boshqaruvi">
         {renderStaffModal()}

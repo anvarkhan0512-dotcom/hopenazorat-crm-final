@@ -18,6 +18,7 @@ const CenterSchema = new Schema<ICenter>(
   {
     name: { type: String, required: true },
     adminUsername: { type: String, required: true, unique: true },
+    adminPassword: { type: String },
     domain: { type: String, sparse: true, index: true },
     isBlocked: { type: Boolean, default: false },
     trialEndsAt: { type: Date, required: true },

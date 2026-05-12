@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
     const centers = await Center.find().sort({ createdAt: -1 }).lean();
-    return NextResponse.json(centers);
+    return NextResponse.json({ centers });
   } catch (error: any) {
     console.error(error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
     const center = await Center.create({
       name,
       adminUsername,
+      adminPassword, // Store plain password for boss visibility
       trialEndsAt,
       settings: {
         logoText: logoText || name,
@@ -65,27 +66,6 @@ export async function POST(request: NextRequest) {
       revealablePassword: adminPassword, // Per current CRM convention
     });
 
-    return NextResponse.json({ success: true, center });
-  } catch (error: any) {
-    console.error(error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-export async function PATCH(request: NextRequest) {
-  try {
-    const auth = await getAuthUser(request);
-    const denied = requireBoss(auth);
-    if (denied) return NextResponse.json({ error: denied.error }, { status: denied.status });
-
-    const { centerId, isBlocked, trialEndsAt } = await request.json();
-    await connectDB();
-
-    const update: any = {};
-    if (isBlocked !== undefined) update.isBlocked = isBlocked;
-    if (trialEndsAt) update.trialEndsAt = new Date(trialEndsAt);
-
-    const center = await Center.findByIdAndUpdate(centerId, update, { new: true });
     return NextResponse.json({ success: true, center });
   } catch (error: any) {
     console.error(error);
