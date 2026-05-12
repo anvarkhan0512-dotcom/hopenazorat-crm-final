@@ -9,7 +9,9 @@ import { Building } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useAuth } from '@/components/AuthProvider';
-import 
+import { useCenter } from '@/lib/center-context';
+import DashboardTabModal from '@/components/DashboardTabModal';
+
 const fetcher = async (url: string) => {
   const res = await fetch(url);
   const json = await res.json();
