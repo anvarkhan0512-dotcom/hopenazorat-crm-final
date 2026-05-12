@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/components/LanguageProvider';
 import { Language } from '@/lib/translations';
 import { useAuth } from '@/components/AuthProvider';
+import { useCenter } from '@/lib/center-context';
 import { usePWA } from '@/lib/pwa-context';
 import NotificationBell from '@/components/NotificationBell';
 
@@ -18,6 +19,7 @@ interface HeaderProps {
 export default function Header({ title, onMenuClick, onToggleCollapse, isCollapsed }: HeaderProps) {
   const { t, lang, setLang } = useLanguage();
   const { user } = useAuth();
+  const { centerName } = useCenter();
   const { canInstall, isInstalled, showInstallPrompt } = usePWA();
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);

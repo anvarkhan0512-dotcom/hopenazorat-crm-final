@@ -1,7 +1,9 @@
 'use client'; 
 import { useState, useEffect } from 'react'; 
+import { useCenter } from '@/lib/center-context';
  
 export default function TelegramConnect() { 
+  const { centerName } = useCenter();
   const [showCode, setShowCode] = useState(false); 
   const [code, setCode] = useState(''); 
   const [countdown, setCountdown] = useState(300); 
@@ -77,7 +79,7 @@ export default function TelegramConnect() {
           </div>
           <div> 
             <h3 className="font-bold text-blue-900 text-lg"> 
-              Hope Study Bot 
+              {centerName} Bot 
             </h3> 
             <p className="text-sm text-blue-600"> 
               Bildirishnomalar va boshqaruv 
