@@ -3,10 +3,14 @@ import connectDB from '@/lib/db';
 import { Invoice } from '@/models/Invoice';
 import { Student } from '@/models/Student';
 import { Discount } from '@/models/Discount';
-import { invalidateCache } from '@/lib/cache';
+import { getAuthUser, requireAuthUser, requireAdmin } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await getAuthUser(request);
+    const authErr = requireAuthUser(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
+
     await connectDB();
     
     const { searchParams } = new URL(request.url);
@@ -16,6 +20,15 @@ export async function GET(request: NextRequest) {
     const studentId = searchParams.get('studentId');
 
     const query: any = {};
+
+    const centerId = auth!.centerId;
+    if (auth!.role !== 'boss') {
+      if (centerId) {
+        query.centerId = centerId;
+      } else {
+        query.centerId = { $in: [null, undefined] };
+      }
+    }
 
     if (status) query.status = status;
     if (month) query.month = parseInt(month);
@@ -65,6 +78,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await getAuthUser(request);
+    const authErr = requireAdmin(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
+
     await connectDB();
     const data = await request.json();
     
@@ -72,7 +89,17 @@ export async function POST(request: NextRequest) {
     const targetMonth = month || new Date().getMonth() + 1;
     const targetYear = year || new Date().getFullYear();
 
-    const existingInvoices = await Invoice.find({ month: targetMonth, year: targetYear });
+    const query: any = { month: targetMonth, year: targetYear };
+    const centerId = auth!.centerId;
+    if (auth!.role !== 'boss') {
+      if (centerId) {
+        query.centerId = centerId;
+      } else {
+        query.centerId = { $in: [null, undefined] };
+      }
+    }
+
+    const existingInvoices = await Invoice.find(query);
     
     if (existingInvoices.length > 0 && !regenerate) {
       return NextResponse.json(
@@ -82,17 +109,26 @@ export async function POST(request: NextRequest) {
     }
 
     if (regenerate) {
-      await Invoice.deleteMany({ month: targetMonth, year: targetYear });
+      await Invoice.deleteMany(query);
     }
 
     const now = new Date();
-    const activeDiscounts = await Discount.find({
+    const discountQuery: any = {
       isActive: true,
       $or: [
         { endDate: { $gte: now } },
         { endDate: null }
       ]
-    }).lean();
+    };
+    if (auth!.role !== 'boss') {
+      if (centerId) {
+        discountQuery.centerId = centerId;
+      } else {
+        discountQuery.centerId = { $in: [null, undefined] };
+      }
+    }
+
+    const activeDiscounts = await Discount.find(discountQuery).lean();
 
     const discountMap = new Map<string, any>();
     for (const discount of activeDiscounts) {
@@ -106,7 +142,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const activeStudents = await Student.find({ status: 'active', monthlyPrice: { $gt: 0 } })
+    const studentQuery: any = { status: 'active', monthlyPrice: { $gt: 0 } };
+    if (auth!.role !== 'boss') {
+      if (centerId) {
+        studentQuery.centerId = centerId;
+      } else {
+        studentQuery.centerId = { $in: [null, undefined] };
+      }
+    }
+
+    const activeStudents = await Student.find(studentQuery)
       .populate('groupId')
       .lean();
 
@@ -151,6 +196,7 @@ export async function POST(request: NextRequest) {
           amount,
           paidAmount: 0,
           status: 'pending',
+          centerId: auth!.centerId || null,
         });
 
         await invoice.save();

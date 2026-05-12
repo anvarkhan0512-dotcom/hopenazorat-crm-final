@@ -24,8 +24,13 @@ export async function GET(request: NextRequest) {
     const query: any = {};
     
     // Data isolation
-    if (auth!.role !== 'boss' && auth!.centerId) {
-      query.centerId = auth!.centerId;
+    const centerId = auth!.centerId;
+    if (auth!.role !== 'boss') {
+      if (centerId) {
+        query.centerId = centerId;
+      } else {
+        query.centerId = { $in: [null, undefined] };
+      }
     }
 
     if (studentId) query.studentId = studentId;
@@ -136,7 +141,7 @@ export async function POST(request: NextRequest) {
       fullPaymentDeadline: data.isPartial && data.fullPaymentDeadline ? new Date(data.fullPaymentDeadline) : undefined,
       isMonthly: !!data.isMonthly,
       description: data.description || '',
-      centerId: auth!.centerId,
+      centerId: auth!.centerId || null,
     });
 
     await payment.save();

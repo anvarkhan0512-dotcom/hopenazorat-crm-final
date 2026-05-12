@@ -584,11 +584,21 @@ export default function BossDashboard() {
           <h2 className="text-xl font-bold text-gray-800">
             🏫 Markazlar ro&apos;yxati
           </h2>
-          <button onClick={() => setIsNewCenterModalOpen(true)}
-            className="bg-purple-700 text-white px-4 py-2 
-              rounded-xl font-medium hover:bg-purple-800">
-            + Yangi markaz
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => {
+                window.open('/api/boss/export-center', '_blank');
+              }}
+              className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-green-700"
+            >
+              📥 Hope Study export
+            </button>
+            <button onClick={() => setIsNewCenterModalOpen(true)}
+              className="bg-purple-700 text-white px-4 py-2 
+                rounded-xl font-medium hover:bg-purple-800">
+              + Yangi markaz
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 
@@ -779,6 +789,17 @@ export default function BossDashboard() {
                     : 'Cheksiz'}
                 </p>
               </div>
+
+              {/* Export Button */}
+              <button 
+                onClick={() => {
+                  window.open(`/api/boss/export-center?centerId=${selectedCenter._id}`, '_blank');
+                }}
+                className="w-full bg-green-600 text-white 
+                  py-3 rounded-xl font-medium hover:bg-green-700 
+                  flex items-center justify-center gap-2">
+                📥 Ma&apos;lumotlarni yuklab olish (JSON)
+              </button>
 
               {/* Open center button */}
               <a 

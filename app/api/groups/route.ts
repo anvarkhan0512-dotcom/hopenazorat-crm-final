@@ -15,8 +15,13 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     const query: any = {};
-    if (auth!.role !== 'boss' && auth!.centerId) {
-      query.centerId = auth!.centerId;
+    const centerId = auth!.centerId;
+    if (auth!.role !== 'boss') {
+      if (centerId) {
+        query.centerId = centerId;
+      } else {
+        query.centerId = { $in: [null, undefined] };
+      }
     }
 
     if (auth!.role === 'teacher') {
@@ -67,7 +72,7 @@ export async function POST(request: NextRequest) {
       teacherPayoutFixed: data.teacherPayoutFixed ?? 0,
       lessonCalendarWeekParity: parity,
       studentIds: [],
-      centerId: auth!.centerId,
+      centerId: auth!.centerId || null,
     });
 
     await group.save();

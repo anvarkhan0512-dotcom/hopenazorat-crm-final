@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
       displayName: displayName || '',
       linkedStudentIds: [],
       revealablePassword: String(password),
+      centerId: auth!.centerId || null,
     });
 
     return NextResponse.json({

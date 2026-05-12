@@ -12,7 +12,17 @@ export async function GET(request: NextRequest) {
     if (denied) return NextResponse.json({ error: denied.error }, { status: denied.status });
 
     await connectDB();
-    const list = await Staff.find().sort({ position: 1, fullName: 1 }).lean();
+    const query: any = {};
+    const centerId = auth!.centerId;
+    if (auth!.role !== 'boss') {
+      if (centerId) {
+        query.centerId = centerId;
+      } else {
+        query.centerId = { $in: [null, undefined] };
+      }
+    }
+
+    const list = await Staff.find(query).sort({ position: 1, fullName: 1 }).lean();
     return NextResponse.json(list);
   } catch (e) {
     console.error(e);
@@ -54,6 +64,7 @@ export async function POST(request: NextRequest) {
       overrideVisible: overrideVisible !== undefined ? !!overrideVisible : true,
       phone: phone ? String(phone) : '',
       userId: userId || undefined,
+      centerId: auth!.centerId || null,
     });
     return NextResponse.json(doc, { status: 201 });
   } catch (e: any) {

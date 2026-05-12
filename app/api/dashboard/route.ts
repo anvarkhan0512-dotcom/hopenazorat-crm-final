@@ -8,6 +8,8 @@ import { Payment } from '@/models/Payment';
 import { Invoice } from '@/models/Invoice';
 import { getCached, setCache, CacheKeys } from '@/lib/cache';
 import { getAdminFinanceOverview } from '@/lib/teacherFinance';
+import { getAuthUser, requireAuthUser } from '@/lib/auth-server';
+import { type NextRequest } from 'next/server';
 
 function padDay(d: Date): string {
   const y = d.getFullYear();
@@ -20,9 +22,15 @@ function monthLabel(y: number, m: number): string {
   return `${y}-${String(m).padStart(2, '0')}`;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const cached = getCached<Record<string, unknown>>(CacheKeys.DASHBOARD);
+    const auth = await getAuthUser(request);
+    const authErr = requireAuthUser(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
+
+    const centerId = auth!.centerId;
+    const cacheKey = `dashboard:${centerId || 'none'}`;
+    const cached = getCached<Record<string, unknown>>(cacheKey);
     if (cached) {
       return NextResponse.json(cached);
     }
@@ -32,6 +40,15 @@ export async function GET() {
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
+
+    const query: any = {};
+    if (auth!.role !== 'boss') {
+      if (centerId) {
+        query.centerId = centerId;
+      } else {
+        query.centerId = { $in: [null, undefined] };
+      }
+    }
 
     const [
       totalStudents,
@@ -45,15 +62,16 @@ export async function GET() {
       financeData,
       allStudents,
     ] = await Promise.all([
-      Student.countDocuments({}),
-      Student.countDocuments({ status: 'active' }),
-      Group.countDocuments({}),
-      Group.countDocuments({ isActive: true }),
+      Student.countDocuments(query),
+      Student.countDocuments({ ...query, status: 'active' }),
+      Group.countDocuments(query),
+      Group.countDocuments({ ...query, isActive: true }),
       Payment.aggregate([
-        { $match: { month: currentMonth, year: currentYear } },
+        { $match: { ...query, month: currentMonth, year: currentYear } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
       Invoice.countDocuments({
+        ...query,
         month: currentMonth,
         year: currentYear,
         status: { $ne: 'paid' },
@@ -61,6 +79,7 @@ export async function GET() {
       Payment.aggregate([
         {
           $match: {
+            ...query,
             createdAt: {
               $gte: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0),
             },
@@ -77,6 +96,7 @@ export async function GET() {
       Payment.aggregate([
         {
           $match: {
+            ...query,
             createdAt: {
               $gte: new Date(now.getFullYear(), now.getMonth() - 5, 1, 0, 0, 0, 0),
             },
@@ -89,12 +109,12 @@ export async function GET() {
           },
         },
       ]),
-      getAdminFinanceOverview(currentMonth, currentYear),
-      Student.find({ status: 'active' }).select('basePrice discountAmount schoolNumber').lean(),
+      getAdminFinanceOverview(currentMonth, currentYear, centerId || undefined),
+      Student.find({ ...query, status: 'active' }).select('basePrice discountAmount schoolNumber').lean(),
     ]);
 
     const schoolAgg = await Student.aggregate([
-      { $match: { status: 'active', schoolNumber: { $ne: '' } } },
+      { $match: { ...query, status: 'active', schoolNumber: { $ne: '' } } },
       { $group: { _id: '$schoolNumber', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 5 }
@@ -148,11 +168,11 @@ export async function GET() {
         netProfit: financeData.summary.totalCenter,
         totalInflow: financeData.summary.totalInflow,
       },
-      paidCount: await Invoice.countDocuments({ month: currentMonth, year: currentYear, status: 'paid' }),
-      unpaidCount: await Invoice.countDocuments({ month: currentMonth, year: currentYear, status: 'unpaid' }),
+      paidCount: await Invoice.countDocuments({ ...query, month: currentMonth, year: currentYear, status: 'paid' }),
+      unpaidCount: await Invoice.countDocuments({ ...query, month: currentMonth, year: currentYear, status: 'unpaid' }),
     };
 
-    setCache(CacheKeys.DASHBOARD, payload, 60 * 1000);
+    setCache(cacheKey, payload, 60 * 1000);
     return NextResponse.json(payload);
   } catch (error) {
     console.error('Dashboard API error:', error);

@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
         id: user._id,
         username: user.username,
         role: user.role,
-        centerId: user.centerId,
+        centerId: user.centerId || null,
       },
       JWT_SECRET,
       { expiresIn: '7d' } // 7 kunlik muddat

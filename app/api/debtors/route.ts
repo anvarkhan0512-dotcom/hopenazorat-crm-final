@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import { Invoice } from '@/models/Invoice';
 import { getCached, setCache, invalidateCache, CacheKeys } from '@/lib/cache';
+import { getAuthUser, requireAuthUser } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await getAuthUser(request);
+    const authErr = requireAuthUser(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
+
     const { searchParams } = new URL(request.url);
     const month = searchParams.get('month');
     const year = searchParams.get('year');
@@ -28,6 +33,15 @@ export async function GET(request: NextRequest) {
       status: { $ne: 'paid' },
     };
 
+    const centerId = auth!.centerId;
+    if (auth!.role !== 'boss') {
+      if (centerId) {
+        query.centerId = centerId;
+      } else {
+        query.centerId = { $in: [null, undefined] };
+      }
+    }
+
     if (groupId) {
       query.groupId = groupId;
     }
@@ -43,7 +57,7 @@ export async function GET(request: NextRequest) {
         .sort({ amount: -1 })
         .lean(),
       Invoice.aggregate([
-        { $match: { month: currentMonth, year: currentYear } },
+        { $match: query },
         {
           $group: {
             _id: '$status',

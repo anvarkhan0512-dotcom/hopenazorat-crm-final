@@ -46,10 +46,17 @@ export async function GET(request: NextRequest) {
     const query: Record<string, unknown> = {};
 
     // Data isolation
-    if (auth!.role !== 'boss' && auth!.centerId) {
-      query.centerId = auth!.centerId;
+    const centerId = auth!.centerId;
+    if (auth!.role !== 'boss') {
+      if (centerId) {
+        query.centerId = centerId;
+      } else {
+        query.centerId = { $in: [null, undefined] };
+      }
       // Auto-block if trial expired
-      await checkCenterTrial(auth!.centerId);
+      if (centerId) {
+        await checkCenterTrial(centerId);
+      }
     }
 
     if (auth!.role === 'parent' || auth!.role === 'student') {
@@ -135,7 +142,7 @@ export async function POST(request: NextRequest) {
       arrivalDate: data.arrivalDate ? new Date(data.arrivalDate) : undefined,
       parentType: data.parentType || '',
       groupId: data.groupId || null,
-      centerId: auth!.centerId,
+      centerId: auth!.centerId || null,
       status: data.status || 'active',
       basePrice,
       discountAmount,

@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
             $set: {
               status: st,
               groupId: student.groupId || undefined,
-              centerId: auth!.centerId,
+              centerId: auth!.centerId || null,
               rescheduleDate: status === 'rescheduled' && rescheduleDate ? new Date(rescheduleDate) : null,
               checkInTime: status === 'present' ? checkInTime || null : null,
               checkOutTime: item.checkOutTime || null,
@@ -186,8 +186,13 @@ export async function GET(request: NextRequest) {
     const query: Record<string, unknown> = {};
 
     // Data isolation
-    if (auth!.role !== 'boss' && auth!.centerId) {
-      query.centerId = auth!.centerId;
+    const centerId = auth!.centerId;
+    if (auth!.role !== 'boss') {
+      if (centerId) {
+        query.centerId = centerId;
+      } else {
+        query.centerId = { $in: [null, undefined] };
+      }
     }
 
     if (searchParams.get('studentId')) query.studentId = searchParams.get('studentId');
