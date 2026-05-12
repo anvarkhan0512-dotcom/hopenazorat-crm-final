@@ -10,6 +10,7 @@ export type AppUser = {
   displayName?: string;
   avatarUrl?: string;
   linkedStudentIds?: string[];
+  trialEndsAt?: string;
 };
 
 interface AuthContextType {

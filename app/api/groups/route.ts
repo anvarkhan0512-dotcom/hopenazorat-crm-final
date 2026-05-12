@@ -20,12 +20,22 @@ export async function GET(request: NextRequest) {
       if (centerId) {
         query.centerId = centerId;
       } else {
-        query.centerId = { $in: [null, undefined] };
+        query.$or = [
+          { centerId: { $exists: false } },
+          { centerId: null }
+        ];
       }
     }
 
     if (auth!.role === 'teacher') {
-      query.$or = [{ teacherUserId: auth!._id }, { teacherUserId2: auth!._id }];
+      const teacherFilter = { $or: [{ teacherUserId: auth!._id }, { teacherUserId2: auth!._id }] };
+      if (query.$or) {
+        query.$and = [{ $or: query.$or }, teacherFilter];
+        delete query.$or;
+      } else {
+        query.$and = [{ centerId: query.centerId }, teacherFilter];
+        delete query.centerId;
+      }
       const groups = await Group.find(query)
         .sort({ createdAt: -1 })
         .lean();

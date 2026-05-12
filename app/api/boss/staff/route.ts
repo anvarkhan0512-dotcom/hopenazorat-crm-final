@@ -20,7 +20,12 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    const query: any = {};
+    const query: any = {
+      $or: [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ]
+    };
     if (roleFilter === 'teacher') {
       query.role = 'teacher';
     } else if (roleFilter === 'admin' || roleFilter === 'admin,manager') {

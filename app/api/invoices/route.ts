@@ -26,7 +26,10 @@ export async function GET(request: NextRequest) {
       if (centerId) {
         query.centerId = centerId;
       } else {
-        query.centerId = { $in: [null, undefined] };
+        query.$or = [
+          { centerId: { $exists: false } },
+          { centerId: null }
+        ];
       }
     }
 
@@ -95,7 +98,10 @@ export async function POST(request: NextRequest) {
       if (centerId) {
         query.centerId = centerId;
       } else {
-        query.centerId = { $in: [null, undefined] };
+        query.$or = [
+          { centerId: { $exists: false } },
+          { centerId: null }
+        ];
       }
     }
 
@@ -124,7 +130,10 @@ export async function POST(request: NextRequest) {
       if (centerId) {
         discountQuery.centerId = centerId;
       } else {
-        discountQuery.centerId = { $in: [null, undefined] };
+        discountQuery.$or = [
+          { centerId: { $exists: false } },
+          { centerId: null }
+        ];
       }
     }
 
@@ -147,7 +156,10 @@ export async function POST(request: NextRequest) {
       if (centerId) {
         studentQuery.centerId = centerId;
       } else {
-        studentQuery.centerId = { $in: [null, undefined] };
+        studentQuery.$or = [
+          { centerId: { $exists: false } },
+          { centerId: null }
+        ];
       }
     }
 

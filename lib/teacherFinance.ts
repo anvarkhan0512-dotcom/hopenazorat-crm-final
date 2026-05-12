@@ -8,6 +8,24 @@ import { Discount } from '@/models/Discount';
 
 export const DEFAULT_TEACHER_SHARE_PCT = 30;
 
+function applyCenterFilter(query: any, centerId?: string) {
+  if (centerId) {
+    query.centerId = centerId;
+  } else {
+    const filter = {
+      $or: [{ centerId: { $exists: false } }, { centerId: null }],
+    };
+    if (query.$or) {
+      if (!query.$and) query.$and = [];
+      query.$and.push({ $or: query.$or });
+      query.$and.push(filter);
+      delete query.$or;
+    } else {
+      query.$or = filter.$or;
+    }
+  }
+}
+
 function startEndOfMonth(d: Date) {
   const start = new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
   const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -39,7 +57,7 @@ export async function getTeacherPaymentStats(teacherUserId: Types.ObjectId, mont
     isActive: true,
     $or: [{ teacherUserId }, { teacherUserId2: teacherUserId }],
   };
-  if (centerId) query.centerId = centerId;
+  applyCenterFilter(query, centerId);
 
   const groupDocs = await Group.find(query)
     .select('_id teacherUserId teacherUserId2 teacherSharePercent teacherPayoutFixed')
@@ -71,7 +89,7 @@ export async function getTeacherPaymentStats(teacherUserId: Types.ObjectId, mont
   const paymentsQuery: any = {
     createdAt: { $gte: start, $lte: end },
   };
-  if (centerId) paymentsQuery.centerId = centerId;
+  applyCenterFilter(paymentsQuery, centerId);
 
   const payments = await Payment.find(paymentsQuery).lean();
 
@@ -132,11 +150,11 @@ export async function getAdminFinanceOverview(month: number, year: number, cente
   const { start, end } = startEndOfMonth(new Date(year, month - 1, 1));
 
   const userQuery: any = { role: 'teacher' };
-  if (centerId) userQuery.centerId = centerId;
+  applyCenterFilter(userQuery, centerId);
   const teachers = await User.find(userQuery).select('username displayName _id').lean();
 
   const staffQuery: any = { position: 'teacher' };
-  if (centerId) staffQuery.centerId = centerId;
+  applyCenterFilter(staffQuery, centerId);
   const teacherStaff = await Staff.find(staffQuery).lean();
   const staffMap = new Map(teacherStaff.map(s => [s.userId?.toString(), s]));
 
@@ -172,7 +190,7 @@ export async function getAdminFinanceOverview(month: number, year: number, cente
     isActive: true,
     $and: [{ $or: [{ teacherUserId: { $exists: false } }, { teacherUserId: null }] }, { $or: [{ teacherUserId2: { $exists: false } }, { teacherUserId2: null }] }],
   };
-  if (centerId) unassignedQuery.centerId = centerId;
+  applyCenterFilter(unassignedQuery, centerId);
 
   const unassigned = await Group.find(unassignedQuery)
     .select('_id')
@@ -183,7 +201,7 @@ export async function getAdminFinanceOverview(month: number, year: number, cente
   let orphanTotal = 0;
   if (unassignedGroupIds.length > 0) {
     const stuQuery: any = { groupId: { $in: unassignedGroupIds }, status: 'active' };
-    if (centerId) stuQuery.centerId = centerId;
+    applyCenterFilter(stuQuery, centerId);
     const stu = await Student.find(stuQuery)
       .select('_id')
       .lean();
@@ -192,7 +210,7 @@ export async function getAdminFinanceOverview(month: number, year: number, cente
       studentId: { $in: ids },
       createdAt: { $gte: start, $lte: end },
     };
-    if (centerId) pQuery.centerId = centerId;
+    applyCenterFilter(pQuery, centerId);
     const payments = await Payment.find(pQuery).lean();
     for (const p of payments) {
       orphanTotal += p.amount || 0;

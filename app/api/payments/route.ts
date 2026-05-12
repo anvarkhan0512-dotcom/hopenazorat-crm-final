@@ -29,7 +29,10 @@ export async function GET(request: NextRequest) {
       if (centerId) {
         query.centerId = centerId;
       } else {
-        query.centerId = { $in: [null, undefined] };
+        query.$or = [
+          { centerId: { $exists: false } },
+          { centerId: null }
+        ];
       }
     }
 

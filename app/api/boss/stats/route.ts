@@ -16,6 +16,13 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
+    const query: any = {
+      $or: [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ]
+    };
+
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -28,16 +35,16 @@ export async function GET(request: NextRequest) {
       connectedParents,
       teachers
     ] = await Promise.all([
-      Student.countDocuments({ status: 'active' }),
-      Student.countDocuments({ status: { $in: ['active', 'inactive'] } }),
-      Student.countDocuments({ status: 'inactive' }),
+      Student.countDocuments({ ...query, status: 'active' }),
+      Student.countDocuments({ ...query, status: { $in: ['active', 'inactive'] } }),
+      Student.countDocuments({ ...query, status: 'inactive' }),
       Payment.aggregate([
-        { $match: { createdAt: { $gte: startOfDay } } },
+        { $match: { ...query, createdAt: { $gte: startOfDay } } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ]),
-      User.countDocuments({ role: 'parent' }),
-      User.countDocuments({ role: 'parent', telegramChatId: { $exists: true, $ne: '' } }),
-      User.find({ role: 'teacher' }).select('displayName avatarUrl').limit(10).lean()
+      User.countDocuments({ ...query, role: 'parent' }),
+      User.countDocuments({ ...query, role: 'parent', telegramChatId: { $exists: true, $ne: '' } }),
+      User.find({ ...query, role: 'teacher' }).select('displayName avatarUrl').limit(10).lean()
     ]);
 
     return NextResponse.json({

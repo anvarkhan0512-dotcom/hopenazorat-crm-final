@@ -58,6 +58,12 @@ export default function Header({ title, onMenuClick, onToggleCollapse, isCollaps
   const initial =
     (user?.displayName?.trim()?.[0] || user?.username?.trim()?.[0] || '?').toUpperCase();
 
+  const trialEndsAt = (user as any)?.trialEndsAt;
+  let daysLeft = 0;
+  if (trialEndsAt) {
+    daysLeft = Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  }
+
   return (
     <>
       {isBossImpersonating && (
@@ -74,6 +80,11 @@ export default function Header({ title, onMenuClick, onToggleCollapse, isCollaps
           >
             {returningToBoss ? 'Qaytish...' : 'Orqaga qaytish'}
           </button>
+        </div>
+      )}
+      {trialEndsAt && daysLeft > 0 && isOffice && (
+        <div className="bg-orange-500 text-white text-center py-2 text-sm font-medium">
+          ⏰ Sinov muddati: {daysLeft} kun qoldi {daysLeft <= 3 && ' — Tez orada tugaydi!'}
         </div>
       )}
       <header className="topbar">

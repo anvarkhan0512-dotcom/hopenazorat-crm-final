@@ -15,7 +15,13 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    const parents = await User.find({ role: 'parent' })
+    const parents = await User.find({ 
+      role: 'parent',
+      $or: [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ]
+    })
       .select('username displayName avatarUrl telegramChatId linkedStudentIds createdAt')
       .lean();
 

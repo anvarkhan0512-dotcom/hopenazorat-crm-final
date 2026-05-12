@@ -18,7 +18,12 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    const students = await Student.find({})
+    const students = await Student.find({
+      $or: [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ]
+    })
       .populate('groupId', 'name')
       .populate('studentUserId', 'username revealablePassword')
       .lean();

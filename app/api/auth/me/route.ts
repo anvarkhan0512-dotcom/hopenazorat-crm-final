@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/db';
 import { User } from '@/models/User';
+import { Center } from '@/models/Center';
 import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'edu-crm-secret-key-2024';
@@ -26,6 +27,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 401 });
     }
 
+    let trialEndsAt: string | null = null;
+    if ((u.role === 'admin' || u.role === 'manager') && u.centerId) {
+      const center = await Center.findById(u.centerId).select('trialEndsAt').lean();
+      if (center?.trialEndsAt) {
+        trialEndsAt = center.trialEndsAt.toISOString();
+      }
+    }
+
     return NextResponse.json({
       user: {
         id: u._id.toString(),
@@ -37,6 +46,7 @@ export async function GET(request: NextRequest) {
         linkedStudentIds: (u.linkedStudentIds || []).map((id) => id.toString()),
         isBossImpersonating: decoded.isBossImpersonating || false,
         bossId: decoded.bossId,
+        trialEndsAt,
       },
       centerName: decoded.centerName || 'Hope Study',
       centerId: u.centerId?.toString() || null,
