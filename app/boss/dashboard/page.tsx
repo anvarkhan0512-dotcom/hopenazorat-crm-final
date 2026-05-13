@@ -76,6 +76,42 @@ export default function BossDashboard() {
   const [newCenterResult, setNewCenterResult] = useState<string | null>(null);
   const [isUpdateTrialModalOpen, setIsUpdateTrialModalOpen] = useState(false);
   const [updateTrialForm, setUpdateTrialForm] = useState({ centerId: '', date: '' });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [newTrialDate, setNewTrialDate] = useState('');
+
+  const updateTrialDate = async (centerId: string, date: string) => {
+    await fetch(`/api/boss/centers/${centerId}`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        trialEndsAt: new Date(date).toISOString()
+      })
+    });
+    setShowDatePicker(false);
+    // Refresh centers list
+    fetchAllData();
+    // Update selectedCenter
+    setSelectedCenter((prev: any) => ({
+      ...prev,
+      trialEndsAt: new Date(date).toISOString()
+    }));
+  };
+
+  const updateReminderDays = async (centerId: string, days: number) => {
+    // Update local state first for better UX
+    setSelectedCenter((prev: any) => ({
+      ...prev,
+      reminderDays: days
+    }));
+
+    await fetch(`/api/boss/centers/${centerId}`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reminderDays: days })
+    });
+  };
 
   const handleUpdateTrialDate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -755,98 +791,208 @@ export default function BossDashboard() {
       </div>
 
       {/* CENTER DETAIL MODAL */}
-      {selectedCenter && (
-        <div className="fixed inset-0 bg-black/50 z-50 
-          flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full 
-            max-w-lg shadow-2xl">
-            <div className="p-4 border-b flex justify-between">
-              <h2 className="font-bold text-lg">
-                🏫 {selectedCenter.name}
-              </h2>
-              <button onClick={() => setSelectedCenter(null)}>
-                ✕
-              </button>
-            </div>
-            <div className="p-4 space-y-3">
-              
-              {/* Login URL */}
-              <div className="bg-blue-50 rounded-xl p-3">
-                <p className="text-sm font-medium mb-1">
-                  🔗 Login URL:
-                </p>
-                <code className="text-sm text-blue-700 
-                  break-all">
-                  https://hopestudy.uz/login?c={selectedCenter._id}
-                </code>
-                <button 
-                  onClick={() => {
-                    navigator.clipboard.writeText(
-                      `https://hopestudy.uz/login?c=${selectedCenter._id}`
-                    );
-                    alert('Nusxa olindi!');
-                  }}
-                  className="mt-2 w-full bg-blue-500 
-                    text-white py-2 rounded-lg text-sm">
-                  📋 URL nusxa olish
+      {selectedCenter && (() => {
+        const daysLeft = selectedCenter?.trialEndsAt 
+          ? Math.ceil( 
+              (new Date(selectedCenter.trialEndsAt).getTime() 
+               - Date.now()) / (1000 * 60 * 60 * 24) 
+            ) 
+          : 0;
+
+        return (
+          <div className="fixed inset-0 bg-black/50 z-50 
+            flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full 
+              max-w-lg shadow-2xl overflow-y-auto max-h-[90vh]">
+              <div className="p-4 border-b flex justify-between">
+                <h2 className="font-bold text-lg">
+                  🏫 {selectedCenter.name}
+                </h2>
+                <button onClick={() => setSelectedCenter(null)}>
+                  ✕
                 </button>
               </div>
+              <div className="p-4 space-y-3">
+                
+                {/* Login URL */}
+                <div className="bg-blue-50 rounded-xl p-3">
+                  <p className="text-sm font-medium mb-1">
+                    🔗 Login URL:
+                  </p>
+                  <code className="text-sm text-blue-700 
+                    break-all">
+                    https://hopestudy.uz/login?c={selectedCenter._id}
+                  </code>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `https://hopestudy.uz/login?c=${selectedCenter._id}`
+                      );
+                      alert('Nusxa olindi!');
+                    }}
+                    className="mt-2 w-full bg-blue-500 
+                      text-white py-2 rounded-lg text-sm">
+                    📋 URL nusxa olish
+                  </button>
+                </div>
 
-              {/* Admin info */}
-              <div className="bg-gray-50 rounded-xl p-3">
-                <p className="text-sm font-medium mb-2">
-                  👤 Admin ma&apos;lumotlari:
-                </p>
-                <p className="text-sm">
-                  Login: <strong>
-                    {selectedCenter.adminUsername}
-                  </strong>
-                </p>
-                <p className="text-sm">
-                  Parol: <strong>
-                    {selectedCenter.adminPassword}
-                  </strong>
-                </p>
+                {/* Admin info */}
+                <div className="bg-gray-50 rounded-xl p-3">
+                  <p className="text-sm font-medium mb-2">
+                    👤 Admin ma&apos;lumotlari:
+                  </p>
+                  <div className="flex justify-between items-center text-sm mb-1">
+                    <span>Login: <strong>{selectedCenter.adminUsername}</strong></span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedCenter.adminUsername);
+                        alert('Login nusxalandi');
+                      }}
+                      className="text-[10px] bg-gray-200 px-2 py-0.5 rounded"
+                    >Nusxa</button>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span>Parol: <strong>{selectedCenter.adminPassword}</strong></span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedCenter.adminPassword);
+                        alert('Parol nusxalandi');
+                      }}
+                      className="text-[10px] bg-gray-200 px-2 py-0.5 rounded"
+                    >Nusxa</button>
+                  </div>
+                </div>
+
+                {/* Trial Section */} 
+                <div className="bg-orange-50 rounded-xl p-3"> 
+                  <div className="flex justify-between items-center mb-2"> 
+                    <p className="text-sm font-medium">⏰ Trial muddati:</p> 
+                    <button 
+                      onClick={() => setShowDatePicker(true)} 
+                      className="text-xs bg-orange-500 text-white 
+                        px-3 py-1 rounded-lg hover:bg-orange-600"> 
+                      Muddat o&apos;zgartirish 
+                    </button> 
+                  </div> 
+                  
+                  <p className="text-sm text-orange-700 font-medium"> 
+                    Tugash sanasi: {selectedCenter.trialEndsAt 
+                      ? new Date(selectedCenter.trialEndsAt) 
+                          .toLocaleString('uz-UZ', { 
+                            year: 'numeric', 
+                            month: '2-digit', 
+                            day: '2-digit', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          }) 
+                      : 'Belgilanmagan'} 
+                  </p> 
+                  
+                  {/* Days remaining */} 
+                  {selectedCenter.trialEndsAt && ( 
+                    <p className={`text-xs mt-1 font-medium 
+                      ${daysLeft <= 3 ? 'text-red-600' : 
+                        daysLeft <= 7 ? 'text-orange-600' : 
+                        'text-green-600'}`}> 
+                      {daysLeft > 0 
+                        ? `⏳ ${daysLeft} kun qoldi` 
+                        : '🔴 Muddat tugagan'} 
+                    </p> 
+                  )} 
+                  
+                  {/* Reminder setting */} 
+                  <div className="mt-3 pt-3 border-t border-orange-200"> 
+                    <p className="text-xs text-gray-600 mb-1"> 
+                      Mijozga eslatma (necha kun qolganida): 
+                    </p> 
+                    <div className="flex items-center gap-2"> 
+                      <input 
+                        type="number" 
+                        value={selectedCenter.reminderDays || 7} 
+                        onChange={e => updateReminderDays( 
+                          selectedCenter._id, 
+                          parseInt(e.target.value) 
+                        )} 
+                        className="w-16 border rounded px-2 py-1 
+                          text-sm text-center" 
+                        min={1} max={30} 
+                      /> 
+                      <span className="text-xs text-gray-500"> 
+                        kun qolganda admin ko&apos;radi 
+                      </span> 
+                    </div> 
+                  </div> 
+                </div>
+
+                {/* Export Button */}
+                <button 
+                  onClick={() => {
+                    window.open(`/api/boss/export-center?centerId=${selectedCenter._id}`, '_blank');
+                  }}
+                  className="w-full bg-green-600 text-white 
+                    py-3 rounded-xl font-medium hover:bg-green-700 
+                    flex items-center justify-center gap-2">
+                  📥 Ma&apos;lumotlarni yuklab olish (JSON)
+                </button>
+
+                {/* Open center button */}
+                <a 
+                  href={`https://hopestudy.uz/login?c=${selectedCenter._id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full text-center 
+                    bg-purple-700 text-white py-3 
+                    rounded-xl font-medium hover:bg-purple-800">
+                  🚀 Markaz tizimini ochish
+                </a>
               </div>
-
-              {/* Trial info */}
-              <div className="bg-orange-50 rounded-xl p-3">
-                <p className="text-sm font-medium mb-1">
-                  ⏰ Trial muddati:
-                </p>
-                <p className="text-sm text-orange-700">
-                  {selectedCenter.trialEndsAt 
-                    ? new Date(selectedCenter.trialEndsAt)
-                        .toLocaleDateString('uz')
-                    : 'Cheksiz'}
-                </p>
-              </div>
-
-              {/* Export Button */}
-              <button 
-                onClick={() => {
-                  window.open(`/api/boss/export-center?centerId=${selectedCenter._id}`, '_blank');
-                }}
-                className="w-full bg-green-600 text-white 
-                  py-3 rounded-xl font-medium hover:bg-green-700 
-                  flex items-center justify-center gap-2">
-                📥 Ma&apos;lumotlarni yuklab olish (JSON)
-              </button>
-
-              {/* Open center button */}
-              <a 
-                href={`https://hopestudy.uz/login?c=${selectedCenter._id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full text-center 
-                  bg-purple-700 text-white py-3 
-                  rounded-xl font-medium hover:bg-purple-800">
-                🚀 Markaz tizimini ochish
-              </a>
             </div>
+
+            {/* Date Picker Modal */} 
+            {showDatePicker && ( 
+              <div className="fixed inset-0 bg-black/50 
+                z-[60] flex items-center justify-center"> 
+                <div className="bg-white rounded-2xl p-6 
+                  w-80 shadow-2xl"> 
+                  <h3 className="font-bold mb-4"> 
+                    📅 Yangi muddat belgilash 
+                  </h3> 
+                  <input 
+                    type="datetime-local" 
+                    value={newTrialDate} 
+                    onChange={e => setNewTrialDate(e.target.value)} 
+                    min={new Date().toISOString().slice(0, 16)} 
+                    className="w-full border rounded-xl p-3 
+                      text-sm mb-3" 
+                  /> 
+                  {newTrialDate && ( 
+                    <p className="text-xs text-gray-500 mb-3"> 
+                      Tugash: {new Date(newTrialDate) 
+                        .toLocaleString('uz-UZ')} 
+                    </p> 
+                  )} 
+                  <div className="flex gap-2"> 
+                    <button 
+                      onClick={() => updateTrialDate( 
+                        selectedCenter._id, newTrialDate 
+                      )} 
+                      className="flex-1 bg-green-500 text-white 
+                        py-2 rounded-xl text-sm font-medium"> 
+                      ✅ Saqlash 
+                    </button> 
+                    <button 
+                      onClick={() => setShowDatePicker(false)} 
+                      className="flex-1 bg-gray-200 py-2 
+                        rounded-xl text-sm"> 
+                      Bekor 
+                    </button> 
+                  </div> 
+                </div> 
+              </div> 
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <Modal isOpen={modalOpen === 'markaz'} onClose={() => setModalOpen(null)} title="Markaz Boshqaruvi">
         {renderStaffModal()}

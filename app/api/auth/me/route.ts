@@ -28,10 +28,14 @@ export async function GET(request: NextRequest) {
     }
 
     let trialEndsAt: string | null = null;
+    let reminderDays = 7;
     if ((u.role === 'admin' || u.role === 'manager') && u.centerId) {
-      const center = await Center.findById(u.centerId).select('trialEndsAt').lean();
+      const center = await Center.findById(u.centerId).select('trialEndsAt reminderDays').lean();
       if (center?.trialEndsAt) {
         trialEndsAt = center.trialEndsAt.toISOString();
+      }
+      if (center?.reminderDays) {
+        reminderDays = center.reminderDays;
       }
     }
 
@@ -47,6 +51,7 @@ export async function GET(request: NextRequest) {
         isBossImpersonating: decoded.isBossImpersonating || false,
         bossId: decoded.bossId,
         trialEndsAt,
+        reminderDays,
       },
       centerName: decoded.centerName || 'O\'quv markaz',
       centerId: u.centerId?.toString() || null,

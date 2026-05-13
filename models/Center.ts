@@ -7,6 +7,7 @@ export interface ICenter extends Document {
   domain?: string;
   isBlocked: boolean;
   trialEndsAt: Date;
+  reminderDays: number;
   createdAt: Date;
   settings: {
     logoText: string;
@@ -22,6 +23,7 @@ const CenterSchema = new Schema<ICenter>(
     domain: { type: String, sparse: true, index: true },
     isBlocked: { type: Boolean, default: false },
     trialEndsAt: { type: Date, required: true },
+    reminderDays: { type: Number, default: 7 },
     settings: {
       logoText: { type: String, default: '' },
       primaryColor: { type: String, default: '#7c3aed' }, // Default purple

@@ -59,6 +59,7 @@ export default function Header({ title, onMenuClick, onToggleCollapse, isCollaps
     (user?.displayName?.trim()?.[0] || user?.username?.trim()?.[0] || '?').toUpperCase();
 
   const trialEndsAt = (user as any)?.trialEndsAt;
+  const reminderDays = (user as any)?.reminderDays || 7;
   let daysLeft = 0;
   if (trialEndsAt) {
     daysLeft = Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
@@ -82,9 +83,9 @@ export default function Header({ title, onMenuClick, onToggleCollapse, isCollaps
           </button>
         </div>
       )}
-      {trialEndsAt && daysLeft > 0 && isOffice && (
-        <div className="bg-orange-500 text-white text-center py-2 text-sm font-medium">
-          ⏰ Sinov muddati: {daysLeft} kun qoldi {daysLeft <= 3 && ' — Tez orada tugaydi!'}
+      {trialEndsAt && daysLeft > 0 && daysLeft <= reminderDays && isOffice && (
+        <div className="bg-orange-500 text-white text-center py-2 text-sm font-medium animate-pulse">
+          ⚠️ Tizim {daysLeft} kun ichida o&apos;chadi! Muddatni uzaytiring.
         </div>
       )}
       <header className="topbar">
