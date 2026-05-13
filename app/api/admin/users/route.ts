@@ -19,7 +19,16 @@ export async function POST(request: NextRequest) {
     }
 
     await connectDB();
-    const exists = await User.findOne({ username });
+    const exists = await User.findOne({ 
+      username, 
+      ...(auth.centerId 
+        ? { centerId: auth.centerId } 
+        : { $or: [ 
+            { centerId: null }, 
+            { centerId: { $exists: false } } 
+          ]} 
+      ) 
+    });
     if (exists) return NextResponse.json({ error: 'Username band' }, { status: 400 });
 
     const hashed = await bcrypt.hash(password, 10);

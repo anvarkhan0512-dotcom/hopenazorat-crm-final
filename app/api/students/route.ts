@@ -1,16 +1,17 @@
-export const dynamic = 'force-dynamic';
-
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import { Student, computeStudentFinalPrice } from '@/models/Student';
 import { Group } from '@/models/Group';
 import { calculateNextPaymentDate } from '@/lib/payments';
-import { getAuthUser, isAdminRole } from '@/lib/auth-server';
+import { getAuthUser, requireAuthUser, requireAdmin, isAdminRole } from '@/lib/auth-server';
 import { ensureUniqueParentCode } from '@/lib/parentCode';
 import { createStudentLoginUser } from '@/lib/studentUser';
 import { notifyStudentAdded } from '@/lib/telegram';
 import { checkAndNotifyDeadlines, checkUnpaidLessons } from '@/lib/cron-check';
 import { Center } from '@/models/Center';
+
+export const dynamic = 'force-dynamic';
 
 const checkCenterTrial = async (centerId: string) => {
   const center = await Center.findById(centerId);
@@ -46,20 +47,18 @@ export async function GET(request: NextRequest) {
     const query: any = {};
 
     // Data isolation
-    const centerId = auth!.centerId;
-    if (auth!.role !== 'boss') {
-      if (centerId) {
-        query.centerId = centerId;
-      } else {
-        query.$or = [
-          { centerId: { $exists: false } },
-          { centerId: null }
-        ];
-      }
-      // Auto-block if trial expired
-      if (centerId) {
-        await checkCenterTrial(centerId);
-      }
+    if (auth?.centerId) {
+      query.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      query.$or = [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ];
+    }
+
+    // Auto-block if trial expired
+    if (auth?.centerId && auth?.role !== 'boss') {
+      await checkCenterTrial(auth.centerId);
     }
 
     if (auth!.role === 'parent' || auth!.role === 'student') {
@@ -75,6 +74,7 @@ export async function GET(request: NextRequest) {
     if (auth.role === 'teacher') {
       const groups = await Group.find({
         $or: [{ teacherUserId: auth._id }, { teacherUserId2: auth._id }],
+        ...query
       })
         .select('_id')
         .lean();
@@ -87,6 +87,7 @@ export async function GET(request: NextRequest) {
         const ok = await Group.exists({
           _id: groupId,
           $or: [{ teacherUserId: auth._id }, { teacherUserId2: auth._id }],
+          ...query
         });
         if (!ok) return NextResponse.json({ items: [] });
       }
@@ -193,6 +194,7 @@ export async function POST(request: NextRequest) {
         displayName: student.name,
         customUsername,
         customPassword,
+        centerId: auth!.centerId,
       });
       student.studentUserId = stuUser._id;
       await student.save();

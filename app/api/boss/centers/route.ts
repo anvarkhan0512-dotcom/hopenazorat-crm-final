@@ -36,10 +36,15 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    // Check if adminUsername is taken
-    const existingUser = await User.findOne({ username: adminUsername });
+    // Check if adminUsername is taken in the main center (or globally if we want to be safe)
+    // Actually, with isolation, it only matters if it's taken in the center we are about to create.
+    // But since it's a new center, we don't need to check existing users unless they have no centerId.
+    const existingUser = await User.findOne({ 
+      username: adminUsername,
+      $or: [{ centerId: { $exists: false } }, { centerId: null }]
+    });
     if (existingUser) {
-      return NextResponse.json({ error: 'Admin username already taken' }, { status: 400 });
+      return NextResponse.json({ error: 'Bu username asosiy tizimda band' }, { status: 400 });
     }
 
     const trialEndsAt = new Date();

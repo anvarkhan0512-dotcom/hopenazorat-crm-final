@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePWA } from '@/lib/pwa-context';
+import { useCenter } from '@/lib/center-context';
 
 export default function InstallPrompt() {
+  const { centerName } = useCenter();
   const { 
     isInstalled, 
     isIOS, 
@@ -54,11 +56,11 @@ export default function InstallPrompt() {
             🎓
           </div>
           <div className="flex-1">
-            <h4 className="font-bold text-gray-800 dark:text-white text-base">Hope Study ilovasini o&apos;rnatish</h4>
+            <h4 className="font-bold text-gray-800 dark:text-white text-base">{centerName} ilovasini o&apos;rnatish</h4>
             <p className="text-gray-500 dark:text-gray-400 text-xs mt-1 leading-relaxed">
               {isIOS 
                 ? "Ilovani o'rnatish uchun [Ulashish] tugmasini bosing va [Ekraningizga qo'shish] ni tanlang."
-                : "Hope Study CRM ilovasini tezroq kirish uchun asosiy ekranga qo'shib oling."}
+                : `${centerName} CRM ilovasini tezroq kirish uchun asosiy ekranga qo'shib oling.`}
             </p>
           </div>
           <button 

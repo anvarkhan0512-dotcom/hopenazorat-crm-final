@@ -117,8 +117,8 @@ export default function StudentsPage() {
   const fetchData = async () => {
     try {
       const [studentsRes, groupsRes] = await Promise.all([
-        fetch('/api/students'),
-        fetch('/api/groups'),
+        fetch('/api/students', { credentials: 'include' }),
+        fetch('/api/groups', { credentials: 'include' }),
       ]);
       const studentsData = await studentsRes.json();
       const groupsData = await groupsRes.json();

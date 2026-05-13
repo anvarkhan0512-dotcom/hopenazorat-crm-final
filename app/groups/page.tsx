@@ -74,8 +74,8 @@ export default function GroupsPage() {
   const fetchData = async () => {
     try {
       const [gRes, tRes] = await Promise.all([
-        fetch('/api/groups'),
-        fetch('/api/users/teachers'),
+        fetch('/api/groups', { credentials: 'include' }),
+        fetch('/api/users/teachers', { credentials: 'include' }),
       ]);
       const data = await gRes.json();
       setGroups(data.items || []);

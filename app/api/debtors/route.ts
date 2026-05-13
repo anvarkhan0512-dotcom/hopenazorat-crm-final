@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import { Invoice } from '@/models/Invoice';
 import { getCached, setCache, invalidateCache, CacheKeys } from '@/lib/cache';
 import { getAuthUser, requireAuthUser } from '@/lib/auth-server';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +22,8 @@ export async function GET(request: NextRequest) {
     const currentMonth = parseInt(month || '') || new Date().getMonth() + 1;
     const currentYear = parseInt(year || '') || new Date().getFullYear();
 
-    const cacheKey = `debtors:${currentMonth}:${currentYear}:${groupId || 'all'}:${status || 'all'}`;
+    const centerId = auth!.centerId;
+    const cacheKey = `debtors:${currentMonth}:${currentYear}:${groupId || 'all'}:${status || 'all'}:${centerId || 'none'}`;
     const cached = getCached(cacheKey);
     if (cached) {
       return NextResponse.json(cached);
@@ -33,16 +37,13 @@ export async function GET(request: NextRequest) {
       status: { $ne: 'paid' },
     };
 
-    const centerId = auth!.centerId;
-    if (auth!.role !== 'boss') {
-      if (centerId) {
-        query.centerId = centerId;
-      } else {
-        query.$or = [
-          { centerId: { $exists: false } },
-          { centerId: null }
-        ];
-      }
+    if (auth?.centerId) {
+      query.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else if (auth?.role !== 'boss') {
+      query.$or = [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ];
     }
 
     if (groupId) {

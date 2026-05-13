@@ -174,6 +174,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
+import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
+import connectDB from '@/lib/db';
+import { Attendance } from '@/models/Attendance';
+import { getAuthUser, requireAuthUser } from '@/lib/auth-server';
+
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);
@@ -186,16 +194,13 @@ export async function GET(request: NextRequest) {
     const query: Record<string, any> = {};
 
     // Data isolation
-    const centerId = auth!.centerId;
-    if (auth!.role !== 'boss') {
-      if (centerId) {
-        query.centerId = centerId;
-      } else {
-        query.$or = [
-          { centerId: { $exists: false } },
-          { centerId: null }
-        ];
-      }
+    if (auth?.centerId) {
+      query.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      query.$or = [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ];
     }
 
     const { studentId, date, groupId, month, year } = Object.fromEntries(searchParams.entries());

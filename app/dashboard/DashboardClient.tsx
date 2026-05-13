@@ -13,7 +13,7 @@ import { useCenter } from '@/lib/center-context';
 import DashboardTabModal from '@/components/DashboardTabModal';
 
 const fetcher = async (url: string) => {
-  const res = await fetch(url);
+  const res = await fetch(url, { credentials: 'include' });
   const json = await res.json();
   if (!res.ok || json.error) throw new Error(json.error || 'fetch failed');
   return json.items !== undefined ? json.items : json;

@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePWA } from '@/lib/pwa-context';
+import { useCenter } from '@/lib/center-context';
 
 export default function PWAInstallModal() {
+  const { centerName } = useCenter();
   const { 
     isInstalled, 
     isIOS, 
@@ -66,9 +68,9 @@ export default function PWAInstallModal() {
             </svg>
           </button>
           <div className="w-20 h-20 bg-purple-100 rounded-2xl mx-auto flex items-center justify-center mb-4">
-            <img src="/icons/icon-192.png" alt="Hope Study" className="w-16 h-16 rounded-xl" />
+            <img src="/icons/icon-192.png" alt={centerName} className="w-16 h-16 rounded-xl" />
           </div>
-          <h3 className="text-xl font-bold text-gray-800">Hope Study Ilovasi</h3>
+          <h3 className="text-xl font-bold text-gray-800">{centerName} Ilovasi</h3>
           <p className="text-gray-500 text-sm mt-1">Ilovani o&apos;rnating va qulayliklardan foydalaning</p>
         </div>
 
@@ -123,7 +125,7 @@ export default function PWAInstallModal() {
             /* View 1: Android/Chrome Native Prompt */
             <div className="space-y-4">
               <p className="text-center text-gray-600 mb-6">
-                Hope Study ilovasini telefoningizga o&apos;rnating va tezkor xabarnomalar hamda darslaringizga oson kirish imkoniga ega bo&apos;ling.
+                {centerName} ilovasini telefoningizga o&apos;rnating va tezkor xabarnomalar hamda darslaringizga oson kirish imkoniga ega bo&apos;ling.
               </p>
               <button 
                 onClick={showInstallPrompt}

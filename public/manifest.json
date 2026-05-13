@@ -1,7 +1,7 @@
 { 
-  "name": "Hope Study", 
-  "short_name": "Hope Study", 
-  "description": "Hope Study - Online ta'lim platformasi", 
+  "name": "Edu CRM", 
+  "short_name": "Edu CRM", 
+  "description": "Online ta'lim platformasi", 
   "start_url": "/", 
   "display": "standalone", 
   "background_color": "#6B21A8", 

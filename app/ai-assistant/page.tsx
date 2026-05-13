@@ -211,8 +211,8 @@ export default function AIAssistantPage() {
               </h4>
               <p className="text-gray-500 max-w-xs mx-auto">
                 {isStudent 
-                  ? "Men sizga darslaringizni tushunishda va uy vazifalarida yo&apos;nalish berishda yordam beraman."
-                  : `Men ${centerName} aqlli menejeriman. Markazimiz haqida har qanday savolingiz bo&apos;lsa, so&apos;rashingiz mumkin.`}
+                  ? "Men sizga darslaringizni tushunishda va uy vazifalarida yo'nalish berishda yordam beraman."
+                  : `Men ${centerName} aqlli menejeriman. Markazimiz haqida har qanday savolingiz bo'lsa, so'rashingiz mumkin.`}
               </p>
             </div>
           )}

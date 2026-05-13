@@ -9,6 +9,7 @@ export async function createStudentLoginUser(params: {
   displayName: string;
   customUsername?: string;
   customPassword?: string;
+  centerId?: Types.ObjectId | string;
 }) {
   const plainPassword = params.customPassword || (crypto.randomBytes(6).toString('base64url').slice(0, 12) + '1a');
   const password = await bcrypt.hash(plainPassword, 10);
@@ -20,6 +21,7 @@ export async function createStudentLoginUser(params: {
     displayName: params.displayName,
     linkedStudentIds: [params.studentId],
     revealablePassword: plainPassword,
+    centerId: params.centerId || null,
   });
   return { user, username, plainPassword };
 }

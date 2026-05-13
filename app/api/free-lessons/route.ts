@@ -5,6 +5,14 @@ import { getAuthUser, isAdminRole } from '@/lib/auth-server';
 
 export const dynamic = 'force-dynamic';
 
+import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
+import connectDB from '@/lib/db';
+import { FreeLesson } from '@/models/FreeLesson';
+import { getAuthUser } from '@/lib/auth-server';
+
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);
@@ -12,13 +20,10 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
     const query: any = {};
-    const centerId = auth.centerId;
-    if (auth.role !== 'boss') {
-      if (centerId) {
-        query.centerId = centerId;
-      } else {
-        query.$or = [{ centerId: { $exists: false } }, { centerId: null }];
-      }
+    if (auth?.centerId) {
+      query.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      query.$or = [{ centerId: { $exists: false } }, { centerId: null }];
     }
 
     const list = await FreeLesson.find(query)

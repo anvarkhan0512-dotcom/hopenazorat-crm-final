@@ -53,11 +53,12 @@ export default function FloatingChat() {
         body: formData
       });
       const data = await res.json();
+      const reply = data.reply || data.message || 'Xatolik yuz berdi';
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: data.reply || data.message ||
-          'Xatolik yuz berdi'
+        content: reply
       }]);
+      speakText(reply);
     } catch (e) {
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -65,6 +66,28 @@ export default function FloatingChat() {
       }]);
     }
     setLoading(false);
+  };
+
+  const speakText = (text: string) => {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Set language to Uzbek
+    utterance.lang = 'uz-UZ';
+    
+    // Try to find a better voice
+    const voices = window.speechSynthesis.getVoices();
+    const uzbekVoice = voices.find(v => v.lang === 'uz-UZ' || v.lang === 'uz');
+    if (uzbekVoice) {
+      utterance.voice = uzbekVoice;
+    } else {
+      // Fallback to Russian which often sounds better than default for Uzbek
+      const russianVoice = voices.find(v => v.lang === 'ru-RU' || v.lang === 'ru');
+      if (russianVoice) utterance.voice = russianVoice;
+    }
+
+    window.speechSynthesis.speak(utterance);
   };
 
   // Hide conditions - AFTER all hooks

@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import { User } from '@/models/User';
 import { getAuthUser, requireTeacher } from '@/lib/auth-server';
@@ -14,7 +15,17 @@ export async function GET(request: NextRequest) {
     }
 
     await connectDB();
-    const teachers = await User.find({ role: 'teacher' })
+    const query: any = { role: 'teacher' };
+    if (auth?.centerId) {
+      query.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      query.$or = [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ];
+    }
+
+    const teachers = await User.find(query)
       .select('username displayName createdAt')
       .sort({ username: 1 })
       .lean();

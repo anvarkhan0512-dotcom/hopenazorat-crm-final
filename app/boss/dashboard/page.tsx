@@ -74,6 +74,25 @@ export default function BossDashboard() {
   });
   const [newCenterSaving, setNewCenterSaving] = useState(false);
   const [newCenterResult, setNewCenterResult] = useState<string | null>(null);
+  const [isUpdateTrialModalOpen, setIsUpdateTrialModalOpen] = useState(false);
+  const [updateTrialForm, setUpdateTrialForm] = useState({ centerId: '', date: '' });
+
+  const handleUpdateTrialDate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`/api/boss/centers/${updateTrialForm.centerId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trialEndsAt: updateTrialForm.date }),
+      });
+      if (res.ok) {
+        setIsUpdateTrialModalOpen(false);
+        fetchAllData();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -561,7 +580,7 @@ export default function BossDashboard() {
 
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
           <div className="w-24 h-24 bg-white rounded-full shadow-2xl flex items-center justify-center">
-            <img src="/icons/icon-192.png" alt="Hope Study" className="w-16 h-16" />
+            <img src="/icons/icon-192.png" alt="Logo" className="w-16 h-16" />
           </div>
         </div>
 
@@ -591,7 +610,7 @@ export default function BossDashboard() {
               }}
               className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-green-700"
             >
-              📥 Hope Study export
+              📥 Ma&apos;lumotlarni yuklab olish
             </button>
             <button onClick={() => setIsNewCenterModalOpen(true)}
               className="bg-purple-700 text-white px-4 py-2 
@@ -680,7 +699,7 @@ export default function BossDashboard() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <a 
                   href={`https://hopestudy.uz/login?c=${center._id}`}
                   target="_blank"
@@ -702,6 +721,19 @@ export default function BossDashboard() {
                       ? 'bg-green-500 text-white hover:bg-green-600'
                       : 'bg-red-500 text-white hover:bg-red-600'}`}>
                   {center.isBlocked ? '✅ Ochish' : '🔒 Bloklash'}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUpdateTrialForm({ 
+                      centerId: center._id, 
+                      date: center.trialEndsAt ? new Date(center.trialEndsAt).toISOString().split('T')[0] : '' 
+                    });
+                    setIsUpdateTrialModalOpen(true);
+                  }}
+                  className="w-full text-xs py-2 rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200"
+                >
+                  📅 Sanani yangilash
                 </button>
               </div>
             </div>
@@ -883,6 +915,11 @@ export default function BossDashboard() {
                     className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-purple-500 outline-none"
                     min="1"
                   />
+                  {newCenterForm.trialDays && (
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      Tugash sanasi: {new Date(Date.now() + parseInt(newCenterForm.trialDays) * 86400000).toLocaleDateString('uz')}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-400 uppercase mb-1 block">Boshlang&apos;ich rang</label>
@@ -903,6 +940,27 @@ export default function BossDashboard() {
               </button>
             </>
           )}
+        </form>
+      </Modal>
+
+      <Modal isOpen={isUpdateTrialModalOpen} onClose={() => setIsUpdateTrialModalOpen(false)} title="Trial sanasini yangilash">
+        <form onSubmit={handleUpdateTrialDate} className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-gray-400 uppercase mb-1 block">Yangi tugash sanasi</label>
+            <input
+              type="date"
+              value={updateTrialForm.date}
+              onChange={e => setUpdateTrialForm(f => ({ ...f, date: e.target.value }))}
+              className="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-purple-500 outline-none"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold hover:bg-purple-700"
+          >
+            Sana yangilash
+          </button>
         </form>
       </Modal>
     </div>

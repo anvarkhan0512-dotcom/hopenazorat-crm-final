@@ -109,16 +109,16 @@ export async function runDebtorTelegramReminders(): Promise<{
   errors: string[];
 }> {
   await connectDB();
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
 
   const students = await Student.find({
     status: 'active',
     notificationEnabled: true,
     parentTelegramChatId: { $exists: true, $nin: ['', null] },
-    nextPaymentDate: { $lt: start },
-    debtReminderUntil: { $gte: start },
-  }).lean();
+    nextPaymentDate: { $lt: now },
+    debtReminderUntil: { $gte: now },
+  }).populate('centerId', 'name').lean();
 
   if (students.length === 0) return { sent: 0, skipped: 0, errors: [] };
 
@@ -169,9 +169,10 @@ export async function runDebtorTelegramReminders(): Promise<{
 
     const due = s.nextPaymentDate ? new Date(s.nextPaymentDate).toLocaleDateString('uz-UZ') : '-';
     const amountStr = finalAmount.toLocaleString('uz-UZ');
+    const centerName = (s as any).centerId?.name || 'O\'quv markaz';
     const msg =
       `Assalomu alaykum, hurmatli ota-ona! 📢\n\n` +
-      `"Hope Study" o'quv markazidan eslatma: farzandingiz <b>${s.name}</b> uchun to'lov muddati ${due} kuni yakunlangan edi. Iltimos, ushbu qarzni imkon qadar tezroq yopishingizni so'raymiz.\n\n` +
+      `"${centerName}" o'quv markazidan eslatma: farzandingiz <b>${s.name}</b> uchun to'lov muddati ${due} kuni yakunlangan edi. Iltimos, ushbu qarzni imkon qadar tezroq yopishingizni so'raymiz.\n\n` +
       `💵 <b>Qarzdorlik miqdori:</b> ${amountStr} so'm\n\n` +
       `O'zaro ishonch va tartib uchun tashakkur! 😊`;
 

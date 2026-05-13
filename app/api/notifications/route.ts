@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import { getAuthUser } from '@/lib/auth-server';
 import { Notification } from '@/models/Notification';
@@ -11,7 +12,18 @@ export async function GET(request: NextRequest) {
     if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     await connectDB();
-    const notifications = await Notification.find({ userId: auth.id })
+
+    const query: any = { userId: auth.id };
+    if (auth?.centerId) {
+      query.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      query.$or = [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ];
+    }
+
+    const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
@@ -39,7 +51,8 @@ export async function POST(request: NextRequest) {
       fromUserId: auth.id,
       title,
       message,
-      type: type || 'info'
+      type: type || 'info',
+      centerId: auth.centerId ? new mongoose.Types.ObjectId(auth.centerId) : null
     });
 
     return NextResponse.json(notification, { status: 201 });

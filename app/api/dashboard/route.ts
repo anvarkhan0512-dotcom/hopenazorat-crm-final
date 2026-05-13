@@ -1,6 +1,5 @@
-export const dynamic = 'force-dynamic';
-
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import { Student } from '@/models/Student';
 import { Group } from '@/models/Group';
@@ -10,6 +9,8 @@ import { getCached, setCache, CacheKeys } from '@/lib/cache';
 import { getAdminFinanceOverview } from '@/lib/teacherFinance';
 import { getAuthUser, requireAuthUser } from '@/lib/auth-server';
 import { type NextRequest } from 'next/server';
+
+export const dynamic = 'force-dynamic';
 
 function padDay(d: Date): string {
   const y = d.getFullYear();
@@ -42,15 +43,13 @@ export async function GET(request: NextRequest) {
     const currentYear = now.getFullYear();
 
     const query: any = {};
-    if (auth!.role !== 'boss') {
-      if (centerId) {
-        query.centerId = centerId;
-      } else {
-        query.$or = [
-          { centerId: { $exists: false } },
-          { centerId: null }
-        ];
-      }
+    if (auth?.centerId) {
+      query.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      query.$or = [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ];
     }
 
     const [

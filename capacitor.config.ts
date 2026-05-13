@@ -1,8 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'uz.hopestudy.app',
-  appName: 'Hope Study',
+  appId: 'uz.educrm.app',
+  appName: 'Edu CRM',
   webDir: 'out',
   server: {
     url: 'https://hopestudy.vercel.app',

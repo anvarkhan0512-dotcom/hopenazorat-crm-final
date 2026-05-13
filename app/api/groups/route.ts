@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import { Group } from '@/models/Group';
-import { getAuthUser, isAdminRole } from '@/lib/auth-server';
+import { getAuthUser, requireAuthUser, requireAdmin, isAdminRole } from '@/lib/auth-server';
 import { serializeGroupForClient } from '@/lib/serializeGroup';
 
 export const dynamic = 'force-dynamic';
@@ -15,29 +16,21 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     const query: any = {};
-    const centerId = auth!.centerId;
-    if (auth!.role !== 'boss') {
-      if (centerId) {
-        query.centerId = centerId;
-      } else {
-        query.$or = [
-          { centerId: { $exists: false } },
-          { centerId: null }
-        ];
-      }
+    if (auth?.centerId) {
+      query.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      query.$or = [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ];
     }
 
     if (auth!.role === 'teacher') {
       const teacherFilter = { $or: [{ teacherUserId: auth!._id }, { teacherUserId2: auth!._id }] };
-      if (query.$or) {
-        query.$and = [{ $or: query.$or }, teacherFilter];
-        delete query.$or;
-      } else {
-        const currentCenterId = query.centerId;
-        query.$and = [{ centerId: currentCenterId }, teacherFilter];
-        delete query.centerId;
-      }
-      const groups = await Group.find(query)
+      
+      const finalQuery = { ...query, ...teacherFilter };
+      
+      const groups = await Group.find(finalQuery)
         .sort({ createdAt: -1 })
         .lean();
       const items = groups.map((g) => serializeGroupForClient(g as any, auth!.role));

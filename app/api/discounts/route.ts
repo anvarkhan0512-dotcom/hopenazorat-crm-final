@@ -5,6 +5,14 @@ import { Student } from '@/models/Student';
 import { getDiscountsSummary, getDiscountReasons } from '@/lib/discount';
 import { invalidateCache } from '@/lib/cache';
 
+import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
+import connectDB from '@/lib/db';
+import { Discount } from '@/models/Discount';
+import { getAuthUser } from '@/lib/auth-server';
+
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);
@@ -17,13 +25,10 @@ export async function GET(request: NextRequest) {
     const reason = searchParams.get('reason');
 
     const query: any = {};
-    const centerId = auth.centerId;
-    if (auth.role !== 'boss') {
-      if (centerId) {
-        query.centerId = centerId;
-      } else {
-        query.$or = [{ centerId: { $exists: false } }, { centerId: null }];
-      }
+    if (auth?.centerId) {
+      query.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      query.$or = [{ centerId: { $exists: false } }, { centerId: null }];
     }
     
     if (active === 'true') {
@@ -44,10 +49,10 @@ export async function GET(request: NextRequest) {
       familyId: d.familyId,
       familyName: d.familyName,
       studentIds: d.studentIds,
-      students: d.studentIds.map((s: any) => ({
-        _id: s._id,
-        name: s.name,
-        phone: s.phone,
+      students: (d.studentIds || []).map((s: any) => ({
+        _id: s?._id,
+        name: s?.name,
+        phone: s?.phone,
       })),
       discountType: d.discountType,
       discountValue: d.discountValue,

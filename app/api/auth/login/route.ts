@@ -127,21 +127,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check center status if not boss
-    if (user.role !== 'boss' && user.centerId) {
-      const center = await Center.findById(user.centerId).lean();
-      if (center) {
-        if (center.isBlocked) {
-          return NextResponse.json(
-            { error: 'Markaz bloklangan. Boshliq bilan bog\'laning.', code: 'CENTER_BLOCKED' },
-            { status: 403 }
-          );
-        }
-        if (new Date(center.trialEndsAt) < new Date()) {
-          return NextResponse.json(
-            { error: 'Trial muddati tugagan. To\'lovni amalga oshiring.', code: 'CENTER_EXPIRED' },
-            { status: 403 }
-          );
+    // Check center block/trial status
+    if (user.centerId) {
+      const center = await Center.findById(user.centerId);
+      
+      // Auto-check trial expiration
+      if (center?.trialEndsAt && new Date() > new Date(center.trialEndsAt) && !center.isBlocked) {
+        await Center.findByIdAndUpdate(user.centerId, { 
+          isBlocked: true,
+          blockReason: 'Trial muddati tugadi'
+        });
+        center.isBlocked = true;
+      }
+
+      if (center?.isBlocked) {
+        const isAdminOrManager = user.role === 'admin' || user.role === 'manager';
+        if (isAdminOrManager) {
+          return NextResponse.json({
+            error: 'blocked',
+            message: 'Muddatingiz tugadi. To\'lov qiling.',
+            phone: '+998901234567',
+            price: '299,000 so\'m/oy'
+          }, { status: 403 });
+        } else {
+          return NextResponse.json({
+            error: 'center_blocked',
+            message: 'Tizim yopiq. Markazingiz bilan bog\'laning.'
+          }, { status: 403 });
         }
       }
     }

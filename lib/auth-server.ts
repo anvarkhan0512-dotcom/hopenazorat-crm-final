@@ -55,7 +55,7 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
       role: u.role as UserRole,
       displayName: u.displayName || '',
       centerId: u.centerId?.toString() || decoded.centerId,
-      centerName: decoded.centerName || 'Hope Study',
+      centerName: decoded.centerName || 'Edu CRM',
       linkedStudentIds: (u.linkedStudentIds || []) as Types.ObjectId[],
       centerBlocked,
       centerExpired,
