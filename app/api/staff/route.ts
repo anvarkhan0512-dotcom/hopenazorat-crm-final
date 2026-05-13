@@ -1,8 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { Staff } from '@/models/Staff';
-import { getAuthUser, requireAdmin } from '@/lib/auth-server';
-
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,8 +5,6 @@ import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import { Staff } from '@/models/Staff';
 import { getAuthUser, requireAdmin } from '@/lib/auth-server';
-
-export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -72,7 +65,7 @@ export async function POST(request: NextRequest) {
       overrideVisible: overrideVisible !== undefined ? !!overrideVisible : true,
       phone: phone ? String(phone) : '',
       userId: userId || undefined,
-      centerId: auth!.centerId || null,
+      centerId: auth!.centerId ? new mongoose.Types.ObjectId(auth!.centerId) : null,
     });
     return NextResponse.json(doc, { status: 201 });
   } catch (e: any) {

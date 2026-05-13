@@ -1,21 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { Payment } from '@/models/Payment';
-import { Invoice } from '@/models/Invoice';
-import { Student } from '@/models/Student';
-import { Group } from '@/models/Group';
-import { computePeriodEndFromLessons } from '@/lib/lessonPeriod';
-import { getCached, invalidateCache, CacheKeys } from '@/lib/cache';
-import { sendTelegramMessage } from '@/lib/telegram';
-import { getAuthUser, requireAuthUser, requireAdmin } from '@/lib/auth-server';
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import { Payment } from '@/models/Payment';
-import { getAuthUser, requireAuthUser } from '@/lib/auth-server';
-
-export const dynamic = 'force-dynamic';
+import { Student } from '@/models/Student';
+import { Invoice } from '@/models/Invoice';
+import { getAuthUser, requireAuthUser, isAdminRole } from '@/lib/auth-server';
+import { invalidateCache } from '@/lib/cache';
+import { notifyPaymentAdded } from '@/lib/telegram';
 
 export async function GET(request: NextRequest) {
   try {
@@ -53,164 +46,101 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function startOfDay(d: Date) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);
-    const authErr = requireAdmin(auth);
-    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
+    if (!auth || !isAdminRole(auth.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     await connectDB();
-    const data = await request.json();
+    const body = await request.json();
+    const { studentId, amount, method, comment, month, year, invoiceId } = body;
 
-    const student = await Student.findById(data.studentId);
-    if (!student || (auth!.role !== 'boss' && student.centerId?.toString() !== auth!.centerId)) {
-      return NextResponse.json({ error: 'Talaba topilmadi' }, { status: 400 });
+    if (!studentId || !amount) {
+      return NextResponse.json({ error: 'Missing studentId or amount' }, { status: 400 });
     }
 
-    let month = Number(data.month);
-    let year = Number(data.year);
-    let periodStart = data.periodStart ? new Date(data.periodStart) : undefined;
-    let periodEnd =
-      data.periodEnd && String(data.periodEnd).trim() ? new Date(data.periodEnd) : undefined;
-    const lessonCount = Math.min(24, Math.max(1, Number(data.lessonCount) || 12));
-
-    if (periodStart && !periodEnd) {
-      let weekParity: 'all' | 'odd' | 'even' = 'all';
-      let weeklySchedule: { day: number }[] | undefined;
-      if (student.groupId) {
-        const g = await Group.findById(student.groupId)
-          .select('weeklySchedule lessonCalendarWeekParity')
-          .lean();
-        weeklySchedule = g?.weeklySchedule as { day: number }[] | undefined;
-        weekParity =
-          g?.lessonCalendarWeekParity === 'odd' || g?.lessonCalendarWeekParity === 'even'
-            ? g.lessonCalendarWeekParity
-            : 'all';
-      }
-      periodEnd = computePeriodEndFromLessons(periodStart, lessonCount, weeklySchedule, weekParity);
-      
-      /** 
-       * Keyingi to'lov sanasini (13-dars) avtomatik belgilash.
-       * computePeriodEndFromLessons(lessonCount + 1) -> 13-dars sanasi.
-       */
-      const nextDue = computePeriodEndFromLessons(periodStart, lessonCount + 1, weeklySchedule, weekParity);
-      student.nextPaymentDate = nextDue;
-      await student.save();
-    } else if (periodEnd) {
-      /** Agar qo'lda periodEnd kiritilgan bo'lsa, keyingi to'lovni 1 kun keyinga suramiz (taxminiy) */
-      const nextDue = new Date(periodEnd);
-      nextDue.setDate(nextDue.getDate() + 1);
-      student.nextPaymentDate = nextDue;
-      await student.save();
+    const centerQuery: any = {};
+    if (auth?.centerId) {
+      centerQuery.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      centerQuery.$or = [{ centerId: { $exists: false } }, { centerId: null }];
     }
 
-    if (periodStart && periodEnd) {
-      const pe = periodEnd;
-      month = pe.getMonth() + 1;
-      year = pe.getFullYear();
-    }
-    if (!(month >= 1 && month <= 12 && year >= 2000)) {
-      const now = new Date();
-      month = now.getMonth() + 1;
-      year = now.getFullYear();
-    }
+    const student = await Student.findOne({ _id: studentId, ...centerQuery });
+    if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 });
 
-    let expectedDueDate: Date | undefined = data.expectedDueDate
-      ? new Date(data.expectedDueDate)
-      : student.nextPaymentDate
-        ? new Date(student.nextPaymentDate)
-        : undefined;
+    const targetMonth = month || new Date().getMonth() + 1;
+    const targetYear = year || new Date().getFullYear();
 
-    const paidAt = new Date();
-    let daysVariance: number | undefined;
-    if (expectedDueDate) {
-      const a = startOfDay(paidAt);
-      const b = startOfDay(expectedDueDate);
-      daysVariance = Math.round((a.getTime() - b.getTime()) / 86400000);
-    }
-
-    const payment = new Payment({
-      studentId: data.studentId,
-      amount: data.amount,
-      month,
-      year,
-      periodStart,
-      periodEnd,
-      lessonCount,
-      expectedDueDate,
-      daysVariance,
-      isPartial: !!data.isPartial,
-      fullPaymentDeadline: data.isPartial && data.fullPaymentDeadline ? new Date(data.fullPaymentDeadline) : undefined,
-      isMonthly: !!data.isMonthly,
-      description: data.description || '',
-      centerId: auth!.centerId || null,
+    const payment = await Payment.create({
+      studentId,
+      amount,
+      method: method || 'cash',
+      comment,
+      month: targetMonth,
+      year: targetYear,
+      centerId: auth.centerId ? new mongoose.Types.ObjectId(auth.centerId) : null,
     });
 
-    await payment.save();
-    await payment.populate('studentId');
+    // Update Student
+    student.balance = (student.balance || 0) + amount;
+    student.lastPaymentDate = new Date();
+    await student.save();
 
-    const invoice = await Invoice.findOne({
-      studentId: data.studentId,
-      month,
-      year,
-    });
-
-    if (invoice) {
-      invoice.paidAmount += data.amount;
-      if (invoice.paidAmount >= invoice.amount) {
-        invoice.status = 'paid';
-        invoice.paidAmount = invoice.amount;
-      } else if (invoice.paidAmount > 0) {
-        invoice.status = 'partial';
+    // Update Invoice if provided
+    if (invoiceId) {
+      const invoice = await Invoice.findOne({ _id: invoiceId, ...centerQuery });
+      if (invoice) {
+        invoice.paidAmount = (invoice.paidAmount || 0) + amount;
+        if (invoice.paidAmount >= invoice.amount) {
+          invoice.status = 'paid';
+        } else if (invoice.paidAmount > 0) {
+          invoice.status = 'partial';
+        }
+        await invoice.save();
       }
-      await invoice.save();
+    } else {
+      // Auto-apply to pending invoice for this month
+      const invoice = await Invoice.findOne({
+        studentId,
+        month: targetMonth,
+        year: targetYear,
+        status: { $ne: 'paid' },
+        ...centerQuery
+      });
+      if (invoice) {
+        invoice.paidAmount = (invoice.paidAmount || 0) + amount;
+        if (invoice.paidAmount >= invoice.amount) {
+          invoice.status = 'paid';
+        } else if (invoice.paidAmount > 0) {
+          invoice.status = 'partial';
+        }
+        await invoice.save();
+      }
     }
 
-    invalidateCache(CacheKeys.DASHBOARD);
+    invalidateCache('dashboard:');
     invalidateCache('invoices:');
     invalidateCache('debtors:');
 
-    sendTelegramMessage(
-      `💰 <b>Toʻlov qabul qilindi</b>\n\n` +
-        `Oʻquvchi: <b>${student.name}</b>\n` +
-        `Summa: ${data.amount.toLocaleString('uz-UZ')} soʻm\n` +
-        `Davr: ${month}/${year}${
-          periodStart && periodEnd
-            ? ` (${periodStart.toLocaleDateString('uz-UZ')} — ${periodEnd.toLocaleDateString('uz-UZ')})`
-            : ''
-        }`
-    );
-    
+    // Notify via Telegram
+    try {
+      await notifyPaymentAdded({
+        studentName: student.name,
+        amount,
+        method: method || 'cash',
+        date: new Date().toLocaleDateString('uz-UZ'),
+        parentChatId: student.parentTelegramChatId,
+      });
+    } catch (err) {
+      console.error('Telegram notification failed:', err);
+    }
+
     return NextResponse.json(payment, { status: 201 });
   } catch (error) {
-    console.error('Error creating payment:', error);
-    return NextResponse.json({ error: 'Error creating payment' }, { status: 500 });
-  }
-}
-
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    await connectDB();
-    const data = await request.json();
-    const payment = await Payment.findByIdAndUpdate(params.id, data, { new: true });
-    return NextResponse.json(payment);
-  } catch (error) {
-    return NextResponse.json({ error: 'Error updating payment' }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    await connectDB();
-    await Payment.findByIdAndDelete(params.id);
-    return NextResponse.json({ message: 'Payment deleted' });
-  } catch (error) {
-    return NextResponse.json({ error: 'Error deleting payment' }, { status: 500 });
+    console.error('Payment POST error:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

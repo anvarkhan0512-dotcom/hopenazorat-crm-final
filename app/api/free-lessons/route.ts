@@ -1,17 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { FreeLesson } from '@/models/FreeLesson';
-import { getAuthUser, isAdminRole } from '@/lib/auth-server';
-
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import { FreeLesson } from '@/models/FreeLesson';
-import { getAuthUser } from '@/lib/auth-server';
-
-export const dynamic = 'force-dynamic';
+import { getAuthUser, isAdminRole } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -48,7 +41,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     await connectDB();
     
-    const doc = await FreeLesson.create(body);
+    const doc = await FreeLesson.create({
+      ...body,
+      centerId: auth.centerId ? new mongoose.Types.ObjectId(auth.centerId) : null
+    });
     return NextResponse.json(doc, { status: 201 });
   } catch (e: any) {
     console.error(e);
@@ -67,8 +63,20 @@ export async function PUT(request: NextRequest) {
     const { _id, ...updateData } = body;
     
     await connectDB();
-    const doc = await FreeLesson.findByIdAndUpdate(_id, updateData, { new: true });
     
+    const centerQuery: any = {};
+    if (auth?.centerId) {
+      centerQuery.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      centerQuery.$or = [{ centerId: { $exists: false } }, { centerId: null }];
+    }
+
+    const doc = await FreeLesson.findOneAndUpdate({ _id, ...centerQuery }, updateData, { new: true });
+    
+    if (!doc) {
+      return NextResponse.json({ error: 'Topilmadi yoki ruxsat yo\'q' }, { status: 404 });
+    }
+
     return NextResponse.json(doc);
   } catch (e: any) {
     console.error(e);

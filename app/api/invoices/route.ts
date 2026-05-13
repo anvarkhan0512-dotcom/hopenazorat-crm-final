@@ -1,17 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { Invoice } from '@/models/Invoice';
-import { Student } from '@/models/Student';
-import { Discount } from '@/models/Discount';
-import { getAuthUser, requireAuthUser, requireAdmin } from '@/lib/auth-server';
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import { Invoice } from '@/models/Invoice';
-import { getAuthUser, requireAuthUser } from '@/lib/auth-server';
-
-export const dynamic = 'force-dynamic';
+import { Student } from '@/models/Student';
+import { Discount } from '@/models/Discount';
+import { getAuthUser, requireAuthUser, requireAdmin } from '@/lib/auth-server';
+import { invalidateCache } from '@/lib/cache';
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,7 +50,6 @@ export async function GET(request: NextRequest) {
       const student = inv.studentId;
       const originalPrice = student?.basePrice || student?.monthlyPrice || inv.amount;
       
-      // Calculate total discount as the difference between original base price and the actual invoice amount
       const totalDiscount = Math.max(0, originalPrice - inv.amount);
       const toPay = inv.amount;
       
@@ -97,18 +92,17 @@ export async function POST(request: NextRequest) {
     const targetMonth = month || new Date().getMonth() + 1;
     const targetYear = year || new Date().getFullYear();
 
-    const query: any = { month: targetMonth, year: targetYear };
-    const centerId = auth!.centerId;
-    if (auth!.role !== 'boss') {
-      if (centerId) {
-        query.centerId = centerId;
-      } else {
-        query.$or = [
-          { centerId: { $exists: false } },
-          { centerId: null }
-        ];
-      }
+    const centerQuery: any = {};
+    if (auth?.centerId) {
+      centerQuery.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      centerQuery.$or = [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ];
     }
+
+    const query: any = { ...centerQuery, month: targetMonth, year: targetYear };
 
     const existingInvoices = await Invoice.find(query);
     
@@ -125,29 +119,19 @@ export async function POST(request: NextRequest) {
 
     const now = new Date();
     const discountQuery: any = {
+      ...centerQuery,
       isActive: true,
       $or: [
         { endDate: { $gte: now } },
         { endDate: null }
       ]
     };
-    if (auth!.role !== 'boss') {
-      if (centerId) {
-        discountQuery.centerId = centerId;
-      } else {
-        discountQuery.$or = [
-          { centerId: { $exists: false } },
-          { centerId: null }
-        ];
-      }
-    }
 
     const activeDiscounts = await Discount.find(discountQuery).lean();
 
     const discountMap = new Map<string, any>();
     for (const discount of activeDiscounts) {
       const ids = discount.studentIds || [];
-      // Also check for familyStudentIds if it exists (per user request, though not in schema)
       const familyIds = (discount as any).familyStudentIds || [];
       const allIds = [...ids, ...familyIds];
       
@@ -156,17 +140,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const studentQuery: any = { status: 'active', monthlyPrice: { $gt: 0 } };
-    if (auth!.role !== 'boss') {
-      if (centerId) {
-        studentQuery.centerId = centerId;
-      } else {
-        studentQuery.$or = [
-          { centerId: { $exists: false } },
-          { centerId: null }
-        ];
-      }
-    }
+    const studentQuery: any = { ...centerQuery, status: 'active', monthlyPrice: { $gt: 0 } };
 
     const activeStudents = await Student.find(studentQuery)
       .populate('groupId')
@@ -182,7 +156,6 @@ export async function POST(request: NextRequest) {
       try {
         let amount = student.monthlyPrice || 0;
         
-        // Check for external discounts
         const discount = discountMap.get(student._id.toString());
         let externalDiscountAmount = 0;
         
@@ -194,7 +167,6 @@ export async function POST(request: NextRequest) {
           if (dType === 'percentage' || dType === 'percent') {
             externalDiscountAmount = Math.round(amount * (dValue / 100));
           } else {
-            // Split fixed discount among students in the same discount group
             externalDiscountAmount = Math.min(
               Math.round(dValue / studentIdsCount),
               amount
@@ -213,7 +185,7 @@ export async function POST(request: NextRequest) {
           amount,
           paidAmount: 0,
           status: 'pending',
-          centerId: auth!.centerId || null,
+          centerId: auth!.centerId ? new mongoose.Types.ObjectId(auth!.centerId) : null,
         });
 
         await invoice.save();

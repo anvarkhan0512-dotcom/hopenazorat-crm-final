@@ -1,17 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import { Discount } from '@/models/Discount';
-import { Student } from '@/models/Student';
-import { getDiscountsSummary, getDiscountReasons } from '@/lib/discount';
-import { invalidateCache } from '@/lib/cache';
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import { Discount } from '@/models/Discount';
+import { Student } from '@/models/Student';
 import { getAuthUser } from '@/lib/auth-server';
-
-export const dynamic = 'force-dynamic';
+import { invalidateCache } from '@/lib/cache';
 
 export async function GET(request: NextRequest) {
   try {
@@ -76,6 +71,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await getAuthUser(request);
+    if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     await connectDB();
     const data = await request.json();
     
@@ -98,7 +96,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const centerQuery: any = {};
+    if (auth?.centerId) {
+      centerQuery.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      centerQuery.$or = [{ centerId: { $exists: false } }, { centerId: null }];
+    }
+
     const students = await Student.find({
+      ...centerQuery,
       _id: { $in: studentIds },
       status: 'active',
     }).lean();
@@ -115,30 +121,25 @@ export async function POST(request: NextRequest) {
     
     if (discountType === 'percentage') {
       if (applyType === 'separate') {
-        // Calculate percentage for each student and sum up
         discountAmount = students.reduce((sum, s) => sum + Math.round((s.monthlyPrice || 0) * (discountValue / 100)), 0);
       } else {
-        // Apply to total
         discountAmount = Math.round(originalTotal * (discountValue / 100));
       }
     } else {
       if (applyType === 'separate') {
-        // Apply fixed amount to each student
         discountAmount = discountValue * students.length;
       } else {
-        // Apply fixed amount to total
         discountAmount = Math.min(discountValue, originalTotal);
       }
     }
 
     if (isDoubleSubject) {
-      // If 2 subjects, double the discount amount if separate, or double total if percentage on total
       discountAmount *= 2;
     }
 
     const finalTotal = originalTotal - discountAmount;
 
-    const exists = await Discount.findOne({ familyName });
+    const exists = await Discount.findOne({ ...centerQuery, familyName });
     if (exists) {
       return NextResponse.json(
         { error: 'Family name already exists' },
@@ -160,6 +161,7 @@ export async function POST(request: NextRequest) {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       isActive: true,
+      centerId: auth.centerId ? new mongoose.Types.ObjectId(auth.centerId) : null
     });
 
     await discount.save();

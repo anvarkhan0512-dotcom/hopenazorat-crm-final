@@ -52,6 +52,50 @@ function buildAttendanceTelegramText(params: {
   );
 }
 
+export async function GET(request: NextRequest) {
+  try {
+    const auth = await getAuthUser(request);
+    const authErr = requireAuthUser(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
+
+    await connectDB();
+
+    const { searchParams } = new URL(request.url);
+    const query: Record<string, any> = {};
+
+    // Data isolation
+    if (auth?.centerId) {
+      query.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      query.$or = [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ];
+    }
+
+    const { studentId, date, groupId, month, year } = Object.fromEntries(searchParams.entries());
+
+    if (studentId) query.studentId = studentId;
+    if (date) {
+      const d = new Date(date);
+      d.setHours(12, 0, 0, 0);
+      query.date = d;
+    }
+    if (groupId) query.groupId = groupId;
+    if (month && year) {
+      const start = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const end = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+      query.date = { $gte: start, $lte: end };
+    }
+
+    const list = await Attendance.find(query).sort({ date: -1, lessonNumber: 1 }).lean();
+    return NextResponse.json({ items: list });
+  } catch (error) {
+    console.error('Attendance GET error:', error);
+    return NextResponse.json({ error: 'Server error', items: [] }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const auth = await getAuthUser(request);
@@ -120,7 +164,7 @@ export async function POST(request: NextRequest) {
             $set: {
               status: st,
               groupId: student.groupId || undefined,
-              centerId: auth!.centerId || null,
+              centerId: auth!.centerId ? new mongoose.Types.ObjectId(auth!.centerId) : null,
               rescheduleDate: status === 'rescheduled' && rescheduleDate ? new Date(rescheduleDate) : null,
               checkInTime: status === 'present' ? checkInTime || null : null,
               checkOutTime: item.checkOutTime || null,
@@ -171,57 +215,5 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('POST error:', error);
     return NextResponse.json({ error: 'Serverda xatolik yuz berdi' }, { status: 500 });
-  }
-}
-
-import { NextRequest, NextResponse } from 'next/server';
-import mongoose from 'mongoose';
-import connectDB from '@/lib/db';
-import { Attendance } from '@/models/Attendance';
-import { getAuthUser, requireAuthUser } from '@/lib/auth-server';
-
-export const dynamic = 'force-dynamic';
-
-export async function GET(request: NextRequest) {
-  try {
-    const auth = await getAuthUser(request);
-    const authErr = requireAuthUser(auth);
-    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
-
-    await connectDB();
-
-    const { searchParams } = new URL(request.url);
-    const query: Record<string, any> = {};
-
-    // Data isolation
-    if (auth?.centerId) {
-      query.centerId = new mongoose.Types.ObjectId(auth.centerId);
-    } else {
-      query.$or = [
-        { centerId: { $exists: false } },
-        { centerId: null }
-      ];
-    }
-
-    const { studentId, date, groupId, month, year } = Object.fromEntries(searchParams.entries());
-
-    if (studentId) query.studentId = studentId;
-    if (date) {
-      const d = new Date(date);
-      d.setHours(12, 0, 0, 0);
-      query.date = d;
-    }
-    if (groupId) query.groupId = groupId;
-    if (month && year) {
-      const start = new Date(parseInt(year), parseInt(month) - 1, 1);
-      const end = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
-      query.date = { $gte: start, $lte: end };
-    }
-
-    const list = await Attendance.find(query).sort({ date: -1, lessonNumber: 1 }).lean();
-    return NextResponse.json({ items: list });
-  } catch (error) {
-    console.error('Attendance GET error:', error);
-    return NextResponse.json({ error: 'Server error', items: [] }, { status: 500 });
   }
 }
