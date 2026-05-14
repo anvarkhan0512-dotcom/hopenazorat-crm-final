@@ -37,6 +37,7 @@ export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [teachers, setTeachers] = useState<TeacherOpt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const { t, locale } = useLanguage();
@@ -72,16 +73,25 @@ export default function GroupsPage() {
   }, []);
 
   const fetchData = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const [gRes, tRes] = await Promise.all([
         fetch('/api/groups', { credentials: 'include' }),
         fetch('/api/users/teachers', { credentials: 'include' }),
       ]);
+      
+      if (!gRes.ok) throw new Error('Guruhlarni yuklashda xatolik');
+      
       const data = await gRes.json();
-      setGroups(data.items || []);
-      if (tRes.ok) setTeachers(await tRes.json());
-    } catch (error) {
-      console.error('Error fetching groups:', error);
+      setGroups(data.items || data.groups || data || []);
+      
+      if (tRes.ok) {
+        setTeachers(await tRes.json());
+      }
+    } catch (err: any) {
+      console.error('Error fetching groups:', err);
+      setError(err.message || 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -209,6 +219,12 @@ export default function GroupsPage() {
 
   return (
     <DashboardLayout title={t('groups')}>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={() => fetchData()} className="text-sm underline font-bold">Qayta urinish</button>
+        </div>
+      )}
       <div className="toolbar">
         <button type="button" className="btn btn-primary" onClick={() => openModal()}>
           + {t('add')} {t('groups')}
@@ -216,10 +232,10 @@ export default function GroupsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {groups.length === 0 ? (
+        {(groups || []).length === 0 ? (
           <div className="card col-span-full text-center py-8">{t('noData')}</div>
         ) : (
-          groups.map((group) => (
+          (groups || []).map((group) => (
             <div key={group._id} className="card">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-lg font-semibold">{group.name}</h3>
@@ -322,7 +338,7 @@ export default function GroupsPage() {
               onChange={(e) => setFormData({ ...formData, teacherUserId: e.target.value })}
             >
               <option value="">— {t('noData')} —</option>
-              {teachers.map((te) => (
+              {(teachers || []).map((te) => (
                 <option key={te.id} value={te.id}>
                   {te.displayName || te.username}
                 </option>
@@ -337,7 +353,7 @@ export default function GroupsPage() {
               onChange={(e) => setFormData({ ...formData, teacherUserId2: e.target.value })}
             >
               <option value="">—</option>
-              {teachers.map((te) => (
+              {(teachers || []).map((te) => (
                 <option key={te.id} value={te.id}>
                   {te.displayName || te.username}
                 </option>

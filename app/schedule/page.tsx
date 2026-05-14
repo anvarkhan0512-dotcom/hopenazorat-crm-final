@@ -41,6 +41,7 @@ export default function SchedulePage() {
   const [students, setStudents] = useState<StudentSchedule[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'all' | 'upcoming' | 'overdue'>('all');
   const [filterGroup, setFilterGroup] = useState('');
   
@@ -58,17 +59,24 @@ export default function SchedulePage() {
 
   const fetchData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const [scheduleRes, statsRes] = await Promise.all([
         fetch('/api/schedule'),
         fetch('/api/schedule?type=stats'),
       ]);
+      
+      if (!scheduleRes.ok || !statsRes.ok) {
+        throw new Error('Jadvalni yuklashda xatolik');
+      }
+
       const scheduleData = await scheduleRes.json();
       const statsData = await statsRes.json();
-      setStudents(scheduleData);
+      setStudents(Array.isArray(scheduleData) ? scheduleData : []);
       setStats(statsData);
-    } catch (error) {
-      console.error('Error fetching data:', error);
+    } catch (err: any) {
+      console.error('Error fetching data:', err);
+      setError(err.message || 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -159,6 +167,12 @@ export default function SchedulePage() {
 
   return (
     <DashboardLayout title="To'lov jadvali">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={() => fetchData()} className="text-sm underline font-bold">Qayta urinish</button>
+        </div>
+      )}
       <div className="stats-grid mb-4" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
         <div className="stat-card">
           <div className="stat-card-icon primary">👥</div>
@@ -206,7 +220,7 @@ export default function SchedulePage() {
           onChange={(e) => setFilterGroup(e.target.value)}
         >
           <option value="">Barcha guruhlar</option>
-          {groups.map(g => (
+          {(groups || []).map(g => (
             <option key={g} value={g}>{g}</option>
           ))}
         </select>
@@ -244,7 +258,7 @@ export default function SchedulePage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredStudents.map((student) => (
+                {(filteredStudents || []).map((student) => (
                   <tr key={student._id}>
                     <td className="font-medium">{student.name}</td>
                     <td>{student.phone}</td>

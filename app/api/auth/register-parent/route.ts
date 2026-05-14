@@ -14,11 +14,7 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    const existingUser = await User.findOne({ username });
-    if (existingUser) {
-      return NextResponse.json({ error: 'Username band' }, { status: 400 });
-    }
-
+    // 1. Resolve the linked student first — its centerId is the scope for parent.
     const code = String(parentAccessCode).trim().toUpperCase();
     const student = await Student.findOne({ parentAccessCode: code });
     if (!student) {
@@ -29,6 +25,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Bu talaba allaqachon boshqa akkauntga bog‘langan' }, { status: 409 });
     }
 
+    const centerId = student.centerId || null;
+
+    // 2. Center-scoped username uniqueness check.
+    const centerFilter = centerId
+      ? { centerId }
+      : { $or: [{ centerId: null }, { centerId: { $exists: false } }] };
+
+    const existingUser = await User.findOne({ username, ...centerFilter });
+    if (existingUser) {
+      return NextResponse.json({ error: 'Username band' }, { status: 400 });
+    }
+
     const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({
       username,
@@ -36,6 +44,7 @@ export async function POST(request: NextRequest) {
       role: 'parent',
       linkedStudentIds: [student._id],
       displayName: student.parentName || '',
+      centerId,
     });
 
     student.parentUserId = user._id as any;

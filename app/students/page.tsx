@@ -50,6 +50,7 @@ export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showPauseModal, setShowPauseModal] = useState(false);
@@ -115,6 +116,8 @@ export default function StudentsPage() {
   }, []);
 
   const fetchData = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const [studentsRes, groupsRes] = await Promise.all([
         fetch('/api/students', { credentials: 'include' }),
@@ -130,9 +133,9 @@ export default function StudentsPage() {
       
       setStudents(studentsData.items || studentsData.students || []);
       setGroups(groupsData.items || groupsData.groups || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      // alert('Ma\'lumotlarni yuklashda xatolik yuz berdi');
+    } catch (err: any) {
+      console.error('Error fetching data:', err);
+      setError(err.message || 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -466,6 +469,12 @@ export default function StudentsPage() {
 
   return (
     <DashboardLayout title={t('students')}>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={() => fetchData()} className="text-sm underline font-bold">Qayta urinish</button>
+        </div>
+      )}
       <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-2xl w-fit">
         <button
           onClick={() => setListTab('active')}
@@ -516,7 +525,7 @@ export default function StudentsPage() {
           onChange={(e) => setGroupFilter(e.target.value)}
         >
           <option value="">{t('allGroups')}</option>
-          {groups.map((group) => (
+          {(groups || []).map((group) => (
             <option key={group._id} value={group._id}>{group.name}</option>
           ))}
         </select>
@@ -544,12 +553,12 @@ export default function StudentsPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredStudents.length === 0 ? (
+            { (filteredStudents || []).length === 0 ? (
               <tr>
                 <td colSpan={7} className="text-center py-8">{t('noData')}</td>
               </tr>
             ) : (
-              filteredStudents.map((student) => (
+              (filteredStudents || []).map((student) => (
                 <tr key={student._id}>
                   <td>{student.name}</td>
                   <td className="text-sm">
@@ -790,7 +799,7 @@ export default function StudentsPage() {
               <button type="button" onClick={addExtraFan} className="btn btn-secondary btn-sm">+ Fan qo'shish</button>
             </div>
             <div className="space-y-4">
-              {formData.extraFans.map((fan, idx) => (
+              {(formData.extraFans || []).map((fan, idx) => (
                 <div key={idx} className="p-3 bg-gray-50 rounded-xl border space-y-2 relative">
                   <button 
                     type="button" 

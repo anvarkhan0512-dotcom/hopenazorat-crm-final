@@ -16,6 +16,7 @@ export default function DashboardAttendancePage() {
   const [lessonNumber, setLessonNumber] = useState('1');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'attendance' | 'history'>('attendance');
   const [groups, setGroups] = useState<any[]>([]);
@@ -39,21 +40,26 @@ export default function DashboardAttendancePage() {
   const fetchGroups = async () => {
     try {
       const res = await fetch('/api/groups');
+      if (!res.ok) throw new Error('Guruhlarni yuklashda xatolik');
       const data = await res.json();
-      setGroups(data.items || []);
-    } catch (err) {
+      setGroups(data.items || data.groups || data || []);
+    } catch (err: any) {
       console.error(err);
+      setError(err.message || 'Xatolik yuz berdi');
     }
   };
 
   const fetchHistory = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(`/api/attendance?startDate=${dateRange.start}&endDate=${dateRange.end}`);
+      if (!res.ok) throw new Error('Tarixni yuklashda xatolik');
       const data = await res.json();
-      setHistory(data.items || []);
-    } catch (err) {
+      setHistory(data.items || data.attendance || data || []);
+    } catch (err: any) {
       console.error(err);
+      setError(err.message || 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -67,12 +73,15 @@ export default function DashboardAttendancePage() {
 
   const fetchStudents = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/students');
+      if (!res.ok) throw new Error('O\'quvchilarni yuklashda xatolik');
       const data = await res.json();
-      setStudents(Array.isArray(data.items) ? data.items : []);
-    } catch (err) {
+      setStudents(data.items || data.students || data || []);
+    } catch (err: any) {
       console.error(err);
+      setError(err.message || 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -148,6 +157,12 @@ export default function DashboardAttendancePage() {
 
   return (
     <DashboardLayout title={t('attendance')}>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={() => { fetchStudents(); fetchGroups(); if(activeTab==='history') fetchHistory(); }} className="text-sm underline font-bold">Qayta urinish</button>
+        </div>
+      )}
       <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-2xl w-fit">
         <button
           onClick={() => setActiveTab('attendance')}
@@ -210,7 +225,7 @@ export default function DashboardAttendancePage() {
             {loading ? (
               <div className="loading"><div className="spinner" /></div>
             ) : (
-              filtered.map((s: any) => (
+              (filtered || []).map((s: any) => (
                 <div key={s._id} className="card flex items-center justify-between py-4 mb-0">
                   <div className="flex flex-col">
                     <div className="font-bold text-gray-800">{s.name}</div>
@@ -307,10 +322,10 @@ export default function DashboardAttendancePage() {
               <tbody className="divide-y">
                 {loading ? (
                   <tr><td colSpan={4} className="p-12 text-center text-gray-400">Yuklanmoqda...</td></tr>
-                ) : filteredHistory.length === 0 ? (
+                ) : (filteredHistory || []).length === 0 ? (
                   <tr><td colSpan={4} className="p-12 text-center text-gray-400">Ma'lumot topilmadi</td></tr>
                 ) : (
-                  filteredHistory.map((h: any) => (
+                  (filteredHistory || []).map((h: any) => (
                     <tr key={h._id} className="hover:bg-gray-50/50">
                       <td className="p-4">
                         <div className="font-bold text-gray-800">{h.studentName}</div>

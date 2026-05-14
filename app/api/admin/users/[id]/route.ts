@@ -23,7 +23,15 @@ export async function PUT(
     }
 
     if (username && username !== user.username) {
-      const exists = await User.findOne({ username });
+      // Center-scoped uniqueness: same username may exist in a different center.
+      const centerFilter = auth?.centerId
+        ? { centerId: auth.centerId }
+        : { $or: [{ centerId: null }, { centerId: { $exists: false } }] };
+      const exists = await User.findOne({
+        username,
+        ...centerFilter,
+        _id: { $ne: id }, // exclude current user
+      });
       if (exists) return NextResponse.json({ error: 'Username already taken' }, { status: 400 });
       user.username = username;
     }

@@ -185,7 +185,7 @@ export default function TeacherHomeworkPage() {
                 </td>
               </tr>
             ) : (
-              list.map((h: any) => <HomeworkListRow key={h._id} h={h} onOpen={openDetail} />)
+              (list || []).map((h: any) => <HomeworkListRow key={h._id} h={h} onOpen={openDetail} />)
             )}
           </tbody>
         </table>

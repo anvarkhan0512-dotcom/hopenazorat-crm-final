@@ -38,6 +38,7 @@ export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showDeadlineModal, setShowDeadlineModal] = useState(false);
   const [selectedPaymentForDeadline, setSelectedPaymentForDeadline] = useState<Payment | null>(null);
@@ -89,17 +90,25 @@ export default function PaymentsPage() {
   ]);
 
   const fetchData = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const [paymentsRes, studentsRes] = await Promise.all([
         fetch('/api/payments'),
         fetch('/api/students?status=active'),
       ]);
+      
+      if (!paymentsRes.ok || !studentsRes.ok) {
+        throw new Error('Ma\'lumotlarni yuklashda xatolik');
+      }
+
       const paymentsData = await paymentsRes.json();
       const studentsData = await studentsRes.json();
-      setPayments(paymentsData.items || []);
-      setStudents(studentsData.items || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
+      setPayments(paymentsData.items || paymentsData.payments || []);
+      setStudents(studentsData.items || studentsData.students || []);
+    } catch (err: any) {
+      console.error('Error fetching data:', err);
+      setError(err.message || 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -245,6 +254,12 @@ export default function PaymentsPage() {
 
   return (
     <DashboardLayout title={t('payments')}>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={() => fetchData()} className="text-sm underline font-bold">Qayta urinish</button>
+        </div>
+      )}
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
         <div className="stat-card">
           <div className="stat-label">{t('total')} {t('payments')}</div>
@@ -263,7 +278,7 @@ export default function PaymentsPage() {
           onChange={(e) => setStudentFilter(e.target.value)}
         >
           <option value="">{t('allGroups')}</option>
-          {students.map((student) => (
+          {(students || []).map((student) => (
             <option key={student._id} value={student._id}>{student.name}</option>
           ))}
         </select>
@@ -414,7 +429,7 @@ export default function PaymentsPage() {
               required
             >
               <option value="">{t('selectStudent')}</option>
-              {students.map((student) => (
+              {(students || []).map((student) => (
                 <option key={student._id} value={student._id}>
                   {student.name} - {formatMoney(student.monthlyPrice, locale)}
                 </option>

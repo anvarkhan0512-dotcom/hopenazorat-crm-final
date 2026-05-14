@@ -29,7 +29,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const groupId = searchParams.get('groupId');
 
-    const q: Record<string, unknown> = {};
+    const q: Record<string, any> = {};
+
+    // Data isolation
+    if (auth?.centerId) {
+      q.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      q.$or = [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ];
+    }
+
     if (auth!.role === 'teacher') {
       if (groupId) q.groupId = groupId;
     } else if (groupId) {
@@ -78,6 +89,7 @@ export async function POST(request: NextRequest) {
       attachmentUrl: attachmentUrl || '',
       dueDate: dueDate ? new Date(dueDate) : undefined,
       createdBy: auth!._id,
+      centerId: auth!.centerId || null,
     });
 
     await seedSubmissions(hw._id, groupId);

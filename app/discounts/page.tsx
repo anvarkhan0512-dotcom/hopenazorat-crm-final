@@ -43,6 +43,7 @@ export default function DiscountsPage() {
   const [discounts, setDiscounts] = useState<DiscountData[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingDiscount, setEditingDiscount] = useState<DiscountData | null>(null);
   const [activeOnly, setActiveOnly] = useState(true);
@@ -62,17 +63,24 @@ export default function DiscountsPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const [discountsRes, studentsRes] = await Promise.all([
         fetch(`/api/discounts${activeOnly ? '?active=true' : ''}`),
         fetch('/api/students?status=active'),
       ]);
+      
+      if (!discountsRes.ok || !studentsRes.ok) {
+        throw new Error('Ma\'lumotlarni yuklashda xatolik');
+      }
+
       const discountsData = await discountsRes.json();
       const studentsData = await studentsRes.json();
-      setDiscounts(discountsData.items || []);
-      setStudents((studentsData.items || []).filter((s: Student) => s.monthlyPrice > 0));
-    } catch (error) {
-      console.error('Error fetching data:', error);
+      setDiscounts(discountsData.items || discountsData.discounts || discountsData || []);
+      setStudents((studentsData.items || studentsData.students || studentsData || []).filter((s: Student) => s.monthlyPrice > 0));
+    } catch (err: any) {
+      console.error('Error fetching data:', err);
+      setError(err.message || 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -185,6 +193,12 @@ export default function DiscountsPage() {
 
   return (
     <DashboardLayout title="Chegirmalar">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={() => fetchData()} className="text-sm underline font-bold">Qayta urinish</button>
+        </div>
+      )}
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         <div className="stat-card">
           <div className="stat-card-icon primary">🎫</div>

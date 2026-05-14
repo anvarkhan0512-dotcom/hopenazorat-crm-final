@@ -23,6 +23,7 @@ export default function DebtorsPage() {
   const [debtors, setDebtors] = useState<Debtor[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { t, locale } = useLanguage();
 
   useEffect(() => {
@@ -30,13 +31,17 @@ export default function DebtorsPage() {
   }, []);
 
   const fetchDebtors = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/debtors');
+      if (!res.ok) throw new Error('Qarzdorlarni yuklashda xatolik');
       const data = await res.json();
-      setDebtors(data.items || []);
+      setDebtors(data.items || data.debtors || data || []);
       setSummary(data.summary);
-    } catch (error) {
-      console.error('Error fetching debtors:', error);
+    } catch (err: any) {
+      console.error('Error fetching debtors:', err);
+      setError(err.message || 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -54,6 +59,12 @@ export default function DebtorsPage() {
 
   return (
     <DashboardLayout title={t('debtors')}>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={() => fetchDebtors()} className="text-sm underline font-bold">Qayta urinish</button>
+        </div>
+      )}
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         <div className="stat-card">
           <div className="stat-card-icon danger">⚠️</div>

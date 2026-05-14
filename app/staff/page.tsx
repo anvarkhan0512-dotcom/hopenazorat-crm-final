@@ -22,6 +22,8 @@ export default function StaffPage() {
   const router = useRouter();
   const { t, locale } = useLanguage();
   const [list, setList] = useState<StaffRow[]>([]);
+  const [loadingList, setLoadingList] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<StaffRow | null>(null);
   const [form, setForm] = useState({
@@ -56,10 +58,20 @@ export default function StaffPage() {
     }
   }, [loading, user, router]);
 
-  const load = () => {
-    fetch('/api/staff')
-      .then((r) => r.json())
-      .then((data) => setList(data.items || []));
+  const load = async () => {
+    setLoadingList(true);
+    setError(null);
+    try {
+      const r = await fetch('/api/staff');
+      if (!r.ok) throw new Error('Xodimlarni yuklashda xatolik');
+      const data = await r.json();
+      setList(data.items || data.staff || data || []);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Xatolik yuz berdi');
+    } finally {
+      setLoadingList(false);
+    }
   };
 
   useEffect(() => {
@@ -170,6 +182,12 @@ export default function StaffPage() {
 
   return (
     <DashboardLayout title={t('staff')}>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={() => load()} className="text-sm underline font-bold">Qayta urinish</button>
+        </div>
+      )}
       <div className="toolbar">
         <button type="button" className="btn btn-primary" onClick={openNew}>
           {t('addStaff')}
@@ -193,7 +211,9 @@ export default function StaffPage() {
             </tr>
           </thead>
           <tbody>
-            {(!list || list.length === 0) ? (
+            {loadingList ? (
+              <tr><td colSpan={5} className="text-center py-8"><div className="spinner mx-auto" /></td></tr>
+            ) : (!list || list.length === 0) ? (
               <tr>
                 <td colSpan={5} className="text-center py-8">
                   {t('empty')}

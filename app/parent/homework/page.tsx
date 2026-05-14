@@ -94,7 +94,7 @@ export default function ParentHomeworkPage() {
 
   return (
     <DashboardLayout title={t('homeworkParent')}>
-      {items.map((block: any) => (
+      {(items || []).map((block: any) => (
         <div key={block.studentId} className="card mb-6">
           <h3 className="card-title mb-4">{block.name}</h3>
           {(block.homework || []).length === 0 ? (
@@ -109,7 +109,7 @@ export default function ParentHomeworkPage() {
                 </tr>
               </thead>
               <tbody>
-                {block.homework.map((row: any, i: number) => (
+                {(block.homework || []).map((row: any, i: number) => (
                   <HomeworkRow
                     key={`${block.studentId}-${row.homework._id}-${i}`}
                     row={row}

@@ -32,6 +32,7 @@ export default function InvoicesPage() {
   const [financeGroupId, setFinanceGroupId] = useState('');
   const [groupFinance, setGroupFinance] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const currentDate = new Date();
   const [monthFilter, setMonthFilter] = useState((currentDate.getMonth() + 1).toString());
@@ -56,6 +57,7 @@ export default function InvoicesPage() {
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       params.append('month', monthFilter);
@@ -63,10 +65,12 @@ export default function InvoicesPage() {
       if (statusFilter) params.append('status', statusFilter);
 
       const res = await fetch(`/api/invoices?${params}`);
+      if (!res.ok) throw new Error('Hisob-fakturalarni yuklashda xatolik');
       const data = await res.json();
-      setInvoices(data.items || []);
-    } catch (error) {
-      console.error('Error fetching invoices:', error);
+      setInvoices(data.items || data.invoices || data || []);
+    } catch (err: any) {
+      console.error('Error fetching invoices:', err);
+      setError(err.message || 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -129,6 +133,12 @@ export default function InvoicesPage() {
 
   return (
     <DashboardLayout title="To'lovlar Umumiy">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={() => fetchInvoices()} className="text-sm underline font-bold">Qayta urinish</button>
+        </div>
+      )}
       <div className="card mb-4">
         <h3 className="card-title mb-2">Guruh bo‘yicha real vaqtda hisob-kitob</h3>
         <div className="flex flex-wrap gap-2 items-center">
@@ -138,7 +148,7 @@ export default function InvoicesPage() {
             onChange={(e) => setFinanceGroupId(e.target.value)}
           >
             <option value="">Guruh tanlang</option>
-            {groups.map((g) => (
+            {(groups || []).map((g) => (
               <option key={g._id} value={g._id}>
                 {g.name}
               </option>
@@ -208,14 +218,14 @@ export default function InvoicesPage() {
           ))}
         </select>
         <select
-          className="select"
-          value={yearFilter}
-          onChange={(e) => setYearFilter(e.target.value)}
-        >
-          {[currentYear - 1, currentYear, currentYear + 1].map((year) => (
-            <option key={year} value={year}>{year}</option>
-          ))}
-        </select>
+            className="select"
+            value={yearFilter}
+            onChange={(e) => setYearFilter(e.target.value)}
+          >
+            {([currentYear - 1, currentYear, currentYear + 1] || []).map((year) => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
         <select
           className="select"
           value={statusFilter}
@@ -302,14 +312,14 @@ export default function InvoicesPage() {
                     <div className="spinner"></div>
                   </td>
                 </tr>
-              ) : invoices.length === 0 ? (
+              ) : (invoices || []).length === 0 ? (
                 <tr>
                   <td colSpan={9} className="text-center py-8">
                     {t('noData')}
                   </td>
                 </tr>
               ) : (
-                invoices.map((invoice) => (
+                (invoices || []).map((invoice) => (
                   <tr key={invoice._id}>
                     <td className="font-bold">{invoice.studentName}</td>
                     <td>{invoice.phone}</td>

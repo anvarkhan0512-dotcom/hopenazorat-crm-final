@@ -55,6 +55,8 @@ export default function FreeLessonsPage() {
   const [activeTab, setActiveTab] = useState<'lessons' | 'status' | 'results'>('lessons');
   const [list, setList] = useState<FreeLesson[]>([]);
   const [teachers, setTeachers] = useState<TeacherOpt[]>([]);
+  const [loadingData, setLoadingData] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<FreeLesson | null>(null);
@@ -88,17 +90,25 @@ export default function FreeLessonsPage() {
   }, [loading, user, isAdmin, router]);
 
   const loadData = async () => {
+    setLoadingData(true);
+    setError(null);
     try {
       const [lessonsRes, teachersRes] = await Promise.all([
         fetch('/api/free-lessons'),
         fetch('/api/users/teachers'),
       ]);
+      
+      if (!lessonsRes.ok) throw new Error('Bepul darslarni yuklashda xatolik');
+      
       const lessonsData = await lessonsRes.json();
       const teachersData = await teachersRes.json();
-      setList(lessonsData.items || []);
-      setTeachers(teachersData);
-    } catch (e) {
-      console.error(e);
+      setList(lessonsData.items || lessonsData.lessons || lessonsData || []);
+      setTeachers(teachersData || []);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Xatolik yuz berdi');
+    } finally {
+      setLoadingData(false);
     }
   };
 
@@ -186,6 +196,12 @@ export default function FreeLessonsPage() {
 
   return (
     <DashboardLayout title={t('freeLessons')}>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={() => loadData()} className="text-sm underline font-bold">Qayta urinish</button>
+        </div>
+      )}
       {/* Tabs */}
       <div className="flex border-b mb-6 bg-white rounded-t-xl overflow-hidden shadow-sm">
         <button

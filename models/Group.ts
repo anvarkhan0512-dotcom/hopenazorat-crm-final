@@ -71,7 +71,7 @@ const GroupSchema = new Schema<IGroup>(
   { timestamps: true }
 );
 
-GroupSchema.index({ name: 1 }, { unique: true });
+GroupSchema.index({ centerId: 1, name: 1 }, { unique: true, sparse: true });
 GroupSchema.index({ isActive: 1, price: 1 });
 GroupSchema.index({ teacherUserId: 1, isActive: 1 });
 

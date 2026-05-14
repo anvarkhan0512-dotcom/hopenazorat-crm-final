@@ -22,6 +22,7 @@ export default function RemindersPage() {
     forecast: Reminder[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -30,12 +31,18 @@ export default function RemindersPage() {
 
   const fetchReminders = async () => {
     setLoading(true);
+    setError(null);
     try {
       const [upcomingRes, overdueRes, forecastRes] = await Promise.all([
         fetch('/api/schedule?type=upcoming&days=7'),
         fetch('/api/schedule?type=overdue'),
         fetch('/api/schedule?type=upcoming&days=5'),
       ]);
+      
+      if (!upcomingRes.ok || !overdueRes.ok) {
+        throw new Error('Eslatmalarni yuklashda xatolik');
+      }
+
       const upcoming = await upcomingRes.json();
       const overdue = await overdueRes.json();
       const forecast = forecastRes.ok ? await forecastRes.json() : [];
@@ -49,16 +56,16 @@ export default function RemindersPage() {
       const tomorrowFormatted = tomorrow.toISOString().split('T')[0];
 
       const filtered = {
-        today: upcoming.filter((r: any) => {
+        today: (upcoming || []).filter((r: any) => {
           const date = r.nextPaymentDate?.split('T')[0];
           return date === todayFormatted;
         }),
-        tomorrow: upcoming.filter((r: any) => {
+        tomorrow: (upcoming || []).filter((r: any) => {
           const date = r.nextPaymentDate?.split('T')[0];
           return date === tomorrowFormatted;
         }),
-        overdue: overdue,
-        upcoming: upcoming.filter((r: any) => {
+        overdue: (overdue || []),
+        upcoming: (upcoming || []).filter((r: any) => {
           const date = r.nextPaymentDate?.split('T')[0];
           return date !== todayFormatted && date !== tomorrowFormatted;
         }),
@@ -66,8 +73,9 @@ export default function RemindersPage() {
       };
 
       setReminders(filtered);
-    } catch (error) {
-      console.error('Error fetching reminders:', error);
+    } catch (err: any) {
+      console.error('Error fetching reminders:', err);
+      setError(err.message || 'Xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
@@ -122,6 +130,12 @@ export default function RemindersPage() {
 
   return (
     <DashboardLayout title="Eslatmalar">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={() => fetchReminders()} className="text-sm underline font-bold">Qayta urinish</button>
+        </div>
+      )}
       {!loading && reminders?.forecast && reminders.forecast.length > 0 && (
         <div className="card mb-6">
           <h3 className="card-title mb-2">5 kunlik to‘lov prognozi</h3>
