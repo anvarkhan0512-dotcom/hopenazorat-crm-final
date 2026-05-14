@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const month = parseInt(searchParams.get('month') || '', 10) || new Date().getMonth() + 1;
     const year = parseInt(searchParams.get('year') || '', 10) || new Date().getFullYear();
 
-    const data = await getAdminFinanceOverview(month, year);
+    const data = await getAdminFinanceOverview(month, year, auth?.centerId);
     return NextResponse.json(data);
   } catch (error) {
     console.error(error);

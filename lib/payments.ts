@@ -107,7 +107,8 @@ export async function updateStudentPaymentDates(studentId: string): Promise<void
 }
 
 export async function getUpcomingPayments(
-  daysAhead: number = 7
+  daysAhead: number = 7,
+  centerFilter: any = {}
 ): Promise<PaymentSchedule[]> {
   await connectDB();
 
@@ -118,6 +119,7 @@ export async function getUpcomingPayments(
   futureDate.setDate(futureDate.getDate() + daysAhead);
 
   const students = await Student.find({
+    ...centerFilter,
     status: 'active',
     monthlyPrice: { $gt: 0 },
     nextPaymentDate: { $lte: futureDate },
@@ -149,13 +151,16 @@ export async function getUpcomingPayments(
   });
 }
 
-export async function getOverdueStudents(): Promise<PaymentSchedule[]> {
+export async function getOverdueStudents(
+  centerFilter: any = {}
+): Promise<PaymentSchedule[]> {
   await connectDB();
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const students = await Student.find({
+    ...centerFilter,
     status: 'active',
     monthlyPrice: { $gt: 0 },
     nextPaymentDate: { $lt: today },
@@ -183,7 +188,9 @@ export async function getOverdueStudents(): Promise<PaymentSchedule[]> {
   });
 }
 
-export async function getPaymentReminders(): Promise<{
+export async function getPaymentReminders(
+  centerFilter: any = {}
+): Promise<{
   today: PaymentReminder[];
   tomorrow: PaymentReminder[];
   overdue: PaymentReminder[];
@@ -208,6 +215,7 @@ export async function getPaymentReminders(): Promise<{
   };
 
   const students = await Student.find({
+    ...centerFilter,
     status: 'active',
     monthlyPrice: { $gt: 0 },
     nextPaymentDate: { $lte: weekAhead },
@@ -292,7 +300,9 @@ export async function recordPaymentAndUpdateCycle(
   await student.save();
 }
 
-export async function updateAllStudentsPaymentDates(): Promise<{
+export async function updateAllStudentsPaymentDates(
+  centerFilter: any = {}
+): Promise<{
   updated: number;
   errors: string[];
 }> {
@@ -304,6 +314,7 @@ export async function updateAllStudentsPaymentDates(): Promise<{
   };
 
   const students = await Student.find({
+    ...centerFilter,
     status: 'active',
     monthlyPrice: { $gt: 0 },
   });
@@ -324,14 +335,9 @@ export async function updateAllStudentsPaymentDates(): Promise<{
   return result;
 }
 
-export async function getPaymentStats(): Promise<{
-  totalStudents: number;
-  activeStudents: number;
-  paidThisMonth: number;
-  upcomingPayments: number;
-  overduePayments: number;
-  totalAmountDue: number;
-}> {
+export async function getPaymentStats(
+  centerFilter: any = {}
+): Promise<any> {
   await connectDB();
 
   const now = new Date();
@@ -339,19 +345,22 @@ export async function getPaymentStats(): Promise<{
   const currentYear = now.getFullYear();
 
   const [studentCount, paidCount, upcoming, overdue] = await Promise.all([
-    Student.countDocuments({ status: 'active' }),
-    Payment.countDocuments({ month: currentMonth, year: currentYear }),
+    Student.countDocuments({ ...centerFilter, status: 'active' }),
+    Payment.countDocuments({ ...centerFilter, month: currentMonth, year: currentYear }),
     Student.countDocuments({
+      ...centerFilter,
       status: 'active',
       nextPaymentDate: { $gte: now, $lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) },
     }),
     Student.countDocuments({
+      ...centerFilter,
       status: 'active',
       nextPaymentDate: { $lt: now },
     }),
   ]);
 
   const overdueStudents = await Student.find({
+    ...centerFilter,
     status: 'active',
     nextPaymentDate: { $lt: now },
   });

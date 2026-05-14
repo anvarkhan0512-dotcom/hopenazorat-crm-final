@@ -1,3 +1,4 @@
+import { NextRequest, NextResponse } from 'next/server';
 import { askGemini, getSystemPrompt } from '@/lib/gemini';
 import { askGroq, getGroqSystemPrompt } from '@/lib/groq';
 import { getAuthUser } from '@/lib/auth-server';
@@ -284,26 +285,38 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let reply = "";
-    if (imageContents.length === 0) {
-      try {
-        reply = await askGroq(messages, GROQ_SYSTEM_PROMPT);
-      } catch (groqError) {
-        console.error('Groq failed, fallback to Gemini:', groqError);
-        const aiRes = await askGemini(messages, { systemInstruction: SYSTEM_PROMPT });
-        reply = aiRes.text;
+    try { 
+      if (imageContents.length === 0) {
+        try { 
+          const reply = await askGroq(messages, GROQ_SYSTEM_PROMPT); 
+          return NextResponse.json({ reply }); 
+        } catch(groqError) {
+          console.error('Groq error:', groqError);
+          try {
+            const aiRes = await askGemini(messages, { systemInstruction: SYSTEM_PROMPT }); 
+            return NextResponse.json({ reply: aiRes.text }); 
+          } catch(geminiError) {
+            console.error('Gemini error:', geminiError);
+            return NextResponse.json({ 
+              reply: 'Kechirasiz, hozir javob bera olmayapman. Keyinroq urinib ko\'ring.' 
+            });
+          }
+        }
+      } else {
+        const aiRes = await askGemini(messages, { 
+          systemInstruction: SYSTEM_PROMPT,
+          inlineData: imageContents
+        });
+        return NextResponse.json({ reply: aiRes.text });
       }
-    } else {
-      const aiRes = await askGemini(messages, { 
-        systemInstruction: SYSTEM_PROMPT,
-        inlineData: imageContents
+    } catch (aiError) {
+      console.error('AI processing error:', aiError);
+      return NextResponse.json({ 
+        reply: 'Kechirasiz, hozir javob bera olmayapman. Keyinroq urinib ko\'ring.' 
       });
-      reply = aiRes.text;
     }
-
-    return NextResponse.json({ reply });
   } catch (error) {
     console.error('AI Chat error:', error);
-    return NextResponse.json({ error: 'Serverda xatolik yuz berdi' }, { status: 500 });
+    return NextResponse.json({ reply: 'Xatolik yuz berdi.' }, { status: 500 });
   }
 }

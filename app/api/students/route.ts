@@ -228,7 +228,24 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error) {
-    return NextResponse.json({ error: "O'quvchi qo'shishda xato" }, { status: 500 });
+  } catch (error: any) {
+    console.error('Students POST error:', error);
+    // Surface duplicate-key (e.g. username already exists in this center) as 409
+    if (error?.code === 11000) {
+      return NextResponse.json(
+        {
+          error: "Bu login (username) allaqachon band. Boshqa login tanlang.",
+          detail: error?.keyValue,
+        },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json(
+      {
+        error: "O'quvchi qo'shishda xato",
+        detail: error?.message || String(error),
+      },
+      { status: 500 }
+    );
   }
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import { Payment } from '@/models/Payment';
 import { getAuthUser, isAdminRole } from '@/lib/auth-server';
@@ -29,9 +30,20 @@ export async function GET(request: NextRequest) {
       startDate.setFullYear(now.getFullYear() - 1);
     }
 
+    const centerFilter: any = {};
+    if (auth?.centerId) {
+      centerFilter.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      centerFilter.$or = [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ];
+    }
+
     const stats = await Payment.aggregate([
       {
         $match: {
+          ...centerFilter,
           createdAt: { $gte: startDate }
         }
       },
@@ -44,13 +56,13 @@ export async function GET(request: NextRequest) {
             }
           },
           cash: {
-            $sum: { $cond: [{ $eq: ['$type', 'cash'] }, '$amount', 0] }
+            $sum: { $cond: [{ $eq: ['$method', 'cash'] }, '$amount', 0] }
           },
           card: {
-            $sum: { $cond: [{ $eq: ['$type', 'card'] }, '$amount', 0] }
+            $sum: { $cond: [{ $eq: ['$method', 'card'] }, '$amount', 0] }
           },
           transfer: {
-            $sum: { $cond: [{ $eq: ['$type', 'transfer'] }, '$amount', 0] }
+            $sum: { $cond: [{ $eq: ['$method', 'transfer'] }, '$amount', 0] }
           },
           total: { $sum: '$amount' }
         }
@@ -61,12 +73,13 @@ export async function GET(request: NextRequest) {
     const totalsByType = await Payment.aggregate([
       {
         $match: {
+          ...centerFilter,
           createdAt: { $gte: startDate }
         }
       },
       {
         $group: {
-          _id: '$type',
+          _id: '$method',
           total: { $sum: '$amount' }
         }
       }

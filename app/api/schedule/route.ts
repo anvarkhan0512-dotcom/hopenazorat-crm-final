@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import connectDB from '@/lib/db';
 import { Student } from '@/models/Student';
 import { Group } from '@/models/Group';
@@ -10,31 +11,46 @@ import {
   updateAllStudentsPaymentDates 
 } from '@/lib/payments';
 import { invalidateCache, CacheKeys } from '@/lib/cache';
+import { getAuthUser, requireAuthUser } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await getAuthUser(request);
+    const authErr = requireAuthUser(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
+
     await connectDB();
     
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const days = searchParams.get('days');
 
+    const filter: any = {};
+    if (auth?.centerId) {
+      filter.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      filter.$or = [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ];
+    }
+
     if (type === 'upcoming') {
-      const data = await getUpcomingPayments(parseInt(days || '7'));
+      const data = await getUpcomingPayments(parseInt(days || '7'), filter);
       return NextResponse.json(data);
     }
 
     if (type === 'overdue') {
-      const data = await getOverdueStudents();
+      const data = await getOverdueStudents(filter);
       return NextResponse.json(data);
     }
 
     if (type === 'stats') {
-      const data = await getPaymentStats();
+      const data = await getPaymentStats(filter);
       return NextResponse.json(data);
     }
 
-    const students = await Student.find({ status: 'active' })
+    const students = await Student.find({ ...filter, status: 'active' })
       .populate('groupId', 'name')
       .sort({ nextPaymentDate: 1 })
       .lean();
@@ -63,20 +79,34 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await getAuthUser(request);
+    const authErr = requireAuthUser(auth);
+    if (authErr) return NextResponse.json({ error: authErr.error }, { status: authErr.status });
+
+    const filter: any = {};
+    if (auth?.centerId) {
+      filter.centerId = new mongoose.Types.ObjectId(auth.centerId);
+    } else {
+      filter.$or = [
+        { centerId: { $exists: false } },
+        { centerId: null }
+      ];
+    }
+
     await connectDB();
     const data = await request.json();
     
     const { action, studentId, studentIds, ...updateData } = data;
 
     if (action === 'update-all') {
-      const result = await updateAllStudentsPaymentDates();
+      const result = await updateAllStudentsPaymentDates(filter);
       invalidateCache(CacheKeys.DASHBOARD);
       return NextResponse.json(result);
     }
 
     if (action === 'bulk-update' && studentIds) {
       for (const id of studentIds) {
-        const student = await Student.findById(id);
+        const student = await Student.findOne({ _id: id, ...filter });
         if (student) {
           if (updateData.paymentCycle) {
             student.paymentCycle = updateData.paymentCycle;
@@ -107,7 +137,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (studentId) {
-      const student = await Student.findById(studentId);
+      const student = await Student.findOne({ _id: studentId, ...filter });
       if (!student) {
         return NextResponse.json({ error: 'Student not found' }, { status: 404 });
       }

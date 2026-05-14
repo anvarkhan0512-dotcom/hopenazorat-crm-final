@@ -120,12 +120,19 @@ export default function StudentsPage() {
         fetch('/api/students', { credentials: 'include' }),
         fetch('/api/groups', { credentials: 'include' }),
       ]);
+      
+      if (!studentsRes.ok || !groupsRes.ok) {
+        throw new Error('Ma\'lumotlarni yuklashda xatolik');
+      }
+
       const studentsData = await studentsRes.json();
       const groupsData = await groupsRes.json();
-      setStudents(studentsData.items || []);
-      setGroups(groupsData.items || []);
+      
+      setStudents(studentsData.items || studentsData.students || []);
+      setGroups(groupsData.items || groupsData.groups || []);
     } catch (error) {
       console.error('Error fetching data:', error);
+      // alert('Ma\'lumotlarni yuklashda xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
