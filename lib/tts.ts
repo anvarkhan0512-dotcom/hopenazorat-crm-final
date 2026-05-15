@@ -1,11 +1,17 @@
 'use client';
 
-let currentAudio: HTMLAudioElement | null = null;
+type TTSOptions = {
+  rate?: number;
+  pitch?: number;
+  volume?: number;
+  lang?: string;
+};
+
+let currentUtterance: SpeechSynthesisUtterance | null = null;
+let isMuted = false;
 let speakingListeners: ((isSpeaking: boolean) => void)[] = [];
-let isSpeakingState = false;
 
 function notifyListeners(isSpeaking: boolean) {
-  isSpeakingState = isSpeaking;
   speakingListeners.forEach(listener => listener(isSpeaking));
 }
 
@@ -16,96 +22,112 @@ export function onSpeakingChange(listener: (isSpeaking: boolean) => void) {
   };
 }
 
-export function stopSpeaking() {
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio.src = '';
-    currentAudio = null;
-  }
-  if (window.speechSynthesis) {
-    window.speechSynthesis.cancel();
-  }
-  notifyListeners(false);
-}
-
-export async function speak(text: string, voiceId?: string): Promise<void> {
-  stopSpeaking();
-  
-  if (!text) return;
-
-  notifyListeners(true);
-
-  try {
-    const response = await fetch('/api/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, voiceId })
-    });
-
-    if (!response.ok) {
-      throw new Error('TTS_API_FAILED');
-    }
-
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    
-    currentAudio = new Audio(url);
-    currentAudio.onended = () => {
-      URL.revokeObjectURL(url);
-      notifyListeners(false);
-      currentAudio = null;
-    };
-    currentAudio.onerror = () => {
-      URL.revokeObjectURL(url);
-      notifyListeners(false);
-      currentAudio = null;
-      fallbackSpeak(text);
-    };
-
-    await currentAudio.play();
-
-  } catch (error) {
-    console.warn('Edge TTS failed, falling back to Web Speech API', error);
-    fallbackSpeak(text);
-  }
-}
-
-function fallbackSpeak(text: string) {
-  if (!('speechSynthesis' in window)) {
-    notifyListeners(false);
-    return;
-  }
-
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  
-  // Prefer natural sounding voices if available
+function getBestVoice(): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices();
   
-  // Look for Russian/Uzbek female voices or high quality Google voices
-  const preferredVoice = voices.find(v => 
-    (v.lang.includes('ru') || v.lang.includes('uz')) && 
-    (v.name.toLowerCase().includes('female') || 
-     v.name.toLowerCase().includes('milena') || 
-     v.name.toLowerCase().includes('alena') || 
-     v.name.toLowerCase().includes('google'))
-  ) || voices.find(v => v.lang.includes('ru')) || voices[0];
-
-  if (preferredVoice) {
-    utterance.voice = preferredVoice;
+  // Priority order for best natural voice
+  const preferred = [
+    'uz-UZ-MadinaNeural',      // Uzbek female neural (Edge browser)
+    'Microsoft Madina',         // Uzbek
+    'ru-RU-SvetlanaNeural',    // Russian female neural
+    'Microsoft Svetlana',       // Russian female
+    'ru-RU-DariyaNeural',      // Russian female alt
+    'Google русский',           // Google Russian
+    'Microsoft Irina',          // Russian female
+  ];
+  
+  for (const name of preferred) {
+    const found = voices.find(v =>
+      v.name.includes(name) || v.name === name
+    );
+    if (found) return found;
   }
-
-  utterance.rate = 0.9;
-  utterance.pitch = 1.1;
-  utterance.lang = 'uz-UZ';
-
-  utterance.onstart = () => notifyListeners(true);
-  utterance.onend = () => notifyListeners(false);
-  utterance.onerror = () => notifyListeners(false);
-
-  window.speechSynthesis.speak(utterance);
+  
+  // Fallback: any Russian female voice
+  const ruFemale = voices.find(v =>
+    v.lang.startsWith('ru') &&
+    !v.name.toLowerCase().includes('male')
+  );
+  if (ruFemale) return ruFemale;
+  
+  // Last fallback: any voice
+  return voices[0] || null;
 }
 
-export function isSpeaking() {
-  return isSpeakingState;
+export async function speak(
+  text: string,
+  options: TTSOptions = {}
+): Promise<void> {
+  if (isMuted || typeof window === 'undefined') return;
+  
+  // Cancel any ongoing speech
+  window.speechSynthesis.cancel();
+  
+  // Wait for voices to load if needed
+  if (window.speechSynthesis.getVoices().length === 0) {
+    await new Promise<void>(resolve => {
+      window.speechSynthesis.onvoiceschanged = () => resolve();
+      setTimeout(resolve, 1000); // timeout fallback
+    });
+  }
+  
+  return new Promise((resolve, reject) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    currentUtterance = utterance;
+    
+    const voice = getBestVoice();
+    if (voice) utterance.voice = voice;
+    
+    utterance.lang = options.lang || 'uz-UZ';
+    utterance.rate = options.rate || 0.92;
+    utterance.pitch = options.pitch || 1.05;
+    utterance.volume = options.volume || 1;
+    
+    utterance.onstart = () => notifyListeners(true);
+    utterance.onend = () => {
+      notifyListeners(false);
+      resolve();
+    };
+    utterance.onerror = (e) => {
+      notifyListeners(false);
+      if (e.error !== 'interrupted') reject(e);
+      else resolve();
+    };
+    
+    window.speechSynthesis.speak(utterance);
+    
+    // Chrome bug fix: keep speech alive
+    const keepAlive = setInterval(() => {
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      } else {
+        clearInterval(keepAlive);
+      }
+    }, 10000);
+    
+    const originalOnEnd = utterance.onend;
+    utterance.onend = (ev) => {
+      clearInterval(keepAlive);
+      if (originalOnEnd) originalOnEnd.call(utterance, ev);
+    };
+  });
+}
+
+export function stopSpeaking(): void {
+  if (typeof window !== 'undefined') {
+    window.speechSynthesis.cancel();
+    currentUtterance = null;
+    notifyListeners(false);
+  }
+}
+
+export function setMuted(muted: boolean): void {
+  isMuted = muted;
+  if (muted) stopSpeaking();
+}
+
+export function isSpeakingNow(): boolean {
+  return typeof window !== 'undefined' &&
+    window.speechSynthesis.speaking;
 }
