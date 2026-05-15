@@ -4,19 +4,31 @@ import { Group } from '@/models/Group';
 import { Payment } from '@/models/Payment';
 import { User } from '@/models/User';
 import { Attendance } from '@/models/Attendance';
-import { Types } from 'mongoose';
+import { Invoice } from '@/models/Invoice';
+import mongoose, { Types } from 'mongoose';
 
 export async function fetchContextData(message: string, role: string, centerId: string | null, userId: string) {
   await connectDB();
   const msg = message.toLowerCase();
   const data: any = {};
   
-  const centerFilter = centerId 
-    ? { centerId: new Types.ObjectId(centerId) } 
-    : { $or: [{ centerId: { $exists: false } }, { centerId: null }] };
+  // Normalize centerId filter to match other API routes
+  const centerFilter: any = {};
+  if (centerId) {
+    centerFilter.centerId = new mongoose.Types.ObjectId(centerId);
+  } else if (role !== 'boss') {
+    centerFilter.$or = [
+      { centerId: { $exists: false } },
+      { centerId: null }
+    ];
+  }
 
   // BOSS query logic - no center restriction
   const filter = role === 'boss' ? {} : centerFilter;
+
+  console.log('DEBUG AI Agent - centerId:', centerId);
+  console.log('DEBUG AI Agent - role:', role);
+  console.log('DEBUG AI Agent - filter:', JSON.stringify(filter));
 
   // Intent parsing
   const isStudent = msg.includes('talaba') || msg.includes('o\'quvchi');
@@ -25,6 +37,10 @@ export async function fetchContextData(message: string, role: string, centerId: 
   const isStaff = msg.includes('xodim') || msg.includes('ustoz') || msg.includes('o\'qituvchi');
   const isDebt = msg.includes('qarz') || msg.includes('qarzdor');
   const isAttendance = msg.includes('davomat') || msg.includes('keldi');
+
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
 
   try {
     if (isStudent) {
@@ -44,7 +60,6 @@ export async function fetchContextData(message: string, role: string, centerId: 
       if (role === 'teacher') {
         data.groups = await Group.find({ ...centerFilter, teacherUserId: userId }).lean();
       } else if (role === 'student' || role === 'parent') {
-        // Handled by student fetch usually, but for explicit group questions:
         const student = await Student.findOne({ ...centerFilter, studentUserId: userId });
         if (student?.groupId) {
           data.group = await Group.findById(student.groupId).lean();
@@ -62,24 +77,42 @@ export async function fetchContextData(message: string, role: string, centerId: 
         const kids = await Student.find({ ...centerFilter, parentUserId: userId });
         data.payments = await Payment.find({ ...centerFilter, studentId: { $in: kids.map(k => k._id) } }).sort({ createdAt: -1 }).limit(10).lean();
       } else {
-        const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        data.recentPayments = await Payment.find({ ...filter, createdAt: { $gte: startOfMonth } }).sort({ createdAt: -1 }).limit(20).lean();
         
-        const stats = await Payment.aggregate([
-          { $match: { ...filter, createdAt: { $gte: startOfMonth } } },
-          { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+        const [recentPayments, monthlyStats] = await Promise.all([
+          Payment.find({ ...filter, month: currentMonth, year: currentYear }).sort({ createdAt: -1 }).limit(10).lean(),
+          Payment.aggregate([
+            { $match: { ...filter, month: currentMonth, year: currentYear } },
+            { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+          ])
         ]);
-        data.monthlyStats = stats[0] || { total: 0, count: 0 };
+        
+        data.recentPayments = recentPayments;
+        data.monthlyStats = monthlyStats[0] || { total: 0, count: 0 };
       }
     }
 
     if (isDebt && (role === 'admin' || role === 'boss')) {
-      data.debtors = await Student.find({ 
-        ...filter, 
-        status: 'active',
-        lastPaymentDate: { $lt: new Date(Date.now() - 30*24*60*60*1000) }
-      }).select('name phone monthlyPrice').limit(15).lean();
+      const [debtorsInvoices, debtorsSummary] = await Promise.all([
+        Invoice.find({ ...filter, month: currentMonth, year: currentYear, status: { $ne: 'paid' } })
+          .populate('studentId', 'name phone')
+          .sort({ amount: -1 })
+          .limit(15)
+          .lean(),
+        Invoice.aggregate([
+          { $match: { ...filter, month: currentMonth, year: currentYear, status: { $ne: 'paid' } } },
+          { $group: { _id: null, totalDebt: { $sum: { $subtract: ['$amount', '$paidAmount'] } }, count: { $sum: 1 } } }
+        ])
+      ]);
+
+      data.debtors = debtorsInvoices.map((inv: any) => ({
+        name: inv.studentId?.name || 'Noma\'lum',
+        phone: inv.studentId?.phone || '',
+        debt: inv.amount - inv.paidAmount
+      }));
+      data.debtSummary = debtorsSummary[0] || { totalDebt: 0, count: 0 };
+      
+      console.log('DEBUG AI Agent - debtors count:', data.debtSummary.count);
     }
 
     if (isStaff && (role === 'admin' || role === 'boss')) {
@@ -96,3 +129,4 @@ export async function fetchContextData(message: string, role: string, centerId: 
     return { error: 'Ma\'lumotlarni olishda xatolik yuz berdi' };
   }
 }
+
