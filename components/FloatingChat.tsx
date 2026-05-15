@@ -5,6 +5,8 @@ import { useCenter } from '@/lib/center-context';
 import { useAuth } from '@/components/AuthProvider';
 
 import MicButton from '@/components/MicButton';
+import { speak, stopSpeaking, onSpeakingChange } from '@/lib/tts';
+import SoundWave from '@/components/SoundWave';
 
 export default function FloatingChat() {
   const { centerName } = useCenter();
@@ -14,7 +16,13 @@ export default function FloatingChat() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isAIspeaking, setIsAIspeaking] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    return onSpeakingChange(setIsAIspeaking);
+  }, []);
 
   // Isolate chat history by user
   const chatKey = user ? `chat_history_floating_${user.id}` : 'chat_history_floating_guest';
@@ -60,7 +68,9 @@ export default function FloatingChat() {
         role: 'assistant',
         content: reply
       }]);
-      speakText(reply);
+      if (!isMuted) {
+        speak(reply);
+      }
     } catch (e) {
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -80,26 +90,11 @@ export default function FloatingChat() {
     }
   };
 
-  const speakText = (text: string) => {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Set language to Uzbek
-    utterance.lang = 'uz-UZ';
-    
-    // Try to find a better voice
-    const voices = window.speechSynthesis.getVoices();
-    const uzbekVoice = voices.find(v => v.lang === 'uz-UZ' || v.lang === 'uz');
-    if (uzbekVoice) {
-      utterance.voice = uzbekVoice;
-    } else {
-      // Fallback to Russian which often sounds better than default for Uzbek
-      const russianVoice = voices.find(v => v.lang === 'ru-RU' || v.lang === 'ru');
-      if (russianVoice) utterance.voice = russianVoice;
+  const toggleMute = () => {
+    if (!isMuted) {
+      stopSpeaking();
     }
-
-    window.speechSynthesis.speak(utterance);
+    setIsMuted(!isMuted);
   };
 
   // Hide conditions - AFTER all hooks
@@ -149,13 +144,22 @@ export default function FloatingChat() {
             flex-shrink-0">
             <span className="text-white font-bold
               text-sm">🤖 {centerName} AI</span>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white text-lg
-                hover:opacity-70 w-8 h-8
-                flex items-center justify-center">
-              ✕
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={toggleMute}
+                className="text-white hover:opacity-70 w-8 h-8 flex items-center justify-center transition-all"
+                title={isMuted ? "Ovozni yoqish" : "Ovozni o'chirish"}
+              >
+                {isMuted ? "🔇" : "🔊"}
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-white text-lg
+                  hover:opacity-70 w-8 h-8
+                  flex items-center justify-center">
+                ✕
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto
@@ -169,12 +173,23 @@ export default function FloatingChat() {
             {messages.map((msg, i) => (
               <div key={i}
                 className={`p-2 rounded-xl
-                  text-sm leading-relaxed
+                  text-sm leading-relaxed relative group
                   ${msg.role === 'user'
                     ? 'bg-purple-100 ml-6 text-right'
                     : 'bg-white mr-6 shadow-sm'
                   }`}>
                 {msg.content}
+                {msg.role === 'assistant' && (
+                  <div className="flex items-center mt-1">
+                    <button
+                      onClick={() => speak(msg.content)}
+                      className="text-[10px] text-purple-600 hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      Qayta eshitish
+                    </button>
+                    {isAIspeaking && i === messages.length - 1 && <SoundWave isSpeaking={isAIspeaking} />}
+                  </div>
+                )}
               </div>
             ))}
             {loading && (

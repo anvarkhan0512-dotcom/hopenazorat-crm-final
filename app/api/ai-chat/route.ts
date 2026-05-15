@@ -248,11 +248,23 @@ export async function POST(request: NextRequest) {
     const SYSTEM_PROMPT = getSystemPrompt(centerName);
     const GROQ_SYSTEM_PROMPT = getGroqSystemPrompt(centerName);
 
-    const formData = await request.formData();
-    const message = (formData.get('message') as string) || '';
-    const historyJson = (formData.get('history') as string) || '[]';
-    const history = historyJson ? JSON.parse(historyJson) : [];
-    const files = formData.getAll('files') as File[];
+    let message = '';
+    let history = [];
+    let files: File[] = [];
+
+    const contentType = request.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      message = (formData.get('message') as string) || '';
+      const historyJson = (formData.get('history') as string) || '[]';
+      history = historyJson ? JSON.parse(historyJson) : [];
+      files = formData.getAll('files') as File[];
+    } else {
+      const body = await request.json();
+      message = body.message || '';
+      history = body.history || [];
+      // role and page are also available in body if needed for future logic
+    }
 
     const roleContext = await getRoleContext( 
       userId, 

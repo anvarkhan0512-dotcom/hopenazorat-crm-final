@@ -8,6 +8,8 @@ import { useCenter } from '@/lib/center-context';
 import { useRouter } from 'next/navigation';
 
 import MicButton from '@/components/MicButton';
+import { speak, stopSpeaking, onSpeakingChange } from '@/lib/tts';
+import SoundWave from '@/components/SoundWave';
 
 export default function AIAssistantPage() {
   const { t } = useLanguage();
@@ -17,6 +19,12 @@ export default function AIAssistantPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [input, setInput] = useState('');
+  const [isAIspeaking, setIsAIspeaking] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+
+  useEffect(() => {
+    return onSpeakingChange(setIsAIspeaking);
+  }, []);
 
   // Isolate chat history by user and center
   const chatKey = authUser ? `chat_history_${authUser.id}` : 'chat_history_guest';
@@ -55,6 +63,7 @@ export default function AIAssistantPage() {
   const clearMessages = () => {
     setMessages([]);
     localStorage.removeItem(chatKey);
+    stopSpeaking();
   };
 
   const sendMessage = async (messageText: string, files: File[] = []) => {
@@ -77,18 +86,21 @@ export default function AIAssistantPage() {
         body: formData
       });
       const data = await res.json();
+      const reply = data.reply || data.message;
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: data.reply || data.message,
+        content: reply,
         timestamp: new Date()
       }]);
+      if (voiceEnabled) {
+        speak(reply);
+      }
     } catch (e) {
       console.error(e);
     }
     setIsProcessing(false);
   };
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -98,37 +110,18 @@ export default function AIAssistantPage() {
     }
   }, [authLoading, authUser, router]);
 
-  const speakText = (text: string) => {
-    if (!voiceEnabled || !('speechSynthesis' in window)) return;
-    
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'uz-UZ';
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    
-    // Try to find Uzbek voice, fallback to default
-    const voices = window.speechSynthesis.getVoices();
-    const uzVoice = voices.find(v => v.lang.includes('uz'));
-    if (uzVoice) utterance.voice = uzVoice;
-    
-    window.speechSynthesis.speak(utterance);
-  };
-
   useEffect(() => {
-    if (messages.length > 0) {
-      const lastMsg = messages[messages.length - 1];
-      if (lastMsg.role === 'assistant' && !isProcessing) {
-        speakText(lastMsg.content);
-      }
-    }
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isProcessing]);
+
+  const toggleVoice = () => {
+    if (voiceEnabled) {
+      stopSpeaking();
+    }
+    setVoiceEnabled(!voiceEnabled);
+  };
 
   const handleSend = async (e?: React.FormEvent | string, filesOverride?: File[]) => {
     if (e && typeof e !== 'string') e.preventDefault();
@@ -207,7 +200,7 @@ export default function AIAssistantPage() {
           </div>
           <div className="flex items-center gap-2">
             <button 
-              onClick={() => setVoiceEnabled(!voiceEnabled)}
+              onClick={toggleVoice}
               className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
               title={voiceEnabled ? "Ovozni o'chirish" : "Ovozni yoqish"}
             >
@@ -290,9 +283,22 @@ export default function AIAssistantPage() {
                   </div>
                 )}
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                <span className={`text-[10px] block mt-1 opacity-70 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+                <div className={`flex items-center gap-2 mt-1 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <span className="text-[10px] opacity-70">
+                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  {msg.role === 'assistant' && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => speak(msg.content)}
+                        className="text-[10px] text-indigo-600 hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        Qayta eshitish
+                      </button>
+                      {isAIspeaking && i === messages.length - 1 && <SoundWave isSpeaking={isAIspeaking} />}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}

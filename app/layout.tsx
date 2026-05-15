@@ -9,6 +9,7 @@ import { PWAProvider } from '@/lib/pwa-context';
 import PWAInstallModal from '@/components/PWAInstallModal';
 import PWAInitializer from '@/components/PWAInitializer';
 import FloatingChat from '@/components/FloatingChat';
+import GlobalVoiceAssistant from '@/components/GlobalVoiceAssistant';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -58,7 +59,7 @@ export default function RootLayout({
                 <AIProvider>
                   <PWAInitializer />
                   {children}
-                  <FloatingChat />
+                  <GlobalVoiceAssistant />
                   <PWAInstallModal />
                 </AIProvider>
               </PWAProvider>
