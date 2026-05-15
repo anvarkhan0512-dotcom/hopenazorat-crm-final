@@ -8,6 +8,8 @@ import { getAuthUser, requireAuthUser, requireAdmin, isAdminRole } from '@/lib/a
 import { ensureUniqueParentCode } from '@/lib/parentCode';
 import { createStudentLoginUser } from '@/lib/studentUser';
 import { notifyStudentAdded } from '@/lib/telegram';
+import { sendSMS } from '@/lib/sms';
+import { SMSTemplates } from '@/lib/sms/templates';
 import { checkAndNotifyDeadlines, checkUnpaidLessons } from '@/lib/cron-check';
 import { Center } from '@/models/Center';
 
@@ -199,7 +201,12 @@ export async function POST(request: NextRequest) {
       student.studentUserId = stuUser._id;
       await student.save();
       credentials = { username, password: plainPassword };
-    } catch (e) {
+      
+      // Send Welcome SMS
+      if (student.phone) {
+        sendSMS(student.phone, SMSTemplates.WELCOME(student.name), auth!.centerId);
+      }
+    } catch (err) {
       console.error('Student login user create failed:', e);
       await Student.findByIdAndDelete(student._id);
       if (data.groupId) {

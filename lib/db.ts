@@ -2,6 +2,10 @@ import mongoose from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
+if (!MONGODB_URI) {
+  throw new Error('MONGODB_URI is not defined in environment variables');
+}
+
 const mongooseOptions = {
   maxPoolSize: 50,
   minPoolSize: 10,
@@ -10,29 +14,26 @@ const mongooseOptions = {
   bufferCommands: false,
 };
 
-interface MongooseConnection {
-  conn: typeof mongoose | null;
-  promise: Promise<typeof mongoose> | null;
-  lastAccess: number;
+declare global {
+  var mongoose: {
+    conn: typeof mongoose | null;
+    promise: Promise<typeof mongoose> | null;
+  };
 }
 
-let cached: MongooseConnection = (global as any).mongoose;
+let cached = global.mongoose;
 
 if (!cached) {
-  cached = (global as any).mongoose = { conn: null, promise: null, lastAccess: Date.now() };
+  cached = global.mongoose = { conn: null, promise: null };
 }
 
 async function connectDB(): Promise<typeof mongoose> {
-  if (!MONGODB_URI) {
-    throw new Error('MONGODB_URI environment variable is not set');
-  }
-  if (cached.conn?.connection?.readyState === 1) {
-    cached.lastAccess = Date.now();
+  if (cached.conn) {
     return cached.conn;
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, mongooseOptions).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI!, mongooseOptions).then((mongoose) => {
       console.log('MongoDB connected successfully');
       return mongoose;
     });
@@ -40,7 +41,6 @@ async function connectDB(): Promise<typeof mongoose> {
 
   try {
     cached.conn = await cached.promise;
-    cached.lastAccess = Date.now();
   } catch (e) {
     cached.promise = null;
     console.error('MongoDB connection error:', e);

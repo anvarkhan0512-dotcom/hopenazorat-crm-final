@@ -7,6 +7,8 @@ import { useAuth } from '@/components/AuthProvider';
 import { useCenter } from '@/lib/center-context';
 import { useRouter } from 'next/navigation';
 
+import MicButton from '@/components/MicButton';
+
 export default function AIAssistantPage() {
   const { t } = useLanguage();
   const { centerName } = useCenter();
@@ -139,6 +141,28 @@ export default function AIAssistantPage() {
     setInput('');
     setSelectedFiles([]);
     await sendMessage(messageText, files);
+  };
+
+  useEffect(() => {
+    let silenceTimer: NodeJS.Timeout;
+    if (input.trim() && !isProcessing) {
+      silenceTimer = setTimeout(() => {
+        // Auto-submit after 1.5s silence if input is from voice (simple heuristic)
+        // We could refine this by checking if the last change was from MicButton
+      }, 1500);
+    }
+    return () => clearTimeout(silenceTimer);
+  }, [input, isProcessing]);
+
+  const handleMicTranscript = (text: string) => {
+    setInput(text);
+    // Auto send after transcript if it's a final-like result
+    if (text.length > 3) {
+      const timer = setTimeout(() => {
+        handleSend(text);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
   };
 
   useEffect(() => {
@@ -336,6 +360,10 @@ export default function AIAssistantPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={isProcessing}
+            />
+            <MicButton 
+              onTranscript={handleMicTranscript} 
+              className="mr-1"
             />
             <button 
               type="submit" 

@@ -4,6 +4,8 @@ import { usePathname } from 'next/navigation';
 import { useCenter } from '@/lib/center-context';
 import { useAuth } from '@/components/AuthProvider';
 
+import MicButton from '@/components/MicButton';
+
 export default function FloatingChat() {
   const { centerName } = useCenter();
   const { user } = useAuth();
@@ -66,6 +68,16 @@ export default function FloatingChat() {
       }]);
     }
     setLoading(false);
+  };
+
+  const handleMicTranscript = (text: string) => {
+    setInput(text);
+    if (text.length > 3) {
+      const timer = setTimeout(() => {
+        sendMessage();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
   };
 
   const speakText = (text: string) => {
@@ -186,7 +198,11 @@ export default function FloatingChat() {
                 rounded-xl px-3 py-2 text-sm
                 outline-none focus:border-purple-400"
             />
-            <button
+            <MicButton 
+              onTranscript={handleMicTranscript}
+              className="flex-shrink-0"
+            />
+            <button 
               onClick={sendMessage}
               disabled={loading}
               className="bg-purple-700 text-white

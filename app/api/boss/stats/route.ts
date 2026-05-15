@@ -5,6 +5,7 @@ import { Student } from '@/models/Student';
 import { Group } from '@/models/Group';
 import { Payment } from '@/models/Payment';
 import { User } from '@/models/User';
+import { SMSLog } from '@/models/SMSLog';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,8 @@ export async function GET(request: NextRequest) {
       todayRevenue,
       totalParents,
       connectedParents,
-      teachers
+      teachers,
+      smsStats
     ] = await Promise.all([
       Student.countDocuments({ ...query, status: 'active' }),
       Student.countDocuments({ ...query, status: { $in: ['active', 'inactive'] } }),
@@ -44,8 +46,31 @@ export async function GET(request: NextRequest) {
       ]),
       User.countDocuments({ ...query, role: 'parent' }),
       User.countDocuments({ ...query, role: 'parent', telegramChatId: { $exists: true, $ne: '' } }),
-      User.find({ ...query, role: 'teacher' }).select('displayName avatarUrl').limit(10).lean()
+      User.find({ ...query, role: 'teacher' }).select('displayName avatarUrl').limit(10).lean(),
+      SMSLog.aggregate([
+        { $match: { createdAt: { $gte: startOfDay } } },
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 }
+          }
+        }
+      ])
     ]);
+
+    const smsSummary = {
+      total: 0,
+      sent: 0,
+      failed: 0,
+      pending: 0
+    };
+
+    for (const stat of smsStats) {
+      smsSummary.total += stat.count;
+      if (stat._id === 'sent') smsSummary.sent = stat.count;
+      else if (stat._id === 'failed') smsSummary.failed = stat.count;
+      else if (stat._id === 'pending') smsSummary.pending = stat.count;
+    }
 
     return NextResponse.json({
       markaz: {
@@ -64,7 +89,8 @@ export async function GET(request: NextRequest) {
         total: totalStudents,
         active: activeStudents,
         inactive: inactiveStudents
-      }
+      },
+      sms: smsSummary
     });
   } catch (error: any) {
     console.error(error);

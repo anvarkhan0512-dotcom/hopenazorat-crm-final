@@ -1,6 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+if (!process.env.GEMINI_API_KEY) {
+  console.warn('GEMINI_API_KEY is not defined in environment variables');
+}
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'missing-key');
 
 export const getSystemPrompt = (centerName: string = 'O\'quv markaz') => `Sen ${centerName} 
  o'quv markazi CRM tizimining AI yordamchisisisan. 

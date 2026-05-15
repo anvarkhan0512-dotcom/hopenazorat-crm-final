@@ -1,7 +1,11 @@
 import Groq from "groq-sdk";
 
+if (!process.env.GROQ_API_KEY) {
+  console.warn('GROQ_API_KEY is not defined in environment variables');
+}
+
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: process.env.GROQ_API_KEY || 'missing-key',
 });
 
 export const getGroqSystemPrompt = (centerName: string = 'O\'quv markaz') => `Sen ${centerName} 

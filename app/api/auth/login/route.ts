@@ -7,6 +7,11 @@ import { LoginHistory } from '@/models/LoginHistory';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is not defined');
+if (!process.env.JWT_SECRET) {
+  console.warn('JWT_SECRET is not defined, using fallback');
+}
+
 /** Login uchun telefon variantlari (phones[0] / phone bilan solishtirish) */
 function phoneLoginVariants(raw: string): string[] {
   const t = raw.replace(/\s+/g, '');

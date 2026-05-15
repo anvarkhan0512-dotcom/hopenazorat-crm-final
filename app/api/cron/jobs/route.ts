@@ -38,6 +38,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const jobs = getCronJobsStatus();
-  return NextResponse.json({ jobs });
+  try {
+    const jobs = getCronJobsStatus();
+    return NextResponse.json({ jobs });
+  } catch (error: any) {
+    console.error('Get cron jobs status error:', error);
+    return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
+  }
 }

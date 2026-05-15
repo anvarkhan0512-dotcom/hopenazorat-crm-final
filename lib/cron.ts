@@ -1,6 +1,8 @@
 import { generateMonthlyInvoices, getDebtorsReport } from '@/lib/billing';
 import { sendTelegramMessage } from '@/lib/telegram';
 import { runParentPaymentReminders, runDebtorTelegramReminders } from '@/lib/parentReminders';
+import { sendSMS } from '@/lib/sms';
+import { SMSTemplates } from '@/lib/sms/templates';
 import { checkDiscountExpirations } from '@/lib/discount';
 import { Center } from '@/models/Center';
 
@@ -53,6 +55,28 @@ export async function runCenterTrialCheckJob(): Promise<{ success: boolean; bloc
 
   try {
     const now = new Date();
+    
+    // Centers with trial ending in 3 days
+    const threeDaysFromNow = new Date();
+    threeDaysFromNow.setDate(now.getDate() + 3);
+    const expiringSoon = await Center.find({
+      trialEndsAt: { 
+        $gte: new Date(threeDaysFromNow.setHours(0,0,0,0)), 
+        $lte: new Date(threeDaysFromNow.setHours(23,59,59,999)) 
+      },
+      isBlocked: false
+    });
+
+    for (const center of expiringSoon) {
+      if (center.adminPhone) {
+        sendSMS(
+          center.adminPhone, 
+          SMSTemplates.TRIAL_EXPIRY(3, '+998901234567'), 
+          center._id
+        );
+      }
+    }
+
     const result = await Center.updateMany(
       { trialEndsAt: { $lt: now }, isBlocked: false },
       { $set: { isBlocked: true } }
@@ -141,6 +165,18 @@ export async function runDailyDebtorCheck(): Promise<{
         `Qisman toʻlagan: ${report.summary.partial} ta\n` +
         `Jami qarz: ${report.totalDebt.toLocaleString('uz-UZ')} soʻm`
       );
+
+      // Auto SMS for debtors (> 3 days overdue logic would usually be in the report)
+      // For now, let's notify those in the report
+      for (const debtor of report.debtors) {
+        if (debtor.phone && debtor.debt > 0) {
+          sendSMS(
+            debtor.phone,
+            SMSTemplates.DEBT_WARNING(debtor.studentName, debtor.debt),
+            debtor.centerId || null
+          );
+        }
+      }
     }
 
     return {

@@ -5,6 +5,11 @@ import { User } from '@/models/User';
 import { Center } from '@/models/Center';
 import bcrypt from 'bcryptjs';
 
+if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI is not defined');
+if (!process.env.JWT_SECRET) {
+  console.warn('JWT_SECRET is not defined, using fallback');
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || 'edu-crm-secret-key-2024';
 
 export async function GET(request: NextRequest) {
