@@ -14,7 +14,7 @@ export async function askOpenRouter(
   messages: any[],
   systemPrompt?: string
 ): Promise<string> {
-  if (!process.env.OPENROUTER_API_KEY) {
+  if (!process.env.OPENROUTER_API_KEY_11) {
     throw new Error('OPENROUTER_API_KEY topilmadi');
   }
 
@@ -25,7 +25,7 @@ export async function askOpenRouter(
   const res = await fetch(OPENROUTER_URL, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY_11}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': 'https://hopenazorat.vercel.app',
       'X-Title': 'Edu CRM',
