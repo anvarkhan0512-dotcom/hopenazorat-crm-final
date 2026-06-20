@@ -231,9 +231,9 @@ export async function processVoiceWithGemini(audioData: Buffer, mimeType: string
 export async function transcribeAudioWithGemini(audioBlob: Blob): Promise<string> {
   const arrayBuffer = await audioBlob.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
-  
+
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-  
+
   const result = await model.generateContent([
     {
       inlineData: {
@@ -243,6 +243,25 @@ export async function transcribeAudioWithGemini(audioBlob: Blob): Promise<string
     },
     { text: "Ushbu ovozli xabarni so'zma-so'z matnga o'giring. Faqat matnni qaytaring, hech qanday qo'shimcha izoh bermang." }
   ]);
-  
+
+  return result.response.text();
+}
+
+export async function askGeminiText(
+  messages: { role: string; content: string }[],
+  systemPrompt?: string
+): Promise<string> {
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-2.0-flash',
+    systemInstruction: systemPrompt || SYSTEM_PROMPT,
+    // tools berilmaydi — [ACTION] protokoli matn ko'rinishida qolishi uchun
+  });
+  const history = messages.slice(0, -1).map((m) => ({
+    role: m.role === 'user' ? 'user' : 'model',
+    parts: [{ text: m.content }],
+  }));
+  const chat = model.startChat({ history });
+  const last = messages[messages.length - 1].content;
+  const result = await chat.sendMessage(last);
   return result.response.text();
 }

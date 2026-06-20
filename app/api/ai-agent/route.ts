@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
-import { askGroq } from '@/lib/groq';
+import { askAIChain } from '@/lib/ai/router';
 import { getAgentSystemPrompt } from '@/lib/ai-agent/prompts';
 import { fetchContextData } from '@/lib/ai-agent/dataFetcher';
 import { executeAgentAction } from '@/lib/ai-agent/actionExecutor';
@@ -44,8 +44,8 @@ ${JSON.stringify(contextData, null, 2)}
       }
     ];
 
-    const aiResponse = await askGroq(messages, systemPrompt);
-    
+    const { text: aiResponse, provider } = await askAIChain(messages, systemPrompt);
+
     // 4. Check and Execute Action
     let actionResult = null;
     if (aiResponse.includes('[ACTION:')) {
@@ -55,10 +55,11 @@ ${JSON.stringify(contextData, null, 2)}
     // 5. Cleanup response (remove action tags from text for cleaner UI)
     const cleanText = aiResponse.replace(/\[ACTION:.*\]/g, '').trim();
 
-    return NextResponse.json({ 
-      text: cleanText, 
+    return NextResponse.json({
+      text: cleanText,
       action: actionResult,
-      raw: aiResponse // keeping for debugging
+      provider,
+      raw: aiResponse
     });
 
   } catch (error: any) {

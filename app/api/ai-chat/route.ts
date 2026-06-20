@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { askGemini, getSystemPrompt } from '@/lib/gemini';
-import { askGroq, getGroqSystemPrompt } from '@/lib/groq';
+import { getGroqSystemPrompt } from '@/lib/groq';
+import { askAIChain } from '@/lib/ai/router';
 import { getAuthUser } from '@/lib/auth-server';
 import connectDB from '@/lib/db';
 
@@ -297,35 +298,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    try { 
-      if (imageContents.length === 0) {
-        try { 
-          const reply = await askGroq(messages, GROQ_SYSTEM_PROMPT); 
-          return NextResponse.json({ reply }); 
-        } catch(groqError) {
-          console.error('Groq error:', groqError);
-          try {
-            const aiRes = await askGemini(messages, { systemInstruction: SYSTEM_PROMPT }); 
-            return NextResponse.json({ reply: aiRes.text }); 
-          } catch(geminiError) {
-            console.error('Gemini error:', geminiError);
-            return NextResponse.json({ 
-              reply: 'Kechirasiz, hozir javob bera olmayapman. Keyinroq urinib ko\'ring.' 
-            });
-          }
-        }
-      } else {
-        const aiRes = await askGemini(messages, { 
-          systemInstruction: SYSTEM_PROMPT,
-          inlineData: imageContents
+    if (imageContents.length === 0) {
+      try {
+        const { text } = await askAIChain(messages, GROQ_SYSTEM_PROMPT);
+        return NextResponse.json({ reply: text });
+      } catch (e) {
+        console.error('AI chain error:', e);
+        return NextResponse.json({
+          reply: "Kechirasiz, hozir javob bera olmayapman. Keyinroq urinib ko'ring.",
         });
-        return NextResponse.json({ reply: aiRes.text });
       }
-    } catch (aiError) {
-      console.error('AI processing error:', aiError);
-      return NextResponse.json({ 
-        reply: 'Kechirasiz, hozir javob bera olmayapman. Keyinroq urinib ko\'ring.' 
+    } else {
+      const aiRes = await askGemini(messages, {
+        systemInstruction: SYSTEM_PROMPT,
+        inlineData: imageContents,
       });
+      return NextResponse.json({ reply: aiRes.text });
     }
   } catch (error) {
     console.error('AI Chat error:', error);
