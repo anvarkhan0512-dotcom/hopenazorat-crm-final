@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db'; 
 import { User } from '@/models/User'; 
 import bcrypt from 'bcryptjs'; 
- 
+export const dynamic = 'force-dynamic';
 export async function GET() { 
   await connectDB(); 
    
